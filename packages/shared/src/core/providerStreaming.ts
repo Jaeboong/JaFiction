@@ -110,16 +110,15 @@ class StreamProcessor implements ProviderStreamProcessor {
 
     if (this.providerId === "claude") {
       const cleaned = stripAnsi(text);
-      if (!cleaned.trim() && !this.plainStreamStarted) {
-        return;
-      }
-
       if (!this.plainStreamStarted) {
         this.plainStreamStarted = true;
         await this.emitChatEvent("chat-message-started", this.syntheticMessageId, "", emit);
+        if (!cleaned.trim()) {
+          return;
+        }
       }
 
-      if (cleaned) {
+      if (cleaned.trim()) {
         await this.emitChatEvent("chat-message-delta", this.syntheticMessageId, cleaned, emit);
       }
     }

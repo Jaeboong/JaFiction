@@ -139,7 +139,7 @@ export function SettingsPage({
                 </div>
               </article>
               <article className="overview-stat-card">
-                <div className="overview-stat-label">프로젝트</div>
+                <div className="overview-stat-label">지원서</div>
                 <div className="overview-stat-value-row">
                   <strong>{state.projects.length}</strong>
                   <span className="overview-stat-note">활성 워크스페이스</span>

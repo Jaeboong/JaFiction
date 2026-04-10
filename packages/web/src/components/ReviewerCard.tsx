@@ -14,7 +14,7 @@ function reviewerStatusTone(status?: string): ReviewerStatusTone {
   switch (status) {
     case "REVISE":
       return "revise";
-    case "APPROVE":
+    case "PASS":
       return "approve";
     case "BLOCK":
       return "block";

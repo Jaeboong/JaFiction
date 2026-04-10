@@ -192,9 +192,10 @@ function normalizeReviewerCardCrossFeedbackInline(headerValue: string): string {
 function extractReviewerCardStatus(sections: ParsedRealtimeReviewerSection[]): string | undefined {
   for (let index = sections.length - 1; index >= 0; index -= 1) {
     const candidate = normalizeSingleLine(joinReviewerSectionParts(sections[index]));
-    const statusMatch = candidate.match(/\b(approve|revise|block)\b/i);
+    const statusMatch = candidate.match(/\b(pass|approve|revise|block)\b/i);
     if (statusMatch) {
-      return statusMatch[1].toUpperCase();
+      const normalized = statusMatch[1].toUpperCase();
+      return normalized === "APPROVE" ? "PASS" : normalized;
     }
   }
 

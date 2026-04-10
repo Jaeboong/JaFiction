@@ -2,29 +2,18 @@ import { ContextCompiler } from "./contextCompiler";
 import { applyChatEvent, providerLabel } from "./orchestrator/chatEvents";
 import { appendContinuationContext } from "./orchestrator/continuation";
 import {
-  forceSectionClosureOutcome,
-  hasAllApprovingRealtimeReviewers,
-  isCurrentSectionReady,
-  isWholeDocumentReady,
   normalizeMaxRoundsPerSection,
-  RealtimeReviewerVerdictSummary,
-  shouldRunWeakConsensusPolish,
-  summarizeRealtimeReviewerVerdicts,
-  validateSectionOutcome
 } from "./orchestrator/discussion/convergenceEvaluator";
 import {
   buildDiscussionLedgerArtifact,
   dedupeStrings,
   forceAcceptCurrentSection,
   getLedgerTargetSectionKey,
-  getLedgerTickets,
   hasForceCloseDirective,
   InterventionCoordinatorDecision,
   InterventionPartialSnapshot,
   normalizeRealtimeInterventionMessages,
-  pickNextTargetSectionCluster,
-  transitionDiscussionLedgerAfterDeferredClose,
-  transitionDiscussionLedgerToNextCluster
+  getLedgerTickets
 } from "./orchestrator/discussion/discussionLedger";
 import {
   NotionRequestDescriptor,
@@ -35,9 +24,9 @@ import {
   resolveNotionRequestDescriptor
 } from "./orchestrator/notionRequest";
 import {
-  collectRealtimeReviewerStatuses,
+  collectRealtimeReviewerFeedbackPackets,
   CoordinatorDecisionOutput,
-  extractCoordinatorEscalationQuestion,
+  extractRealtimeBlockerUserQuestion,
   extractDiscussionLedger,
   extractInterventionCoordinatorDecision,
   extractNotionBrief,
@@ -73,15 +62,14 @@ import {
   finalizePromptMetrics
 } from "./orchestrator/prompts/promptBlocks";
 import {
-  buildDevilsAdvocatePrompt,
   buildInterventionCoordinatorPrompt,
   buildNotionPrePassPrompt,
+  buildRealtimeCoordinatorBlockSynthesisPrompt,
   buildRealtimeCoordinatorDiscussionPrompt,
   buildRealtimeCoordinatorRedirectPrompt,
   buildRealtimeFinalDraftPrompt,
   buildRealtimeReviewerPrompt,
-  buildRealtimeSectionDrafterPrompt,
-  buildWeakConsensusPolishPrompt
+  buildRealtimeSectionDrafterPrompt
 } from "./orchestrator/prompts/realtimePrompts";
 import { resolveRoleAssignments } from "./roleAssignments";
 import { logDrafterDebug } from "./debugLogger";
@@ -195,6 +183,26 @@ interface SectionDraftResult {
   changeRationale: string;
 }
 
+function buildRealtimeBlockingFallbackQuestion(
+  reviewerPackets: Array<{ participantLabel: string; status: string; challengeSummary?: string }>
+): string {
+  const blockLines = reviewerPackets
+    .filter((packet) => packet.status === "BLOCK")
+    .map((packet) => {
+      const blockingReason = packet.challengeSummary?.trim();
+      const resolvedReason = blockingReason && !/^(?:\[[^\]]+\]\s+)?(?:close|keep-open|defer)\b/i.test(blockingReason)
+        ? blockingReason
+        : "추가 검토가 필요합니다.";
+      return `${packet.participantLabel}: ${resolvedReason}`;
+    });
+
+  return [
+    "다음 항목에 대한 추가 정보가 필요합니다:",
+    "",
+    ...(blockLines.length > 0 ? blockLines : ["reviewer: 추가 검토가 필요합니다."])
+  ].join("\n");
+}
+
 export class ReviewOrchestrator {
   constructor(
     private readonly storage: RunStore,
@@ -284,60 +292,23 @@ export class ReviewOrchestrator {
     await this.storage.setLastReviewMode(request.reviewMode);
     await this.storage.saveRunTextArtifact(request.projectSlug, runId, "compiled-context.md", initialContextMarkdown);
     const chatMessages = new Map<string, RunChatMessage>();
-    const drafterEventBuffer = new Map<string, RunEvent[]>();
-    const sanitizeCompletedChatMessage = (messageId: string): boolean => {
-      const storedMessage = chatMessages.get(messageId);
-      if (storedMessage?.speakerRole === "drafter") {
-        logDrafterDebug("chat_message.before_sanitize", {
-          messageId,
-          speakerRole: storedMessage.speakerRole,
-          contentPreview: storedMessage.content?.slice(0, 2000)
-        });
-      }
-      if (!storedMessage) {
-        return false;
-      }
-
-      const sanitized = sanitizeStoredDrafterChatMessage(storedMessage);
-      chatMessages.set(messageId, sanitized);
-      return sanitized.speakerRole === "drafter" && sanitized.content === "";
-    };
     const eventSink = async (event: RunEvent) => {
       applyChatEvent(chatMessages, event);
-      if (event.messageId) {
-        const storedMessage = chatMessages.get(event.messageId);
-        const isDrafterMessage = storedMessage?.speakerRole === "drafter" || event.speakerRole === "drafter";
-
-        if (event.type === "chat-message-started" && isDrafterMessage) {
-          drafterEventBuffer.set(event.messageId, [event]);
-          await this.storage.appendRunEvent(request.projectSlug, runId, event);
-          return;
-        }
-
-        if (event.type === "chat-message-delta" && drafterEventBuffer.has(event.messageId)) {
-          drafterEventBuffer.get(event.messageId)?.push(event);
-          await this.storage.appendRunEvent(request.projectSlug, runId, event);
-          return;
-        }
-
-        if (event.type === "chat-message-completed" && drafterEventBuffer.has(event.messageId)) {
-          const suppressEvent = sanitizeCompletedChatMessage(event.messageId);
-          const bufferedEvents = drafterEventBuffer.get(event.messageId) ?? [];
-          await this.storage.appendRunEvent(request.projectSlug, runId, event);
-          if (onEvent && !suppressEvent) {
-            for (const bufferedEvent of bufferedEvents) {
-              await onEvent(bufferedEvent);
-            }
-            await onEvent(event);
-          }
-          drafterEventBuffer.delete(event.messageId);
-          return;
-        }
-      }
-
       let suppressEvent = false;
       if (event.type === "chat-message-completed" && event.messageId) {
-        suppressEvent = sanitizeCompletedChatMessage(event.messageId);
+        const storedMessage = chatMessages.get(event.messageId);
+        if (storedMessage?.speakerRole === "drafter") {
+          logDrafterDebug("chat_message.before_sanitize", {
+            messageId: event.messageId,
+            speakerRole: storedMessage.speakerRole,
+            contentPreview: storedMessage.content?.slice(0, 2000)
+          });
+        }
+        if (storedMessage) {
+          const sanitized = sanitizeStoredDrafterChatMessage(storedMessage);
+          chatMessages.set(event.messageId, sanitized);
+          suppressEvent = sanitized.speakerRole === "drafter" && sanitized.content === "";
+        }
       }
       await this.storage.appendRunEvent(request.projectSlug, runId, event);
       if (onEvent && !suppressEvent) {
@@ -353,7 +324,6 @@ export class ReviewOrchestrator {
     let notionBriefFull = "";
     const userInterventions: Array<{ round: number; text: string }> = [];
     let discussionLedger: DiscussionLedger | undefined;
-    const polishRoundsUsed = new Set<string>();
     const throwIfAborted = () => {
       if (abortSignal?.aborted) {
         throw new RunAbortedError();
@@ -882,11 +852,7 @@ export class ReviewOrchestrator {
       } else {
         let currentDraft = request.draft;
         let round = 1;
-        let currentSectionStartedAtRound = 1;
         let seededCoordinatorTurn: ReviewTurn | undefined;
-        let pendingReviewerVerdictSummary: RealtimeReviewerVerdictSummary | undefined;
-        let pendingConvergenceNoticeRounds: number | undefined;
-        let consecutiveReviseRoundsForSection = 0;
 
         const runRealtimeRedirectCoordinatorTurn = async (
           nextRound: number,
@@ -900,11 +866,7 @@ export class ReviewOrchestrator {
             turns.filter((turn) => turn.status === "completed"),
             nextRound,
             messages,
-            discussionLedger,
-            {
-              reviewerVerdictSummary: pendingReviewerVerdictSummary,
-              convergenceNoticeRounds: pendingConvergenceNoticeRounds
-            }
+            discussionLedger
           );
           const redirectTurn = await this.executeTurn(
             request.projectSlug,
@@ -1086,10 +1048,6 @@ export class ReviewOrchestrator {
               });
             }
             round += 1;
-            currentSectionStartedAtRound = round;
-            consecutiveReviseRoundsForSection = 0;
-            pendingReviewerVerdictSummary = undefined;
-            pendingConvergenceNoticeRounds = undefined;
             seededCoordinatorTurn = undefined;
             return "continue";
           }
@@ -1168,10 +1126,6 @@ export class ReviewOrchestrator {
                 message: "Realtime intervention accepted the current section."
               });
               round = nextRound;
-              currentSectionStartedAtRound = round;
-              consecutiveReviseRoundsForSection = 0;
-              pendingReviewerVerdictSummary = undefined;
-              pendingConvergenceNoticeRounds = undefined;
               seededCoordinatorTurn = undefined;
               return "continue";
             }
@@ -1200,10 +1154,6 @@ export class ReviewOrchestrator {
             });
             seededCoordinatorTurn = turn;
             round = nextRound;
-            currentSectionStartedAtRound = round;
-            consecutiveReviseRoundsForSection = 0;
-            pendingReviewerVerdictSummary = undefined;
-            pendingConvergenceNoticeRounds = undefined;
             return "continue";
           }
         };
@@ -1215,10 +1165,6 @@ export class ReviewOrchestrator {
             const compiledContextMarkdown = await buildCompiledContextMarkdown(currentDraft, round, "round", "compact");
             let coordinatorTurn = seededCoordinatorTurn;
             seededCoordinatorTurn = undefined;
-            const reviewerVerdictForPrompt = pendingReviewerVerdictSummary;
-            const convergenceNoticeForPrompt = pendingConvergenceNoticeRounds;
-            pendingReviewerVerdictSummary = undefined;
-            pendingConvergenceNoticeRounds = undefined;
             if (!coordinatorTurn) {
               const completedTurns = turns.filter((turn) => turn.status === "completed");
               const coordinatorPrompt = buildRealtimeCoordinatorDiscussionPrompt(
@@ -1227,11 +1173,7 @@ export class ReviewOrchestrator {
                 userInterventions,
                 completedTurns,
                 round,
-                discussionLedger,
-                {
-                  reviewerVerdictSummary: reviewerVerdictForPrompt,
-                  convergenceNoticeRounds: convergenceNoticeForPrompt
-                }
+                discussionLedger
               );
               coordinatorTurn = await this.executeTurn(
                 request.projectSlug,
@@ -1241,7 +1183,7 @@ export class ReviewOrchestrator {
                 coordinatorPrompt,
                 coordinatorState,
                 eventSink,
-                `realtime-round-${round}-coordinator-open`,
+                `realtime-round-${round}-coordinator-initial-brief`,
                 abortSignal,
                 bindExecutionAbortController
               );
@@ -1252,18 +1194,6 @@ export class ReviewOrchestrator {
               throw new Error(coordinatorTurn.error ?? "Coordinator failed to guide the realtime discussion.");
             }
             await updateDiscussionLedger(coordinatorTurn, extractDiscussionLedger(coordinatorTurn.response, round));
-            const escalationQuestion = extractCoordinatorEscalationQuestion(discussionLedger);
-            if (escalationQuestion) {
-              const escalationOutcome = await handleRealtimeAwaitingUserInput(round, escalationQuestion, {
-                markAwaitingStatus: true
-              });
-              if (escalationOutcome === "done") {
-                break;
-              }
-              consecutiveReviseRoundsForSection = 0;
-              round += 1;
-              continue;
-            }
             if (discussionLedger) {
               const drafterPrompt = buildRealtimeSectionDrafterPrompt(
                 compiledContextMarkdown,
@@ -1405,125 +1335,61 @@ export class ReviewOrchestrator {
             run = await this.storage.updateRun(request.projectSlug, runId, {
               rounds: round
             });
+            const reviewerPackets = collectRealtimeReviewerFeedbackPackets(currentRoundReviewerTurns, activeReviewers);
+            const hasBlockingReviewer = reviewerPackets.some((packet) => packet.status === "BLOCK");
 
-          const MIN_ROUNDS_BEFORE_CONSENSUS = 2;
-          const reviewerStatuses = collectRealtimeReviewerStatuses(currentRoundReviewerTurns, activeReviewers);
-          const reviewerVerdictSummary = summarizeRealtimeReviewerVerdicts(currentRoundReviewerTurns, activeReviewers);
-          pendingReviewerVerdictSummary = reviewerVerdictSummary;
-          if (reviewerVerdictSummary.majorityReviseNeedsHold) {
-            consecutiveReviseRoundsForSection += 1;
-          } else {
-            consecutiveReviseRoundsForSection = 0;
-          }
-          pendingConvergenceNoticeRounds = consecutiveReviseRoundsForSection >= 3
-            ? consecutiveReviseRoundsForSection
-            : undefined;
-          const allReviewersApprove = hasAllApprovingRealtimeReviewers(activeReviewers, reviewerStatuses);
-          const requestedSectionOutcome = discussionLedger?.sectionOutcome;
-          const currentSectionReady = isCurrentSectionReady(discussionLedger, activeReviewers, reviewerStatuses);
-          const wholeDocumentReady = isWholeDocumentReady(
-            discussionLedger,
-            activeReviewers,
-            reviewerStatuses,
-            {
-              requestedSectionOutcome,
-              allReviewersApprove
-            }
-          );
-          const nextCluster = pickNextTargetSectionCluster(discussionLedger);
-          const baseResolvedSectionOutcome = validateSectionOutcome(requestedSectionOutcome, {
-            currentSectionReady,
-            wholeDocumentReady,
-            hasNextCluster: Boolean(nextCluster)
-          });
-          const resolvedSectionOutcome = reviewerVerdictSummary.majorityReviseNeedsHold
-            && baseResolvedSectionOutcome !== "handoff-next-section"
-            && baseResolvedSectionOutcome !== "deferred-close"
-            ? "keep-open"
-            : baseResolvedSectionOutcome;
-          const currentSectionRoundCount = round - currentSectionStartedAtRound + 1;
-          const reachedSectionRoundLimit = currentSectionRoundCount >= maxRoundsPerSection;
-          const effectiveSectionOutcome = reachedSectionRoundLimit && currentSectionReady && !reviewerVerdictSummary.majorityReviseNeedsHold
-            ? forceSectionClosureOutcome({
-                wholeDocumentReady,
-                hasNextCluster: Boolean(nextCluster)
-              })
-            : resolvedSectionOutcome;
-          const currentSectionKey = getLedgerTargetSectionKey(discussionLedger);
-            if (allReviewersApprove && round < MIN_ROUNDS_BEFORE_CONSENSUS) {
-            // 너무 이른 합의 — devil's advocate 발동
-            const challengePrompt = buildDevilsAdvocatePrompt(
-              compiledContextMarkdown,
-              getNotionBriefForProfile("compact"),
-              userInterventions,
-              turns.filter((t) => t.status === "completed"),
-              round,
-              discussionLedger
-            );
-            const challengeTurn = await this.executeTurn(
-              request.projectSlug,
-              runId,
-              coordinator,
-              round,
-              challengePrompt,
-              coordinatorState,
-              eventSink,
-              `realtime-round-${round}-coordinator-challenge`,
-              abortSignal,
-              bindExecutionAbortController
-            );
-            turns.push(challengeTurn);
-            if (challengeTurn.status === "completed") {
-              await updateDiscussionLedger(challengeTurn, extractDiscussionLedger(challengeTurn.response, round));
-            }
-            await persistTurnsAndChat();
-            round += 1;
-            continue;
-          }
+            if (hasBlockingReviewer) {
+              let escalationQuestion: string;
+              try {
+                const blockSynthesisPrompt = buildRealtimeCoordinatorBlockSynthesisPrompt(
+                  compiledContextMarkdown,
+                  getNotionBriefForProfile("compact"),
+                  userInterventions,
+                  turns.filter((turn) => turn.status === "completed"),
+                  round,
+                  reviewerPackets,
+                  discussionLedger
+                );
+                const blockSynthesisTurn = await this.executeTurn(
+                  request.projectSlug,
+                  runId,
+                  coordinator,
+                  round,
+                  blockSynthesisPrompt,
+                  coordinatorState,
+                  eventSink,
+                  `realtime-round-${round}-coordinator-block-synthesis`,
+                  abortSignal,
+                  bindExecutionAbortController
+                );
+                turns.push(blockSynthesisTurn);
 
-            if (
-              discussionLedger &&
-              currentSectionReady &&
-              reviewerVerdictSummary.majorityReviseNeedsHold &&
-              shouldRunWeakConsensusPolish(activeReviewers, reviewerStatuses, currentSectionKey, polishRoundsUsed)
-            ) {
-            polishRoundsUsed.add(currentSectionKey);
-            const polishPrompt = buildWeakConsensusPolishPrompt(
-              compiledContextMarkdown,
-              getNotionBriefForProfile("compact"),
-              userInterventions,
-              turns.filter((turn) => turn.status === "completed"),
-              round,
-              discussionLedger
-            );
-            const polishTurn = await this.executeTurn(
-              request.projectSlug,
-              runId,
-              coordinator,
-              round,
-              polishPrompt,
-              coordinatorState,
-              eventSink,
-              `realtime-round-${round}-coordinator-polish`,
-              abortSignal,
-              bindExecutionAbortController
-            );
-            turns.push(polishTurn);
-            if (polishTurn.status === "completed") {
-              await updateDiscussionLedger(polishTurn, extractDiscussionLedger(polishTurn.response, round));
-            }
-            await persistTurnsAndChat();
-            round += 1;
-            continue;
-          }
+                if (blockSynthesisTurn.status !== "completed") {
+                  throw new Error(blockSynthesisTurn.error ?? "Coordinator failed to synthesize the blocking reviewer feedback.");
+                }
 
-            if (effectiveSectionOutcome === "write-final" && wholeDocumentReady) {
+                escalationQuestion = extractRealtimeBlockerUserQuestion(blockSynthesisTurn.response)
+                  || "추가 지시를 한 문장으로 알려 주세요.";
+              } catch (error) {
+                if (isRunInterventionAbortError(error) || isRunAbortedError(error)) {
+                  throw error;
+                }
+                escalationQuestion = buildRealtimeBlockingFallbackQuestion(reviewerPackets);
+              }
+              await persistTurnsAndChat();
+              await handleRealtimeAwaitingUserInput(round, escalationQuestion, {
+                markAwaitingStatus: true
+              });
+              break;
+            }
+
             const finalContextMarkdown = await buildCompiledContextMarkdown(currentDraft, round, "round", "full");
             const finalPrompt = buildRealtimeFinalDraftPrompt(
               finalContextMarkdown,
               getNotionBriefForProfile("full"),
               userInterventions,
               turns.filter((turn) => turn.status === "completed"),
+              reviewerPackets,
               discussionLedger
             );
             const finalTurn = await this.executeTurn(
@@ -1541,73 +1407,20 @@ export class ReviewOrchestrator {
             turns.push(finalTurn);
 
             if (finalTurn.status !== "completed") {
-              throw new Error(finalTurn.error ?? "Coordinator failed to write the final realtime draft.");
+              throw new Error(finalTurn.error ?? "Finalizer failed to write the realtime draft.");
             }
 
-            currentDraft = finalTurn.response.trim() || currentDraft;
-            queuedMessages = consumeCurrentUserMessages();
-            if (queuedMessages.length > 0) {
-              await emitUserMessages(round, queuedMessages);
-              round += 1;
-              const redirectContextMarkdown = await buildCompiledContextMarkdown(currentDraft, round, "round", "compact");
-              seededCoordinatorTurn = await runRealtimeRedirectCoordinatorTurn(round, redirectContextMarkdown, queuedMessages);
-              await persistTurnsAndChat();
-              continue;
-            }
-
+            const finalizerOutput = splitFinalizerOutput(finalTurn.response, currentDraft);
+            currentDraft = finalizerOutput.finalDraft;
             finalizedRealtimeDraft = true;
             artifacts = {
               summary: "Realtime mode does not generate a summary artifact.",
               improvementPlan: "Realtime mode does not generate an improvement plan artifact.",
-              revisedDraft: currentDraft
+              revisedDraft: currentDraft,
+              finalChecks: finalizerOutput.finalChecks
             };
             await persistTurnsAndChat();
             break;
-          }
-
-            if (effectiveSectionOutcome === "deferred-close" && discussionLedger && nextCluster) {
-              discussionLedger = transitionDiscussionLedgerAfterDeferredClose(discussionLedger, nextCluster, round);
-              await eventSink({
-                timestamp: nowIso(),
-                type: "discussion-ledger-updated",
-                round,
-                speakerRole: "system",
-                message: `Deferred current-section advisory issues and handed off to ${nextCluster.sectionLabel}.`,
-                discussionLedger
-              });
-              round += 1;
-              currentSectionStartedAtRound = round;
-              consecutiveReviseRoundsForSection = 0;
-              continue;
-            }
-
-            if (effectiveSectionOutcome === "handoff-next-section" && discussionLedger && nextCluster) {
-              discussionLedger = transitionDiscussionLedgerToNextCluster(discussionLedger, nextCluster, round);
-              await eventSink({
-                timestamp: nowIso(),
-                type: "discussion-ledger-updated",
-                round,
-                speakerRole: "system",
-                message: `Prepared the next target section handoff: ${nextCluster.sectionLabel}`,
-                discussionLedger
-              });
-              round += 1;
-              currentSectionStartedAtRound = round;
-              consecutiveReviseRoundsForSection = 0;
-              continue;
-            }
-
-            if (reachedSectionRoundLimit) {
-              const roundLimitOutcome = await handleRealtimeAwaitingUserInput(
-                round,
-                `Round ${round} ended without a document-ready conclusion. Press Enter to continue or add guidance. Use the Essay tab's 완료 button for question completion; /done is still available if you need to stop without a final draft.`
-              );
-              if (roundLimitOutcome === "done") {
-                break;
-              }
-            }
-
-            round += 1;
           } catch (error) {
             if (isRunInterventionAbortError(error)) {
               const outcome = await handleImmediateRealtimeIntervention(error);
@@ -1637,6 +1450,10 @@ export class ReviewOrchestrator {
       }
       if (request.reviewMode === "realtime") {
         await saveDiscussionLedgerArtifact();
+      }
+
+      if (run.status === "awaiting-user-input") {
+        return { run, turns, artifacts };
       }
 
       run = await this.storage.updateRun(request.projectSlug, runId, {

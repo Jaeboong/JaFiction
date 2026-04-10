@@ -72,12 +72,12 @@ export function ProjectsPage({
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </span>
-            새 프로젝트
+            새 지원서
           </button>
         </div>
 
         <div className="projects-sidebar-section">
-          <div className="projects-sidebar-caption">최근 프로젝트</div>
+          <div className="projects-sidebar-caption">최근 지원서</div>
           <div className="projects-sidebar-list">
             {projects.length ? projects.map((project) => {
               const effectiveInsightReady = hasInsightDocuments(project.documents) || project.record.insightStatus === "ready";
@@ -104,7 +104,7 @@ export function ProjectsPage({
               );
             }) : (
               <div className="projects-sidebar-empty">
-                아직 최근 프로젝트가 없습니다.
+                아직 최근 지원서가 없습니다.
               </div>
             )}
           </div>
@@ -216,8 +216,8 @@ function CreateProjectWorkspace({
       <div className="projects-content-shell projects-create-shell">
         <header className="projects-page-header projects-create-header">
           <div>
-            <h1>새 프로젝트 생성</h1>
-            <p>채용 공고를 분석하여 평가를 위한 프로젝트를 설정합니다.</p>
+            <h1>새 지원서 생성</h1>
+            <p>채용 공고를 분석하여 평가를 위한 지원서를 설정합니다.</p>
           </div>
         </header>
 
@@ -269,7 +269,7 @@ function CreateProjectWorkspace({
           <section className="projects-step-section">
             <div className="projects-step-heading">
               <span className="projects-step-badge projects-step-badge-active">2</span>
-              <h2>프로젝트 정보</h2>
+              <h2>지원서 정보</h2>
             </div>
 
             {detailsUnlocked ? (
@@ -404,7 +404,7 @@ function CreateProjectWorkspace({
               });
             }}
           >
-            프로젝트 생성
+            지원서 생성
           </button>
         </div>
       </div>
@@ -721,7 +721,7 @@ function ProjectWorkspace({
 
           <section className="projects-panel projects-info-panel">
             <div className="projects-panel-header">
-              <h2>프로젝트 기본 정보</h2>
+              <h2>지원서 기본 정보</h2>
               {isEditingInfo ? (
                 <div className="projects-info-edit-actions">
                   <button className="projects-panel-link" type="button" disabled={isSavingInfo} onClick={() => setIsEditingInfo(false)}>
@@ -740,7 +740,7 @@ function ProjectWorkspace({
             {isEditingInfo ? (
               <div className="projects-info-edit-form">
                 <div className="projects-info-grid">
-                  <InfoField label="프로젝트 슬러그" value={project.record.slug} mono />
+                  <InfoField label="지원서 슬러그" value={project.record.slug} mono />
                   <div className="projects-info-field">
                     <span>회사명</span>
                     <input
@@ -811,7 +811,7 @@ function ProjectWorkspace({
             ) : (
               <>
                 <div className="projects-info-grid">
-                  <InfoField label="프로젝트 슬러그" value={project.record.slug} mono />
+                  <InfoField label="지원서 슬러그" value={project.record.slug} mono />
                   <InfoField label="회사명" value={project.record.companyName} />
                   <InfoField label="직무명" value={project.record.roleName ?? "직무 미정"} />
                   <InfoField label="채용공고 URL" value={project.record.jobPostingUrl ?? "연결된 공고 없음"} mono />
@@ -925,7 +925,7 @@ function ProjectWorkspace({
                         <div className="projects-empty-inline">
                           {project.documents.length > 0
                             ? "일반 컨텍스트 문서가 없습니다. 생성된 인사이트는 '인사이트 보기'에서 확인할 수 있습니다."
-                            : "추가된 프로젝트 문서가 없습니다."}
+                            : "추가된 지원서 문서가 없습니다."}
                         </div>
                       </td>
                     </tr>

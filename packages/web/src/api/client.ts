@@ -68,6 +68,13 @@ export class RunnerClient {
     return this.request(`/api/projects/${projectSlug}/documents`, { method: "POST", body: payload });
   }
 
+  saveEssayDraft(projectSlug: string, questionIndex: number, draft: string): Promise<{ questionIndex: number }> {
+    return this.request(`/api/projects/${projectSlug}/essay-draft/${questionIndex}`, {
+      method: "PUT",
+      body: { draft }
+    });
+  }
+
   uploadProjectDocuments(projectSlug: string, files: File[]): Promise<void> {
     const body = new FormData();
     for (const file of files) {

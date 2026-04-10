@@ -8,7 +8,7 @@ import type {
   SourceType
 } from "@jafiction/shared";
 
-export type StatusTone = "positive" | "warning" | "negative" | "neutral";
+export type StatusTone = "positive" | "warning" | "negative" | "neutral" | "info";
 
 const providerNames: Record<ProviderId, string> = {
   codex: "Codex",
@@ -135,7 +135,7 @@ export function statusToneForRunStatus(status?: RunStatus): StatusTone {
     return "positive";
   }
   if (status === "awaiting-user-input") {
-    return "warning";
+    return "info";
   }
   if (status === "failed") {
     return "negative";

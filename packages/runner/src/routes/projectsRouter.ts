@@ -233,6 +233,36 @@ export function createProjectsRouter(ctx: RunnerContext): Router {
     }
   });
 
+  router.put("/:projectSlug/essay-draft/:questionIndex", async (request, response, next) => {
+    try {
+      const projectSlug = String(request.params.projectSlug);
+      const questionIndex = Number.parseInt(String(request.params.questionIndex), 10);
+      const draft = request.body?.draft;
+      if (!Number.isInteger(questionIndex) || questionIndex < 0) {
+        throw new Error("유효한 문항 인덱스가 필요합니다.");
+      }
+      if (typeof draft !== "string") {
+        throw new Error("저장할 초안 텍스트가 필요합니다.");
+      }
+
+      await ctx.runBusy("초안을 저장하는 중...", async () => {
+        const project = await ctx.storage().getProject(projectSlug);
+        const question = project.essayQuestions?.[questionIndex];
+        if (!question) {
+          throw new Error("선택한 문항을 찾을 수 없습니다.");
+        }
+
+        await ctx.storage().saveCompletedEssayAnswer(projectSlug, questionIndex, question, draft);
+        await ctx.stateStore.refreshProjects(projectSlug);
+        await ctx.pushState();
+      });
+
+      response.json({ questionIndex });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/:projectSlug/runs", async (request, response, next) => {
     try {
       response.json(await ctx.storage().listRuns(String(request.params.projectSlug)));

@@ -54,7 +54,18 @@ export interface ParsedReviewerChallengeVerdict {
   reason: string;
 }
 
-export type RealtimeReviewerStatus = "APPROVE" | "REVISE" | "BLOCK";
+export type RealtimeReviewerStatus = "PASS" | "REVISE" | "BLOCK";
+
+export interface RealtimeReviewerFeedbackPacket {
+  participantId?: string;
+  participantLabel: string;
+  status: RealtimeReviewerStatus;
+  miniDraft?: string;
+  challengeAction?: ParsedReviewerChallengeVerdict["action"];
+  challengeSummary?: string;
+  crossFeedbackSummary?: string;
+  objectionSummary: string;
+}
 
 export function normalizeEssayRoleId(raw: string, fallback: EssayRoleId): EssayRoleId {
   const normalized = normalizeLedgerSingleLine(raw) as EssayRoleId;
@@ -441,13 +452,25 @@ export function extractReviewerObjection(response: string): string {
   return "핵심 objection이 명확히 드러나지 않았습니다.";
 }
 
+export function normalizeRealtimeReviewerStatus(raw: string | undefined): RealtimeReviewerStatus | undefined {
+  const normalized = normalizeLedgerSingleLine(raw ?? "").toUpperCase();
+  if (normalized === "PASS" || normalized === "APPROVE") {
+    return "PASS";
+  }
+  if (normalized === "REVISE" || normalized === "BLOCK") {
+    return normalized;
+  }
+
+  return undefined;
+}
+
 export function extractRealtimeReviewerStatus(response: string): RealtimeReviewerStatus {
-  const matches = [...response.matchAll(/^\s*status:\s*(approve|revise|block)\s*$/gim)];
+  const matches = [...response.matchAll(/^\s*status:\s*(pass|approve|revise|block)\s*$/gim)];
   if (matches.length === 0) {
     return "REVISE";
   }
 
-  return matches[matches.length - 1][1].toUpperCase() as RealtimeReviewerStatus;
+  return normalizeRealtimeReviewerStatus(matches[matches.length - 1][1]) ?? "REVISE";
 }
 
 export function collectRealtimeReviewerStatuses(
@@ -465,6 +488,70 @@ export function collectRealtimeReviewerStatuses(
   }
 
   return statuses;
+}
+
+export function extractRealtimeReviewerMiniDraft(response: string): string | undefined {
+  const section = extractRealtimeReviewerSection(response, "Mini Draft");
+  if (!section) {
+    return undefined;
+  }
+
+  return normalizeLedgerParagraph(section.body || section.headerValue) || undefined;
+}
+
+export function extractRealtimeReviewerCrossFeedbackSummary(response: string): string | undefined {
+  const section = extractRealtimeReviewerSection(response, "Cross-feedback");
+  if (!section) {
+    return undefined;
+  }
+
+  const combined = [section.headerValue, section.body].filter(Boolean).join("\n");
+  return normalizeLedgerParagraph(combined) || undefined;
+}
+
+export function extractRealtimeReviewerChallengeSummary(response: string): string | undefined {
+  const normalizedChallenge = extractNormalizedReviewerChallenge(response);
+  if (normalizedChallenge) {
+    return normalizedChallenge.reason;
+  }
+
+  const section = extractRealtimeReviewerSection(response, "Challenge");
+  if (!section) {
+    return undefined;
+  }
+
+  return normalizeLedgerParagraph(section.body || section.headerValue) || undefined;
+}
+
+export function buildRealtimeReviewerFeedbackPacket(
+  turn: { participantId?: string; participantLabel?: string; response: string }
+): RealtimeReviewerFeedbackPacket {
+  return {
+    participantId: turn.participantId,
+    participantLabel: turn.participantLabel || turn.participantId || "reviewer",
+    status: extractRealtimeReviewerStatus(turn.response),
+    miniDraft: extractRealtimeReviewerMiniDraft(turn.response),
+    challengeAction: extractRealtimeReviewerChallengeAction(turn.response),
+    challengeSummary: extractRealtimeReviewerChallengeSummary(turn.response),
+    crossFeedbackSummary: extractRealtimeReviewerCrossFeedbackSummary(turn.response),
+    objectionSummary: extractRealtimeReviewerObjection(turn.response)
+  };
+}
+
+export function collectRealtimeReviewerFeedbackPackets(
+  turns: Array<{ participantId?: string; participantLabel?: string; response: string }>,
+  activeReviewers: Array<{ participantId: string }>
+): RealtimeReviewerFeedbackPacket[] {
+  const activeReviewerIds = new Set(activeReviewers.map((reviewer) => reviewer.participantId));
+  return turns
+    .filter((turn) => Boolean(turn.participantId) && activeReviewerIds.has(turn.participantId ?? ""))
+    .map((turn) => buildRealtimeReviewerFeedbackPacket(turn));
+}
+
+export function extractRealtimeBlockerUserQuestion(response: string): string | undefined {
+  return normalizeLedgerParagraph(extractMarkdownSection(response, "User Question"))
+    || normalizeLedgerParagraph(extractMarkdownSection(response, "Question"))
+    || undefined;
 }
 
 export function extractInterventionCoordinatorDecision(output: string, round: number): InterventionCoordinatorDecision {

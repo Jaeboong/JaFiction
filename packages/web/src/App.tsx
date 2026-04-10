@@ -17,9 +17,11 @@ const defaultRunnerBaseUrl = import.meta.env.VITE_RUNNER_BASE_URL
   || `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_RUNNER_PORT || "4123"}`;
 
 type AppTab = "overview" | "providers" | "projects" | "runs" | "settings";
-type ActionTone = "pending" | "success" | "error";
+type ActionTone = "pending" | "success" | "warning" | "error";
 type ProviderActionKind = "test" | "notion-check" | "notion-connect" | "notion-disconnect";
 type OpenDartActionKind = "save" | "delete" | "test";
+const actionNoticeAutoDismissMs = 2200;
+const actionNoticeExitMs = 200;
 
 interface ActionNotice {
   tone: ActionTone;
@@ -27,10 +29,15 @@ interface ActionNotice {
   detail?: string;
 }
 
+interface ActionNoticeState extends ActionNotice {
+  id: number;
+  isLeaving: boolean;
+}
+
 const tabs: Array<{ id: AppTab; label: string }> = [
   { id: "overview", label: "개요" },
   { id: "providers", label: "프로바이더" },
-  { id: "projects", label: "프로젝트" },
+  { id: "projects", label: "지원서" },
   { id: "runs", label: "실행" }
 ];
 
@@ -45,11 +52,61 @@ export function App() {
   const [pendingOpenDartAction, setPendingOpenDartAction] = useState<OpenDartActionKind | undefined>();
   const [selectedProjectSlug, setSelectedProjectSlug] = useState<string | undefined>();
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
-  const [actionNotice, setActionNotice] = useState<ActionNotice | undefined>();
+  const [actionNotice, setActionNotice] = useState<ActionNoticeState | undefined>();
   const [pendingProviderAction, setPendingProviderAction] = useState<{ providerId: ProviderId; kind: ProviderActionKind } | undefined>();
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | undefined>();
+  const actionNoticeRef = useRef<ActionNoticeState | undefined>(undefined);
+  const nextActionNoticeIdRef = useRef(0);
   const noticeTimerRef = useRef<number | undefined>(undefined);
+  const noticeExitTimerRef = useRef<number | undefined>(undefined);
+
+  const setActionNoticeState = (
+    next: ActionNoticeState | undefined | ((current: ActionNoticeState | undefined) => ActionNoticeState | undefined)
+  ) => {
+    const resolved = typeof next === "function" ? next(actionNoticeRef.current) : next;
+    actionNoticeRef.current = resolved;
+    setActionNotice(resolved);
+  };
+
+  const clearActionNoticeTimers = () => {
+    if (noticeTimerRef.current !== undefined) {
+      window.clearTimeout(noticeTimerRef.current);
+      noticeTimerRef.current = undefined;
+    }
+    if (noticeExitTimerRef.current !== undefined) {
+      window.clearTimeout(noticeExitTimerRef.current);
+      noticeExitTimerRef.current = undefined;
+    }
+  };
+
+  const scheduleActionNoticeRemoval = (noticeId: number) => {
+    if (noticeExitTimerRef.current !== undefined) {
+      window.clearTimeout(noticeExitTimerRef.current);
+    }
+    noticeExitTimerRef.current = window.setTimeout(() => {
+      setActionNoticeState((current) => current?.id === noticeId ? undefined : current);
+      noticeExitTimerRef.current = undefined;
+    }, actionNoticeExitMs);
+  };
+
+  const dismissActionNotice = (noticeId = actionNoticeRef.current?.id) => {
+    if (noticeId === undefined) {
+      return;
+    }
+    if (noticeTimerRef.current !== undefined) {
+      window.clearTimeout(noticeTimerRef.current);
+      noticeTimerRef.current = undefined;
+    }
+
+    const currentNotice = actionNoticeRef.current;
+    if (!currentNotice || currentNotice.id !== noticeId || currentNotice.isLeaving) {
+      return;
+    }
+
+    setActionNoticeState({ ...currentNotice, isLeaving: true });
+    scheduleActionNoticeRemoval(noticeId);
+  };
 
   useEffect(() => {
     let disposed = false;
@@ -97,9 +154,7 @@ export function App() {
 
   useEffect(() => {
     return () => {
-      if (noticeTimerRef.current !== undefined) {
-        window.clearTimeout(noticeTimerRef.current);
-      }
+      clearActionNoticeTimers();
     };
   }, []);
 
@@ -125,18 +180,31 @@ export function App() {
 
   const selectedProject = state?.projects.find((project) => project.record.slug === selectedProjectSlug) ?? state?.projects[0];
 
-  const showActionNotice = (notice: ActionNotice, duration = 2200) => {
-    if (noticeTimerRef.current !== undefined) {
-      window.clearTimeout(noticeTimerRef.current);
-    }
-    setActionNotice(notice);
+  const showActionNotice = (notice: ActionNotice, duration = actionNoticeAutoDismissMs) => {
+    clearActionNoticeTimers();
+
+    const nextNotice: ActionNoticeState = {
+      ...notice,
+      id: nextActionNoticeIdRef.current + 1,
+      isLeaving: false
+    };
+    nextActionNoticeIdRef.current = nextNotice.id;
+    setActionNoticeState(nextNotice);
+
     if (notice.tone === "pending") {
       return;
     }
     noticeTimerRef.current = window.setTimeout(() => {
-      setActionNotice((current) => (current === notice ? undefined : current));
+      dismissActionNotice(nextNotice.id);
       noticeTimerRef.current = undefined;
     }, duration);
+  };
+
+  const showAwaitingUserInputNotice = () => {
+    showActionNotice({
+      tone: "warning",
+      message: "에이전트가 추가 정보를 요청했습니다."
+    });
   };
 
   const runAction = async <T,>(options: {
@@ -276,7 +344,7 @@ export function App() {
       {(actionNotice || errorMessage) ? (
         <div className="app-notice-stack" aria-live="polite">
           {actionNotice ? (
-            <div className={`app-notice app-notice-${actionNotice.tone}`}>
+            <div className={`app-notice app-notice-${actionNotice.tone}${actionNotice.isLeaving ? " is-leaving" : ""}`}>
               <div className="app-notice-row">
                 {actionNotice.tone === "pending" ? <span className="activity-indicator" aria-hidden="true" /> : <span className={`app-notice-badge app-notice-badge-${actionNotice.tone}`} aria-hidden="true" />}
                 <div className="app-notice-copy">
@@ -425,34 +493,34 @@ export function App() {
               onFetchProjectInsights={async (projectSlug) => client.getProjectInsights(projectSlug)}
               onCreateProject={async (payload) => {
                 return runAction<ProjectRecord>({
-                  pending: { tone: "pending", message: "새 프로젝트를 만드는 중입니다..." },
-                  success: { tone: "success", message: "새 프로젝트를 만들었습니다." },
-                  failure: (error) => ({ tone: "error", message: "프로젝트 생성에 실패했습니다.", detail: getErrorMessage(error) })
+                  pending: { tone: "pending", message: "새 지원서를 만드는 중입니다..." },
+                  success: { tone: "success", message: "새 지원서를 만들었습니다." },
+                  failure: (error) => ({ tone: "error", message: "지원서 생성에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.createProject(payload));
               }}
               onSaveProjectDocument={async (projectSlug, payload) => {
-                showActionNotice({ tone: "pending", message: "프로젝트 문서를 저장중입니다..." });
+                showActionNotice({ tone: "pending", message: "지원서 문서를 저장중입니다..." });
                 try {
                   await client.saveProjectDocument(projectSlug, payload);
-                  showActionNotice({ tone: "success", message: "프로젝트 문서를 저장했습니다." });
+                  showActionNotice({ tone: "success", message: "지원서 문서를 저장했습니다." });
                 } catch (error) {
                   showActionNotice({
                     tone: "error",
-                    message: "프로젝트 문서 저장에 실패했습니다.",
+                    message: "지원서 문서 저장에 실패했습니다.",
                     detail: getErrorMessage(error)
                   }, 3600);
                   throw error;
                 }
               }}
               onUploadProjectDocuments={async (projectSlug, files) => {
-                showActionNotice({ tone: "pending", message: "프로젝트 파일을 업로드중입니다..." });
+                showActionNotice({ tone: "pending", message: "지원서 파일을 업로드중입니다..." });
                 try {
                   await client.uploadProjectDocuments(projectSlug, files);
-                  showActionNotice({ tone: "success", message: "프로젝트 문서를 업로드했습니다." });
+                  showActionNotice({ tone: "success", message: "지원서 문서를 업로드했습니다." });
                 } catch (error) {
                   showActionNotice({
                     tone: "error",
-                    message: "프로젝트 문서 업로드에 실패했습니다.",
+                    message: "지원서 문서 업로드에 실패했습니다.",
                     detail: getErrorMessage(error)
                   }, 3600);
                   throw error;
@@ -467,9 +535,9 @@ export function App() {
               }}
               onUpdateProject={async (projectSlug, payload) => {
                 await runAction({
-                  pending: { tone: "pending", message: "프로젝트 정보를 저장하는 중입니다..." },
-                  success: { tone: "success", message: "프로젝트 정보를 저장했습니다." },
-                  failure: (error) => ({ tone: "error", message: "프로젝트 정보 저장에 실패했습니다.", detail: getErrorMessage(error) })
+                  pending: { tone: "pending", message: "지원서 정보를 저장하는 중입니다..." },
+                  success: { tone: "success", message: "지원서 정보를 저장했습니다." },
+                  failure: (error) => ({ tone: "error", message: "지원서 정보 저장에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.updateProject(projectSlug, payload));
               }}
               onAnalyzeInsights={async (projectSlug, payload) => {
@@ -542,8 +610,16 @@ export function App() {
                   failure: (error) => ({ tone: "error", message: "문항 완료 처리에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.completeRun(projectSlug, runId).then(() => undefined));
               }}
+              onSaveDraft={async (projectSlug, questionIndex, draft) => {
+                await runAction({
+                  pending: { tone: "pending", message: "초안을 저장하는 중입니다..." },
+                  success: { tone: "success", message: "초안이 저장되었습니다." },
+                  failure: (error) => ({ tone: "error", message: "초안 저장에 실패했습니다.", detail: getErrorMessage(error) })
+                }, () => client.saveEssayDraft(projectSlug, questionIndex, draft).then(() => undefined));
+              }}
               onCreateRunSocket={(runId) => client.createRunSocket(runId)}
               onGetRunMessages={(projectSlug, runId) => client.getRunMessages(projectSlug, runId)}
+              onAwaitingUserInput={showAwaitingUserInputNotice}
             />
           ) : null}
         </section>
@@ -563,7 +639,7 @@ export function App() {
             )}
           />
           <FooterMetric
-            label={`${state.projects.length}개 프로젝트`}
+            label={`${state.projects.length}개 지원서`}
             icon={(
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />

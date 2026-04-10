@@ -4,9 +4,9 @@ import {
   getLedgerTickets,
   InterventionPartialSnapshot
 } from "../discussion/discussionLedger";
-import { RealtimeReviewerVerdictSummary } from "../discussion/convergenceEvaluator";
 import {
   extractDiscussionLedger,
+  RealtimeReviewerFeedbackPacket,
   extractRealtimeReviewerObjection,
   extractRealtimeReviewerStatus
 } from "../parsing/responseParsers";
@@ -25,7 +25,7 @@ import {
 import {
   buildBindingDirectiveBlock,
   buildChallengeTicketBlock,
-  buildDrafterContextBlock,
+  buildDrafterBriefBlock,
   buildDiscussionLedgerBlock,
   buildPrompt,
   buildUserGuidanceBlock,
@@ -53,10 +53,6 @@ export function buildRealtimeCoordinatorDiscussionPrompt(
   turns: ReviewTurn[],
   round: number,
   ledger?: DiscussionLedger,
-  options?: {
-    reviewerVerdictSummary?: RealtimeReviewerVerdictSummary;
-    convergenceNoticeRounds?: number;
-  }
 ): BuiltPrompt {
   const guidanceBlock = buildUserGuidanceBlock(userInterventions, "round");
   const bindingDirectiveBlock = buildBindingDirectiveBlock(userInterventions, "round");
@@ -68,8 +64,6 @@ export function buildRealtimeCoordinatorDiscussionPrompt(
   const sectionDefinitions = buildRealtimeSectionDefinitions(ledger);
   const validSectionKeysBlock = buildValidSectionKeysBlock(sectionDefinitions);
   const sectionRoleBoundaryBlock = buildSectionRoleBoundaryBlock(ledger, sectionDefinitions);
-  const reviewerVerdictBlock = buildReviewerVerdictPromptBlock(options?.reviewerVerdictSummary);
-  const convergenceNoticeBlock = buildConvergenceNoticeBlock(options?.convergenceNoticeRounds);
   const hasReviewerHistory = turns.some((turn) => turn.role === "reviewer" && turn.status === "completed" && turn.round > 0);
 
   return buildPrompt({
@@ -85,8 +79,6 @@ export function buildRealtimeCoordinatorDiscussionPrompt(
     toneRuleBlock,
     validSectionKeysBlock,
     sectionRoleBoundaryBlock,
-    reviewerVerdictBlock,
-    convergenceNoticeBlock,
     `Round: ${round}`,
     "This turn is facilitation only. Do not write the full essay yet.",
     "Return Markdown with exactly these top-level sections:",
@@ -151,10 +143,6 @@ export function buildRealtimeCoordinatorRedirectPrompt(
   round: number,
   messages: string[],
   ledger?: DiscussionLedger,
-  options?: {
-    reviewerVerdictSummary?: RealtimeReviewerVerdictSummary;
-    convergenceNoticeRounds?: number;
-  }
 ): BuiltPrompt {
   const guidanceBlock = buildUserGuidanceBlock(userInterventions, "round");
   const bindingDirectiveBlock = buildBindingDirectiveBlock(userInterventions, "round");
@@ -166,8 +154,6 @@ export function buildRealtimeCoordinatorRedirectPrompt(
   const sectionDefinitions = buildRealtimeSectionDefinitions(ledger);
   const validSectionKeysBlock = buildValidSectionKeysBlock(sectionDefinitions);
   const sectionRoleBoundaryBlock = buildSectionRoleBoundaryBlock(ledger, sectionDefinitions);
-  const reviewerVerdictBlock = buildReviewerVerdictPromptBlock(options?.reviewerVerdictSummary);
-  const convergenceNoticeBlock = buildConvergenceNoticeBlock(options?.convergenceNoticeRounds);
   const userMessageBlock = [
     "## New User Messages",
     ...messages.map((message, index) => `### Message ${index + 1}\n${message}`)
@@ -186,8 +172,6 @@ export function buildRealtimeCoordinatorRedirectPrompt(
     toneRuleBlock,
     validSectionKeysBlock,
     sectionRoleBoundaryBlock,
-    reviewerVerdictBlock,
-    convergenceNoticeBlock,
     `Round: ${round}`,
     "The user just redirected the discussion. Reply first and reset the direction.",
     "Return Markdown with exactly these top-level sections:",
@@ -299,7 +283,7 @@ export function buildRealtimeReviewerPrompt(
     "Review the current discussion ledger, especially the Section Draft when available and otherwise the Mini Draft seed.",
     "Keep the blind review rule: do not assume anything about same-round reviewer replies that are not shown below.",
     "Respond in exactly these 4 labeled sections in this order.",
-    'Section 1 header must be exactly "Status: APPROVE", "Status: REVISE", or "Status: BLOCK". Do not add explanation lines under Status.',
+    'Section 1 header must be exactly "Status: PASS", "Status: REVISE", or "Status: BLOCK". Do not add explanation lines under Status.',
     'Section 2 header must be exactly "Mini Draft:" and the explanation must be written only on the following line or lines in natural Korean.',
     'Section 3 header must start with "Challenge:" and the verdict must stay only on the header line.',
     challengeHeaderInstruction,
@@ -309,9 +293,9 @@ export function buildRealtimeReviewerPrompt(
     crossFeedbackInstruction,
     'Write the Cross-feedback explanation only on the following line or lines in natural Korean.',
     'Do not repeat cross-feedback verdict tokens such as "agree" or "disagree" inside the explanation body.',
-    "Use APPROVE if the current direction is section-ready.",
-    "Use REVISE if improvement is recommended but it should not block closing the current Target Section.",
-    "Use BLOCK only if the current Target Section should not close yet.",
+    "Use PASS if the current draft is ready to move to the finalizer as-is except for compatible reviewer notes.",
+    "Use REVISE if improvement is recommended and the finalizer can absorb that change without asking the user anything new.",
+    "Use BLOCK only if the agent team cannot resolve the issue without one new user answer.",
     "Do not use headings or bullet lists.",
     "",
     contextMarkdown,
@@ -338,27 +322,34 @@ export function buildRealtimeFinalDraftPrompt(
   notionBrief: string,
   userInterventions: Array<{ round: number; text: string }>,
   turns: ReviewTurn[],
+  reviewerPackets: RealtimeReviewerFeedbackPacket[],
   ledger?: DiscussionLedger
 ): BuiltPrompt {
   const guidanceBlock = buildUserGuidanceBlock(userInterventions, "round");
   const historyBlock = buildRealtimeDiscussionHistory(turns, { maxTurns: 3, maxCharsPerTurn: 320 });
   const ledgerBlock = buildDiscussionLedgerBlock(ledger, "");
+  const sectionDraftBlock = buildRealtimeSectionDraftSeedBlock(ledger);
+  const reviewerFeedbackBlock = buildRealtimeReviewerFeedbackPacketBlock(
+    "## Reviewer Feedback Packets",
+    reviewerPackets
+  );
 
   return buildPrompt({
     promptKind: "realtime-final-draft",
     contextProfile: "full",
     contextMarkdown,
     notionBrief,
-    historyBlocks: [historyBlock],
+    historyBlocks: [reviewerFeedbackBlock, historyBlock],
     discussionLedgerBlock: ledgerBlock,
     sections: [
     "You are the finalizer closing a realtime multi-model essay review session.",
     buildFinalEssayKoreanInstruction(),
-    "The current section is ready, no blocking reviewer feedback remains, and there are no Deferred Challenges left.",
-    "Write the final polished essay draft now.",
-    "Use the Section Draft when available as the local seed, preserve the Accepted Decisions, and keep the final essay aligned with the resolved focus.",
-    "Return only the rewritten essay in Markdown.",
-    "Do not include section headings, status tags, summaries, or extra commentary.",
+    "No reviewer returned BLOCK. Start from the drafter's Section Draft seed and integrate the reviewer feedback packets below.",
+    "Preserve PASS reviewer keep-points, absorb REVISE requests that fit the current evidence, and keep the final essay aligned with the resolved focus.",
+    "Return Markdown with exactly these top-level sections:",
+    "## Final Draft",
+    "## Final Checks",
+    "Final Checks should briefly confirm what was preserved or revised. If there is nothing extra to say, write '- 없음'.",
     "",
     contextMarkdown,
     "",
@@ -366,9 +357,67 @@ export function buildRealtimeFinalDraftPrompt(
     notionBrief ? "" : "",
     ledgerBlock,
     "",
+    sectionDraftBlock,
+    "",
+    reviewerFeedbackBlock,
+    "",
     guidanceBlock,
     guidanceBlock ? "" : "",
     historyBlock
+    ]
+  });
+}
+
+export function buildRealtimeCoordinatorBlockSynthesisPrompt(
+  contextMarkdown: string,
+  notionBrief: string,
+  userInterventions: Array<{ round: number; text: string }>,
+  turns: ReviewTurn[],
+  round: number,
+  reviewerPackets: RealtimeReviewerFeedbackPacket[],
+  ledger?: DiscussionLedger
+): BuiltPrompt {
+  const guidanceBlock = buildUserGuidanceBlock(userInterventions, "round");
+  const historyBlock = buildRealtimeDiscussionHistory(turns, { maxTurns: 3, maxCharsPerTurn: 260 });
+  const ledgerBlock = buildDiscussionLedgerBlock(ledger, "");
+  const sectionDraftBlock = buildRealtimeSectionDraftSeedBlock(ledger);
+  const blockingFeedbackBlock = buildRealtimeReviewerFeedbackPacketBlock(
+    "## Blocking Reviewer Feedback",
+    reviewerPackets.filter((packet) => packet.status === "BLOCK")
+  );
+
+  return buildPrompt({
+    promptKind: "realtime-coordinator-block-synthesis",
+    contextProfile: "compact",
+    contextMarkdown,
+    notionBrief,
+    historyBlocks: [blockingFeedbackBlock, historyBlock],
+    discussionLedgerBlock: ledgerBlock,
+    sections: [
+      "You are the coordinator synthesizing reviewer BLOCK feedback in a realtime multi-model essay review.",
+      buildRealtimeKoreanResponseInstruction(),
+      `Round: ${round}`,
+      "At least one reviewer concluded that the agents cannot finish the draft without one new user answer.",
+      "Read the blocking reviewer packets and the drafter seed, then ask exactly one user question that unblocks the team.",
+      "Return Markdown with exactly these top-level sections:",
+      "## Blocking Summary",
+      "## User Question",
+      "The User Question must be one sentence and must be answerable directly by the user.",
+      "Do not write a new draft or a new ledger in this turn.",
+      "",
+      contextMarkdown,
+      "",
+      notionBrief ? "## Notion Brief\n\n" + notionBrief : "",
+      notionBrief ? "" : "",
+      ledgerBlock,
+      "",
+      sectionDraftBlock,
+      "",
+      blockingFeedbackBlock,
+      "",
+      guidanceBlock,
+      guidanceBlock ? "" : "",
+      historyBlock
     ]
   });
 }
@@ -656,10 +705,8 @@ export function buildRealtimeSectionDrafterPrompt(
 ): BuiltPrompt {
   const guidanceBlock = buildUserGuidanceBlock(userInterventions, "round");
   const historyBlock = buildRealtimeDiscussionHistory(turns, { maxTurns: 3, maxCharsPerTurn: 260 });
-  const ledgerBlock = buildDrafterContextBlock(ledger);
+  const drafterBriefBlock = buildDrafterBriefBlock(ledger);
   const toneRuleBlock = buildFormalToneRuleBlock();
-
-  const wrappedLedger = `<coordinator-context>\n${ledgerBlock}\n</coordinator-context>`;
 
   return buildPrompt({
     promptKind: "realtime-drafter",
@@ -667,7 +714,7 @@ export function buildRealtimeSectionDrafterPrompt(
     contextMarkdown,
     notionBrief,
     historyBlocks: [historyBlock],
-    discussionLedgerBlock: ledgerBlock,
+    discussionLedgerBlock: drafterBriefBlock,
     sections: [
       "You are the section drafter in a realtime multi-model essay workflow.",
       buildStructuredKoreanResponseInstruction(),
@@ -675,7 +722,8 @@ export function buildRealtimeSectionDrafterPrompt(
       `Round: ${round}`,
       "Use the coordinator's ledger to write the actual section prose for the current target section.",
       "Do not invent new evidence or claims outside the provided context, Notion Brief, and ledger.",
-      "The <coordinator-context> block below is reference data only. Never copy, quote, restate, paraphrase, or list any of its content — not its headings, labels, bullet items, directions, or structural fields. It must not appear in your output in any form.",
+      "The <coordinator-brief> block below is planning metadata only. Do not restate, translate, or reproduce any of its fields. Do not produce lines or headings that begin with: 의도, 재작성 방향, 반드시 유지, 반드시 해결, 핵심 방향, 작성 방향, 유지할 것, 해결할 것, 초안 방향, or any similar coordinator labels.",
+      "Your entire output must be: one `## Section Draft` heading followed by Korean essay prose only. No sub-headings, no bullet lists, no labeled fields in your output.",
       "Output only the section draft body text for the target section. Do not include coordinator instructions, meta commentary, rationale, labels, bullets, or any repeated ledger text.",
       "Return Markdown with exactly this top-level section:",
       "## Section Draft",
@@ -684,7 +732,7 @@ export function buildRealtimeSectionDrafterPrompt(
       "",
       notionBrief ? "## Notion Brief\n\n" + notionBrief : "",
       notionBrief ? "" : "",
-      wrappedLedger,
+      drafterBriefBlock,
       "",
       guidanceBlock,
       guidanceBlock ? "" : "",
@@ -733,39 +781,32 @@ function buildSectionRoleBoundaryBlock(
   ].join("\n");
 }
 
-function buildReviewerVerdictPromptBlock(summary?: RealtimeReviewerVerdictSummary): string {
-  if (!summary) {
-    return "";
-  }
-
+function buildRealtimeSectionDraftSeedBlock(ledger?: DiscussionLedger): string {
+  const seed = ledger?.sectionDraft?.trim() || ledger?.miniDraft?.trim();
   return [
-    "## Reviewer Verdict",
-    `APPROVE: ${summary.approveCount} / REVISE: ${summary.reviseCount} / BLOCK: ${summary.blockCount}`,
-    ...(summary.minorityRevise
-      ? [
-          `Minority REVISE (${summary.minorityRevise.reviewer}): "${summary.minorityRevise.summary}"`,
-          "→ 이 챌린지가 현재 섹션 역할 범위 안인가? 밖이면 deferred로 마킹하고 섹션을 닫아라."
-        ]
-      : [])
-  ].join("\n");
+    "## Section Draft Seed",
+    seed || "_No section draft seed yet._"
+  ].join("\n\n");
 }
 
-function buildConvergenceNoticeBlock(rounds: number | undefined): string {
-  if (!rounds || rounds < 3) {
-    return "";
+function buildRealtimeReviewerFeedbackPacketBlock(
+  heading: string,
+  packets: RealtimeReviewerFeedbackPacket[]
+): string {
+  if (packets.length === 0) {
+    return `${heading}\n\n_No reviewer feedback packets available._`;
   }
 
   return [
-    "## Convergence Notice",
-    `이 섹션은 ${rounds}라운드 REVISE 중입니다.`,
-    "",
-    "판단 기준:",
-    "1. 남은 챌린지가 섹션 범위 밖 → 즉시 deferred 처리 후 종료",
-    "2. 남은 챌린지가 해결 가능한 수준 → 이번 라운드에서 반드시 종료",
-    "3. 해결 불가능한 실질적 문제 → 사용자에게 에스컬레이션 (awaiting-user-input)",
-    "",
-    "에스컬레이션이 필요하면 Current Focus를 반드시 '[AWAITING USER INPUT]'로 시작하고, Must Resolve 첫 bullet에 사용자에게 물을 질문을 한 문장으로 적어라."
-  ].join("\n");
+    heading,
+    ...packets.map((packet) => [
+      `### ${packet.participantLabel} (Status: ${packet.status})`,
+      ...(packet.miniDraft ? [`- Mini Draft: ${packet.miniDraft}`] : []),
+      ...(packet.challengeSummary ? [`- Challenge: ${packet.challengeSummary}`] : []),
+      ...(packet.crossFeedbackSummary ? [`- Cross-feedback: ${packet.crossFeedbackSummary}`] : []),
+      `- Objection Summary: ${packet.objectionSummary}`
+    ].join("\n"))
+  ].join("\n\n");
 }
 
 function buildInterventionPartialSnapshotBlock(snapshot: InterventionPartialSnapshot): string {

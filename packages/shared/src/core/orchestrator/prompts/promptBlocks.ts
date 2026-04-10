@@ -143,6 +143,71 @@ export function buildDrafterContextBlock(ledger?: DiscussionLedger): string {
   ].join("\n");
 }
 
+export function buildDrafterLedgerBlock(ledger?: DiscussionLedger): string {
+  const heading = "## Coordinator Reference";
+  if (!ledger) {
+    return `<coordinator-context>\n${heading}\n\n_No discussion ledger yet._\n</coordinator-context>`;
+  }
+
+  const inner = [
+    heading,
+    `- Updated At Round: ${ledger.updatedAtRound}`,
+    `- Target Section: ${ledger.targetSection}`,
+    ...(ledger.targetSectionKey ? [`- Target Section Key: ${ledger.targetSectionKey}`] : []),
+    ...(ledger.nextOwner ? [`- Next Owner: ${ledger.nextOwner}`] : []),
+    "",
+    "### Current Focus",
+    ledger.currentFocus,
+    "",
+    ...(ledger.currentObjective ? ["### Current Objective", ledger.currentObjective, ""] : []),
+    ...(ledger.rewriteDirection ? ["### Rewrite Direction", ledger.rewriteDirection, ""] : []),
+    "### Mini Draft",
+    ledger.miniDraft,
+    "",
+    ...(ledger.sectionDraft ? ["### Previous Draft", ledger.sectionDraft, ""] : []),
+    ...(ledger.changeRationale ? ["### Previous Change Rationale", ledger.changeRationale, ""] : []),
+    ...(ledger.mustKeep?.length ? ["### Must Keep", ...formatDiscussionLedgerItems(ledger.mustKeep), ""] : []),
+    ...(ledger.mustResolve?.length ? ["### Must Resolve", ...formatDiscussionLedgerItems(ledger.mustResolve), ""] : []),
+    ...(ledger.availableEvidence?.length ? ["### Available Evidence", ...formatDiscussionLedgerItems(ledger.availableEvidence), ""] : []),
+    ...(ledger.exitCriteria?.length ? ["### Exit Criteria", ...formatDiscussionLedgerItems(ledger.exitCriteria), ""] : []),
+    "### Accepted Decisions",
+    ...formatDiscussionLedgerItems(ledger.acceptedDecisions),
+    "",
+    "### Open Challenges",
+    ...formatDiscussionLedgerItems(ledger.openChallenges),
+    "",
+    "### Deferred Challenges",
+    ...formatDiscussionLedgerItems(ledger.deferredChallenges)
+  ].join("\n");
+
+  return `<coordinator-context>\n${inner}\n</coordinator-context>`;
+}
+
+export function buildDrafterBriefBlock(ledger?: DiscussionLedger): string {
+  if (!ledger) {
+    return "<coordinator-brief>\n작성할 섹션 정보가 없습니다.\n</coordinator-brief>";
+  }
+
+  const mustKeepInline = ledger.mustKeep?.length
+    ? ledger.mustKeep.join(", ")
+    : "없음";
+  const mustResolveInline = ledger.mustResolve?.length
+    ? ledger.mustResolve.join(", ")
+    : "없음";
+
+  const lines = [
+    `Target section: ${ledger.targetSection}${ledger.targetSectionKey ? ` (${ledger.targetSectionKey})` : ""}`,
+    `Round updated at: ${ledger.updatedAtRound}`,
+    "",
+    `의도: ${ledger.currentFocus}`,
+    ...(ledger.rewriteDirection ? [`재작성 방향: ${ledger.rewriteDirection}`] : []),
+    `반드시 유지: ${mustKeepInline}`,
+    `반드시 해결: ${mustResolveInline}`,
+  ];
+
+  return `<coordinator-brief>\n${lines.join("\n")}\n</coordinator-brief>`;
+}
+
 export function buildChallengeTicketBlock(ledger?: DiscussionLedger): string {
   const tickets = ledger?.tickets ?? [];
   if (tickets.length === 0) {

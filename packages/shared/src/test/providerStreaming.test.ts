@@ -71,6 +71,31 @@ test("provider stream processor streams plain text chunks for claude", async () 
   assert.equal(events.at(-1)?.type, "chat-message-completed");
 });
 
+test("provider stream processor starts claude message before first visible text chunk", async () => {
+  const events: RunEvent[] = [];
+  const processor = createProviderStreamProcessor("claude", 2, "coordinator");
+
+  await processor.handleStdout("   \n", async (event) => {
+    events.push(event);
+  });
+  assert.deepEqual(events.map((event) => event.type), ["chat-message-started"]);
+
+  await processor.handleStdout("첫 문장", async (event) => {
+    events.push(event);
+  });
+  assert.deepEqual(events.map((event) => event.type), ["chat-message-started", "chat-message-delta"]);
+
+  await processor.finalize("첫 문장", async (event) => {
+    events.push(event);
+  });
+
+  assert.deepEqual(
+    events.map((event) => event.type),
+    ["chat-message-started", "chat-message-delta", "chat-message-completed"]
+  );
+  assert.equal(events[1].message, "첫 문장");
+});
+
 test("provider stream processor does not duplicate codex final text after streamed deltas", async () => {
   const events: RunEvent[] = [];
   const processor = createProviderStreamProcessor("codex", 1, "reviewer");

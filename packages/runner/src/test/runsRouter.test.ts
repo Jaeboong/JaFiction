@@ -191,18 +191,55 @@ test("run messages endpoint returns persisted chat ledgers with chat history", a
   });
 });
 
+test("essay draft save route persists the selected question draft and pushes refreshed state", async (t) => {
+  const harness = await startHarness();
+  t.after(() => harness.close());
+
+  const project = await harness.ctx.storage().createProject({
+    companyName: "Naver",
+    essayQuestions: ["첫 번째 문항", "두 번째 문항"]
+  });
+
+  const response = await authenticatedJsonRequest(
+    harness.baseUrl,
+    `/api/projects/${project.slug}/essay-draft/1`,
+    {
+      method: "PUT",
+      body: { draft: "두 번째 문항 초안" }
+    }
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { questionIndex: 1 });
+
+  const refreshedProject = await harness.ctx.storage().getProject(project.slug);
+  assert.equal(harness.refreshProjectsCalls.length, 1);
+  assert.equal(harness.refreshProjectsCalls[0], project.slug);
+  assert.equal(harness.pushCount, 1);
+  assert.equal(refreshedProject.essayAnswerStates?.length, 1);
+  assert.equal(refreshedProject.essayAnswerStates?.[0]?.questionIndex, 1);
+
+  const documentId = refreshedProject.essayAnswerStates?.[0]?.documentId;
+  assert.ok(documentId);
+
+  const document = await harness.ctx.storage().getProjectDocument(project.slug, documentId);
+  assert.equal(await harness.ctx.storage().readDocumentRawContent(document), "두 번째 문항 초안");
+});
+
 async function startHarness(): Promise<{
   abortStateUpdates: RunSessionState[];
   baseUrl: string;
   close(): Promise<void>;
   ctx: RunnerContext;
   pushCount: number;
+  refreshProjectsCalls: Array<string | undefined>;
 }> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-runs-router-"));
   const storageRoot = path.join(tempDir, ".jafiction");
   const storage = new ForJobStorage(tempDir, storageRoot);
   await storage.ensureInitialized();
   const abortStateUpdates: RunSessionState[] = [];
+  const refreshProjectsCalls: Array<string | undefined> = [];
   let pushCount = 0;
 
   const ctx = {
@@ -212,7 +249,9 @@ async function startHarness(): Promise<{
       setRunState: (state: RunSessionState) => {
         abortStateUpdates.push(state);
       },
-      refreshProjects: async () => undefined,
+      refreshProjects: async (projectSlug?: string) => {
+        refreshProjectsCalls.push(projectSlug);
+      },
       refreshPreferences: async () => undefined
     } as unknown as RunnerContext["stateStore"],
     runSessions: new RunSessionManager(),
@@ -266,7 +305,8 @@ async function startHarness(): Promise<{
     ctx,
     get pushCount() {
       return pushCount;
-    }
+    },
+    refreshProjectsCalls
   };
 }
 
@@ -275,7 +315,7 @@ async function authenticatedJsonRequest(
   pathname: string,
   init: {
     body?: Record<string, unknown>;
-    method: "GET" | "POST";
+    method: "GET" | "POST" | "PUT";
   }
 ): Promise<Response> {
   const bootstrapResponse = await fetch(`${baseUrl}/api/session`, {

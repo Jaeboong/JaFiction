@@ -35,7 +35,7 @@ export function summarizeRealtimeReviewerVerdicts(
 
   for (const reviewer of activeReviewers) {
     const status = statuses.get(reviewer.participantId);
-    if (status === "APPROVE") {
+    if (status === "PASS") {
       approveCount += 1;
       continue;
     }
@@ -65,7 +65,7 @@ export function summarizeRealtimeReviewerVerdicts(
     approveCount,
     reviseCount,
     blockCount,
-    majority: blockCount > 0 ? "BLOCK" : majorityRevise ? "REVISE" : majorityApproved ? "APPROVE" : "NONE",
+    majority: blockCount > 0 ? "BLOCK" : majorityRevise ? "REVISE" : majorityApproved ? "PASS" : "NONE",
     majorityApproved,
     majorityRevise,
     majorityReviseNeedsHold,
@@ -82,7 +82,7 @@ export function hasAllApprovingRealtimeReviewers(
   activeReviewers: ReviewParticipant[],
   statuses: Map<string, RealtimeReviewerStatus>
 ): boolean {
-  return activeReviewers.length > 0 && activeReviewers.every((reviewer) => statuses.get(reviewer.participantId) === "APPROVE");
+  return activeReviewers.length > 0 && activeReviewers.every((reviewer) => statuses.get(reviewer.participantId) === "PASS");
 }
 
 export function hasBlockingRealtimeReviewer(
