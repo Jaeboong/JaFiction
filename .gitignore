@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+.forjob/
+.jafiction/
+.worktrees/
+worktrees/
+.harness/
+dist-tools/
+*.tsbuildinfo
+
+# Claude Code local state (never commit)
+.claude/tmp/
+.claude/sessions/
+.claude/session-env/
+.claude/shell-snapshots/

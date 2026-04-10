@@ -1,0 +1,302 @@
+import * as assert from "node:assert/strict";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
+import test from "node:test";
+import type { AddressInfo } from "node:net";
+import { ForJobStorage, RunSessionManager, RunSessionState } from "@jafiction/shared";
+import { createRunnerServer } from "../index";
+import type { RunnerContext } from "../runnerContext";
+
+test("stale tabs receive 409 instead of resuming a different paused run", async (t) => {
+  const harness = await startHarness();
+  t.after(() => harness.close());
+
+  const sessionId = harness.ctx.runSessions.start("alpha", "realtime");
+  const pendingIntervention = harness.ctx.runSessions.waitForIntervention(sessionId, {
+    projectSlug: "alpha",
+    runId: "active-run",
+    round: 2,
+    reviewMode: "realtime",
+    coordinatorProvider: "codex"
+  });
+
+  const staleResponse = await authenticatedJsonRequest(harness.baseUrl, "/api/runs/stale-run/intervention", {
+    method: "POST",
+    body: { message: "stale tab message" }
+  });
+
+  assert.equal(staleResponse.status, 409);
+  assert.deepEqual(await staleResponse.json(), {
+    error: "run_conflict",
+    message: "This run is no longer the active session.",
+    activeRunId: "active-run"
+  });
+  assert.equal(harness.ctx.runSessions.snapshot().status, "paused");
+
+  const activeResponse = await authenticatedJsonRequest(harness.baseUrl, "/api/runs/active-run/intervention", {
+    method: "POST",
+    body: { message: "fresh tab message" }
+  });
+
+  assert.equal(activeResponse.status, 200);
+  assert.equal(await pendingIntervention, "fresh tab message");
+});
+
+test("stale tabs cannot queue intervention messages into another running session", async (t) => {
+  const harness = await startHarness();
+  t.after(() => harness.close());
+
+  const sessionId = harness.ctx.runSessions.start("alpha", "realtime");
+  harness.ctx.runSessions.setRunId(sessionId, "active-run");
+
+  const staleResponse = await authenticatedJsonRequest(harness.baseUrl, "/api/runs/stale-run/intervention", {
+    method: "POST",
+    body: { message: "stale tab message" }
+  });
+  assert.equal(staleResponse.status, 409);
+  assert.deepEqual(harness.ctx.runSessions.drainQueuedMessages(sessionId), []);
+
+  const activeResponse = await authenticatedJsonRequest(harness.baseUrl, "/api/runs/active-run/intervention", {
+    method: "POST",
+    body: { message: "fresh tab message" }
+  });
+  assert.equal(activeResponse.status, 200);
+  assert.deepEqual(harness.ctx.runSessions.drainQueuedMessages(sessionId), ["fresh tab message"]);
+});
+
+test("stale tabs cannot abort a different active run", async (t) => {
+  const harness = await startHarness();
+  t.after(() => harness.close());
+
+  const sessionId = harness.ctx.runSessions.start("alpha", "realtime");
+  harness.ctx.runSessions.setRunId(sessionId, "active-run");
+  const signal = harness.ctx.runSessions.abortSignal(sessionId);
+
+  const staleResponse = await authenticatedJsonRequest(harness.baseUrl, "/api/runs/stale-run/abort", {
+    method: "POST"
+  });
+  assert.equal(staleResponse.status, 409);
+  assert.equal(signal.aborted, false);
+  assert.deepEqual(await staleResponse.json(), {
+    error: "run_conflict",
+    message: "This run is no longer the active session.",
+    activeRunId: "active-run"
+  });
+
+  const activeResponse = await authenticatedJsonRequest(harness.baseUrl, "/api/runs/active-run/abort", {
+    method: "POST"
+  });
+  assert.equal(activeResponse.status, 202);
+  assert.equal(signal.aborted, true);
+  assert.equal(harness.abortStateUpdates.at(-1)?.status, "aborting");
+  assert.equal(harness.pushCount, 1);
+});
+
+test("run messages endpoint returns persisted chat ledgers with chat history", async (t) => {
+  const harness = await startHarness();
+  t.after(() => harness.close());
+
+  const project = await harness.ctx.storage().createProject("Naver");
+  await harness.ctx.storage().createRun({
+    id: "completed-run",
+    projectSlug: project.slug,
+    question: "왜 네이버인가?",
+    draft: "초안",
+    reviewMode: "realtime",
+    coordinatorProvider: "claude",
+    reviewerProviders: ["codex"],
+    rounds: 1,
+    maxRoundsPerSection: 1,
+    selectedDocumentIds: [],
+    status: "completed",
+    startedAt: "2026-04-10T00:00:00.000Z",
+    finishedAt: "2026-04-10T00:03:00.000Z"
+  });
+  await harness.ctx.storage().saveRunChatMessages(project.slug, "completed-run", [
+    {
+      id: "msg-1",
+      providerId: "claude",
+      participantId: "section-coordinator",
+      participantLabel: "섹션 코디네이터",
+      speaker: "Claude",
+      speakerRole: "coordinator",
+      recipient: "All",
+      round: 1,
+      content: "지원 동기를 더 선명하게 합시다.",
+      startedAt: "2026-04-10T00:00:01.000Z",
+      finishedAt: "2026-04-10T00:00:05.000Z",
+      status: "completed"
+    }
+  ]);
+  await harness.ctx.storage().saveRunLedgers(project.slug, "completed-run", [
+    {
+      participantId: "section-coordinator",
+      round: 1,
+      messageId: "msg-1",
+      ledger: {
+        currentFocus: "지원 동기 정교화",
+        miniDraft: "문제 인식과 제품 임팩트를 연결한다.",
+        acceptedDecisions: ["첫 문단은 사용자 관점으로 시작한다."],
+        openChallenges: ["수치 근거가 부족하다."],
+        deferredChallenges: [],
+        targetSection: "지원 동기",
+        targetSectionKey: "motivation",
+        updatedAtRound: 1
+      }
+    }
+  ]);
+
+  const response = await authenticatedJsonRequest(
+    harness.baseUrl,
+    `/api/projects/${project.slug}/runs/completed-run/messages`,
+    { method: "GET" }
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    messages: [
+      {
+        id: "msg-1",
+        providerId: "claude",
+        participantId: "section-coordinator",
+        participantLabel: "섹션 코디네이터",
+        speaker: "Claude",
+        speakerRole: "coordinator",
+        recipient: "All",
+        round: 1,
+        content: "지원 동기를 더 선명하게 합시다.",
+        startedAt: "2026-04-10T00:00:01.000Z",
+        finishedAt: "2026-04-10T00:00:05.000Z",
+        status: "completed"
+      }
+    ],
+    ledgers: [
+      {
+        participantId: "section-coordinator",
+        round: 1,
+        messageId: "msg-1",
+        ledger: {
+          currentFocus: "지원 동기 정교화",
+          miniDraft: "문제 인식과 제품 임팩트를 연결한다.",
+          acceptedDecisions: ["첫 문단은 사용자 관점으로 시작한다."],
+          openChallenges: ["수치 근거가 부족하다."],
+          deferredChallenges: [],
+          targetSection: "지원 동기",
+          targetSectionKey: "motivation",
+          updatedAtRound: 1
+        }
+      }
+    ]
+  });
+});
+
+async function startHarness(): Promise<{
+  abortStateUpdates: RunSessionState[];
+  baseUrl: string;
+  close(): Promise<void>;
+  ctx: RunnerContext;
+  pushCount: number;
+}> {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-runs-router-"));
+  const storageRoot = path.join(tempDir, ".jafiction");
+  const storage = new ForJobStorage(tempDir, storageRoot);
+  await storage.ensureInitialized();
+  const abortStateUpdates: RunSessionState[] = [];
+  let pushCount = 0;
+
+  const ctx = {
+    workspaceRoot: tempDir,
+    storageRoot,
+    stateStore: {
+      setRunState: (state: RunSessionState) => {
+        abortStateUpdates.push(state);
+      },
+      refreshProjects: async () => undefined,
+      refreshPreferences: async () => undefined
+    } as unknown as RunnerContext["stateStore"],
+    runSessions: new RunSessionManager(),
+    sessionToken: "test-session-token",
+    storage: () => storage,
+    registry: () => missingDependency("registry"),
+    orchestrator: () => missingDependency("orchestrator"),
+    config: () => ({
+      getPort: async () => 4123
+    }) as RunnerContext["config"] extends () => infer TResult ? TResult : never,
+    secrets: () => missingDependency("secrets"),
+    snapshot: () => ({
+      workspaceOpened: true,
+      extensionVersion: "test-version",
+      openDartConfigured: false,
+      openDartConnectionStatus: "untested",
+      providers: [],
+      profileDocuments: [],
+      projects: [],
+      preferences: {},
+      agentDefaults: {},
+      runState: { status: "idle" },
+      defaultRubric: ""
+    }) as RunnerContext["snapshot"] extends () => infer TResult ? TResult : never,
+    pushState: async () => {
+      pushCount += 1;
+    },
+    emitRunEvent: () => undefined,
+    clearRunBuffer: () => undefined,
+    addStateSocket: () => undefined,
+    addRunSocket: () => undefined,
+    runBusy: async (_message: string, work: () => Promise<void>) => {
+      await work();
+    },
+    refreshAll: async () => undefined
+  } as unknown as RunnerContext;
+
+  const { close, server } = await createRunnerServer(ctx);
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", () => resolve());
+  });
+  const address = server.address() as AddressInfo;
+
+  return {
+    abortStateUpdates,
+    baseUrl: `http://127.0.0.1:${address.port}`,
+    close: async () => {
+      await close();
+      await fs.rm(tempDir, { recursive: true, force: true });
+    },
+    ctx,
+    get pushCount() {
+      return pushCount;
+    }
+  };
+}
+
+async function authenticatedJsonRequest(
+  baseUrl: string,
+  pathname: string,
+  init: {
+    body?: Record<string, unknown>;
+    method: "GET" | "POST";
+  }
+): Promise<Response> {
+  const bootstrapResponse = await fetch(`${baseUrl}/api/session`, {
+    headers: {
+      Origin: "http://127.0.0.1:4124"
+    }
+  });
+  const cookie = bootstrapResponse.headers.get("set-cookie");
+  assert.ok(cookie);
+
+  return fetch(`${baseUrl}${pathname}`, {
+    method: init.method,
+    headers: {
+      Cookie: cookie.split(";")[0],
+      "Content-Type": "application/json",
+      Origin: "http://127.0.0.1:4124"
+    },
+    body: init.body ? JSON.stringify(init.body) : undefined
+  });
+}
+
+function missingDependency(name: string): never {
+  throw new Error(`${name} should not be used in this test.`);
+}

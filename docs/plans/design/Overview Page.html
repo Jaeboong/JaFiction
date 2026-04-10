@@ -1,0 +1,310 @@
+<html lang="ko" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">JaFiction - Project Detail</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17" vid="5"></script>
+    <style vid="6">
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e5e7eb;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d1d5db;
+        }
+
+        button:focus {
+            outline: none;
+        }
+        button:focus-visible {
+            outline: 2px solid #111827;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col bg-[#F9FAFB] text-[#111827] overflow-hidden" vid="7">
+
+    <header class="h-[48px] shrink-0 border-b border-gray-200 flex items-center justify-between px-5 bg-white relative z-20" vid="8">
+        <div class="flex items-center h-full" vid="9">
+            <div class="flex items-center gap-2 mr-8 cursor-pointer group" vid="10">
+                <svg viewBox="0 0 24 24" fill="none" class="w-[18px] h-[18px]" vid="11">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" fill="#111827" class="group-hover:fill-gray-600 transition-colors" vid="12"></rect>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" fill="#111827" fill-opacity="0.3" vid="13"></rect>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" fill="#111827" fill-opacity="0.6" vid="14"></rect>
+                    <path d="M14 15.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4z" stroke="#111827" stroke-width="1.5" class="group-hover:stroke-gray-600 transition-colors" vid="15"></path>
+                </svg>
+                <span class="font-semibold text-[14px] tracking-tight" vid="16">JaFiction</span>
+            </div>
+
+            <nav class="flex h-full items-center gap-1" vid="17">
+                <a href="#" class="px-3 h-full flex items-center text-[13px] text-gray-900 font-medium relative" vid="18">
+                    개요
+                    <div class="absolute bottom-[-1px] left-0 w-full h-[2px] bg-gray-900" vid="19"></div>
+                </a>
+                <a href="#" class="px-3 h-full flex items-center text-[13px] text-gray-500 hover:text-gray-900 transition-colors" vid="20">프로바이더</a>
+                <a href="#" class="px-3 h-full flex items-center text-[13px] text-gray-500 hover:text-gray-900 transition-colors" vid="21">프로젝트</a>
+                <a href="#" class="px-3 h-full flex items-center text-[13px] text-gray-500 hover:text-gray-900 transition-colors" vid="22">실행</a>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-3" vid="23">
+            <button class="text-gray-400 hover:text-gray-600 transition-colors" vid="24">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-[18px] h-[18px]" vid="25">
+                    <circle cx="12" cy="12" r="3" vid="26"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" vid="27"></path>
+                </svg>
+            </button>
+            <div class="w-6 h-6 rounded bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-[11px] font-bold text-gray-600 cursor-pointer" vid="28">
+                U
+            </div>
+        </div>
+    </header>
+
+<main class="flex-1 overflow-y-auto bg-[#F9FAFB]" vid="29">
+        <div class="max-w-[1200px] mx-auto p-8 flex flex-col gap-8" vid="30">
+            
+            <!-- Section 1: Runner Connection -->
+            <section class="bg-white border border-gray-200 p-4 flex items-center justify-between gap-6" vid="31">
+                <div class="flex items-center gap-4 flex-1" vid="32">
+                    <div class="flex items-center gap-2 shrink-0" vid="33">
+                        <span class="relative flex h-2.5 w-2.5" vid="34">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" vid="35"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" vid="36"></span>
+                        </span>
+                        <span class="text-[13px] font-medium text-gray-700" vid="37">러너 연결</span>
+                    </div>
+                    <div class="flex-1 flex items-center gap-3 max-w-xl" vid="38">
+                        <input type="text" value="http://localhost:4123" readonly="" class="flex-1 h-[32px] px-3 text-[13px] bg-gray-50 border border-gray-200 text-gray-600 font-mono rounded-[4px]" vid="39">
+                        <button class="h-[32px] px-3 border border-gray-200 bg-white text-[13px] font-medium text-gray-700 rounded-[4px] hover:bg-gray-50 transition-colors" vid="40">
+                            연결 확인
+                        </button>
+                    </div>
+                </div>
+                <span class="text-[12px] text-green-600 font-medium" vid="41">정상 연결됨</span>
+            </section>
+
+            <!-- Section 2: System Summary (Horizontal stat cards) -->
+            <section vid="42">
+                <div class="grid grid-cols-5 gap-3" vid="43">
+                    <div class="bg-white border border-gray-200 p-3" vid="44">
+                        <div class="text-[11px] text-gray-500 mb-1" vid="45">프로바이더</div>
+                        <div class="flex items-baseline gap-1.5" vid="46">
+                            <span class="text-[20px] font-bold text-gray-900" vid="47">4</span>
+                            <span class="text-[12px] text-green-600" vid="48">개 정상 연결</span>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-gray-200 p-3" vid="49">
+                        <div class="text-[11px] text-gray-500 mb-1" vid="50">프로젝트</div>
+                        <div class="flex items-baseline gap-1.5" vid="51">
+                            <span class="text-[20px] font-bold text-gray-900" vid="52">12</span>
+                            <span class="text-[12px] text-gray-500" vid="53">활성 워크스페이스</span>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-gray-200 p-3" vid="54">
+                        <div class="text-[11px] text-gray-500 mb-1" vid="55">프로필 문서</div>
+                        <div class="flex items-baseline gap-1.5" vid="56">
+                            <span class="text-[20px] font-bold text-gray-900" vid="57">45</span>
+                            <span class="text-[12px] text-gray-500" vid="58">개 파일</span>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-gray-200 p-3" vid="59">
+                        <div class="text-[11px] text-gray-500 mb-1" vid="60">실행 상태</div>
+                        <div class="flex items-center gap-2" vid="61">
+                            <div class="w-2 h-2 rounded-full bg-green-500" vid="62"></div>
+                            <span class="text-[14px] font-medium text-gray-900" vid="63">Idle</span>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-gray-200 p-3" vid="64">
+                        <div class="text-[11px] text-gray-500 mb-1" vid="65">OpenDart</div>
+                        <div class="flex items-center gap-2" vid="66">
+                            <div class="w-2 h-2 rounded-full bg-gray-300" vid="67"></div>
+                            <span class="text-[14px] font-medium text-gray-500" vid="68">미연결</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Default Rubric -->
+            <section class="bg-white border border-gray-200" vid="69">
+                <div class="px-4 py-3 border-b border-gray-100" vid="70">
+                    <h2 class="text-[14px] font-semibold text-gray-900" vid="71">기본 평가 기준</h2>
+                </div>
+                <div class="p-4" vid="72">
+                    <div class="grid grid-cols-2 gap-3" vid="73">
+                        <div class="flex gap-3 p-3 bg-gray-50 border border-gray-100" vid="74">
+                            <span class="text-[12px] font-bold text-gray-400 w-5" vid="75">01</span>
+                            <div vid="76">
+                                <div class="text-[13px] font-medium text-gray-900 mb-0.5" vid="77">경력 적합성</div>
+                                <div class="text-[12px] text-gray-500" vid="78">지원 직무와의 경력 매칭도 및 역량 일치 여부</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 p-3 bg-gray-50 border border-gray-100" vid="79">
+                            <span class="text-[12px] font-bold text-gray-400 w-5" vid="80">02</span>
+                            <div vid="81">
+                                <div class="text-[13px] font-medium text-gray-900 mb-0.5" vid="82">기술 스택 부합도</div>
+                                <div class="text-[12px] text-gray-500" vid="83">요구 기술과 보유 기술의 정확한 매핑 평가</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 p-3 bg-gray-50 border border-gray-100" vid="84">
+                            <span class="text-[12px] font-bold text-gray-400 w-5" vid="85">03</span>
+                            <div vid="86">
+                                <div class="text-[13px] font-medium text-gray-900 mb-0.5" vid="87">성과 명확성</div>
+                                <div class="text-[12px] text-gray-500" vid="88">구체적 수치와 결과로 표현된 업적 기술</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 p-3 bg-gray-50 border border-gray-100" vid="89">
+                            <span class="text-[12px] font-bold text-gray-400 w-5" vid="90">04</span>
+                            <div vid="91">
+                                <div class="text-[13px] font-medium text-gray-900 mb-0.5" vid="92">문서 구조화</div>
+                                <div class="text-[12px] text-gray-500" vid="93">정보 계층과 가독성, 논리적 흐름 평가</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 p-3 bg-gray-50 border border-gray-100" vid="94">
+                            <span class="text-[12px] font-bold text-gray-400 w-5" vid="95">05</span>
+                            <div vid="96">
+                                <div class="text-[13px] font-medium text-gray-900 mb-0.5" vid="97">문법 및 어조</div>
+                                <div class="text-[12px] text-gray-500" vid="98">문법 정확성과 전문적이면서도 친근한 어조</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 p-3 bg-gray-50 border border-gray-100" vid="99">
+                            <span class="text-[12px] font-bold text-gray-400 w-5" vid="100">06</span>
+                            <div vid="101">
+                                <div class="text-[13px] font-medium text-gray-900 mb-0.5" vid="102">핵심 역량 강조</div>
+                                <div class="text-[12px] text-gray-500" vid="103">회사 핵심 가치와 직무 필수 역량의 노출 정도</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Agent Role Assignment -->
+            <section class="bg-white border border-gray-200" vid="104">
+                <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between" vid="105">
+                    <h2 class="text-[14px] font-semibold text-gray-900" vid="106">에이전트 역할 배정</h2>
+                    <button class="h-[28px] px-3 bg-gray-900 text-white text-[12px] font-medium rounded-[4px] hover:bg-gray-800 transition-colors" vid="107">
+                        저장
+                    </button>
+                </div>
+                <div vid="108">
+                    <table class="w-full text-left" vid="109">
+                        <thead class="bg-gray-50 border-b border-gray-200" vid="110">
+                            <tr vid="111">
+                                <th class="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-[180px]" vid="112">역할</th>
+                                <th class="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-[160px]" vid="113">프로바이더</th>
+                                <th class="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide" vid="114">모델 오버라이드</th>
+                                <th class="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-[100px]" vid="115">Effort</th>
+                                <th class="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-[140px]" vid="116">기본값 사용</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100" vid="117">
+                            <tr class="hover:bg-gray-50" vid="118">
+                                <td class="px-4 py-2.5 text-[13px] font-medium text-gray-900" vid="119">컨텍스트 연구원</td>
+                                <td class="px-4 py-2.5 text-[13px] text-gray-600" vid="120">Codex</td>
+                                <td class="px-4 py-2.5 text-[12px] text-gray-400" vid="121">—</td>
+                                <td class="px-4 py-2.5" vid="122"><span class="text-[12px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded" vid="123">High</span></td>
+                                <td class="px-4 py-2.5" vid="124"><input type="checkbox" checked="" class="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" vid="125"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50" vid="126">
+                                <td class="px-4 py-2.5 text-[13px] font-medium text-gray-900" vid="127">섹션 코디네이터</td>
+                                <td class="px-4 py-2.5 text-[13px] text-gray-600" vid="128">Claude Code</td>
+                                <td class="px-4 py-2.5 text-[12px] text-gray-400" vid="129">—</td>
+                                <td class="px-4 py-2.5" vid="130"><span class="text-[12px] px-2 py-0.5 bg-gray-100 text-gray-700 rounded" vid="131">Medium</span></td>
+                                <td class="px-4 py-2.5" vid="132"><input type="checkbox" checked="" class="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" vid="133"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50" vid="134">
+                                <td class="px-4 py-2.5 text-[13px] font-medium text-gray-900" vid="135">섹션 작성자</td>
+                                <td class="px-4 py-2.5 text-[13px] text-gray-600" vid="136">Gemini</td>
+                                <td class="px-4 py-2.5 text-[12px] text-purple-600 font-mono" vid="137">gemini-2.0-flash</td>
+                                <td class="px-4 py-2.5" vid="138"><span class="text-[12px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded" vid="139">High</span></td>
+                                <td class="px-4 py-2.5" vid="140"><input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" vid="141"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50" vid="142">
+                                <td class="px-4 py-2.5 text-[13px] font-medium text-gray-900" vid="143">적합성 리뷰어</td>
+                                <td class="px-4 py-2.5 text-[13px] text-gray-600" vid="144">Codex</td>
+                                <td class="px-4 py-2.5 text-[12px] text-gray-400" vid="145">—</td>
+                                <td class="px-4 py-2.5" vid="146"><span class="text-[12px] px-2 py-0.5 bg-gray-100 text-gray-700 rounded" vid="147">Medium</span></td>
+                                <td class="px-4 py-2.5" vid="148"><input type="checkbox" checked="" class="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" vid="149"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50" vid="150">
+                                <td class="px-4 py-2.5 text-[13px] font-medium text-gray-900" vid="151">근거 리뷰어</td>
+                                <td class="px-4 py-2.5 text-[13px] text-gray-600" vid="152">Claude Code</td>
+                                <td class="px-4 py-2.5 text-[12px] text-gray-400" vid="153">—</td>
+                                <td class="px-4 py-2.5" vid="154"><span class="text-[12px] px-2 py-0.5 bg-green-50 text-green-700 rounded" vid="155">Low</span></td>
+                                <td class="px-4 py-2.5" vid="156"><input type="checkbox" checked="" class="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" vid="157"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50" vid="158">
+                                <td class="px-4 py-2.5 text-[13px] font-medium text-gray-900" vid="159">어조 리뷰어</td>
+                                <td class="px-4 py-2.5 text-[13px] text-gray-600" vid="160">Gemini</td>
+                                <td class="px-4 py-2.5 text-[12px] text-gray-400" vid="161">—</td>
+                                <td class="px-4 py-2.5" vid="162"><span class="text-[12px] px-2 py-0.5 bg-green-50 text-green-700 rounded" vid="163">Low</span></td>
+                                <td class="px-4 py-2.5" vid="164"><input type="checkbox" checked="" class="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" vid="165"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50" vid="166">
+                                <td class="px-4 py-2.5 text-[13px] font-medium text-gray-900" vid="167">완성자</td>
+                                <td class="px-4 py-2.5 text-[13px] text-gray-600" vid="168">Codex</td>
+                                <td class="px-4 py-2.5 text-[12px] text-gray-400" vid="169">—</td>
+                                <td class="px-4 py-2.5" vid="170"><span class="text-[12px] px-2 py-0.5 bg-gray-100 text-gray-700 rounded" vid="171">Medium</span></td>
+                                <td class="px-4 py-2.5" vid="172"><input type="checkbox" checked="" class="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" vid="173"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <footer class="h-[32px] shrink-0 border-t border-gray-200 bg-[#FAFAFA] flex items-center px-4 text-[11px] text-gray-500 select-none z-20 relative" vid="174">
+        <div class="flex items-center gap-5" vid="175">
+            <div class="flex items-center gap-1.5 group cursor-default" vid="176">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 transition-colors" vid="177">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2" vid="178"></rect>
+                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2" vid="179"></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6" vid="180"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18" vid="181"></line>
+                </svg>
+                <span vid="182">2개 프로바이더</span>
+            </div>
+            <div class="flex items-center gap-1.5 group cursor-default" vid="183">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 transition-colors" vid="184">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" vid="185"></path>
+                </svg>
+                <span vid="186">12개 프로젝트</span>
+            </div>
+            <div class="flex items-center gap-1.5 group cursor-default" vid="187">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 transition-colors" vid="188">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" vid="189"></path>
+                    <polyline points="14 2 14 8 20 8" vid="190"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13" vid="191"></line>
+                    <line x1="16" y1="17" x2="8" y2="17" vid="192"></line>
+                    <polyline points="10 9 9 9 8 9" vid="193"></polyline>
+                </svg>
+                <span class="text-gray-900 font-medium" vid="194">45개 프로필 문서</span>
+            </div>
+        </div>
+        <div class="flex-1" vid="195"></div>
+        <div class="flex items-center gap-2 pr-1" vid="196">
+            <span class="relative flex h-2 w-2" vid="197">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" vid="198"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500" vid="199"></span>
+            </span>
+            <span class="text-[11px] font-medium tracking-wide uppercase text-gray-500" vid="200">Local Engine Online</span>
+        </div>
+    </footer>
+
+
+</body></html>

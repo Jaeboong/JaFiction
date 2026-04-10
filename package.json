@@ -1,0 +1,27 @@
+{
+  "name": "jafiction",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "./scripts/build-all.sh",
+    "build:shared": "./scripts/with-node.sh ./node_modules/typescript/lib/tsc.js -p ./packages/shared/tsconfig.json",
+    "build:runner": "./scripts/with-node.sh ./node_modules/typescript/lib/tsc.js -p ./packages/runner/tsconfig.json",
+    "build:web": "cd ./packages/web && ../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js -p tsconfig.json && ../../scripts/with-node.sh ../../node_modules/vite/bin/vite.js build",
+    "test": "./scripts/test-all.sh",
+    "docs-check": "./scripts/docs-check.sh",
+    "check": "./scripts/check.sh",
+    "smoke:local": "./scripts/status-dev-stack.sh",
+    "dev:runner": "./scripts/start-dev-runner.sh --foreground",
+    "dev:web": "./scripts/start-dev-web.sh --foreground",
+    "dev:apply": "./scripts/apply-dev-stack.sh",
+    "dev:status": "./scripts/status-dev-stack.sh",
+    "dev:stop": "./scripts/stop-dev-stack.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "typescript": "^5.9.3"
+  }
+}

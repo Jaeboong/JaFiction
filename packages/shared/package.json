@@ -1,0 +1,21 @@
+{
+  "name": "@jafiction/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js -p tsconfig.json",
+    "test": "../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js -p tsconfig.json && ../../scripts/with-node.sh --test dist/test/*.test.js"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.2.5",
+    "jszip": "^3.10.1",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.6.205",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "pdfkit": "^0.18.0"
+  }
+}
