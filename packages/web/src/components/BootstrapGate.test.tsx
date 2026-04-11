@@ -44,7 +44,7 @@ describe("BootstrapGate", () => {
       />
     );
     assert.match(html, /data-testid="device-onboarding-body"/);
-    assert.match(html, /Connect your local environment/);
+    assert.match(html, /로컬 환경에 연결/);
   });
 
   it("renders the network retry card for reason 'network_error'", () => {

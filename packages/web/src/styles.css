@@ -269,6 +269,101 @@ button:focus-visible {
   line-height: 1.6;
 }
 
+.app-gate {
+  width: min(520px, 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 0;
+  background: #ffffff;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.app-gate-kicker {
+  margin: 0 0 8px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-gate h1 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.app-gate-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-gate-description {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.app-gate-description.error-message {
+  color: #b91c1c;
+}
+
+.app-gate-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 8px;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.app-gate-consent input[type="checkbox"] {
+  margin-top: 3px;
+}
+
+.app-gate-claims {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-gate-claims label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.app-gate-cta {
+  align-self: flex-start;
+  border: 1px solid #111827;
+  background: #111827;
+  color: #ffffff;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.app-gate-cta:hover:not(:disabled) {
+  background: #1f2937;
+}
+
+.app-gate-cta:disabled {
+  background: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+}
+
 .app-notice-stack {
   position: fixed;
   top: 64px;

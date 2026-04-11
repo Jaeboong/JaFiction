@@ -1,9 +1,3 @@
-/**
- * DevicesPage — Stage 11.9
- *
- * Lists connected devices. Pairing is now fully automatic (see ConnectConsentModal).
- * This page only shows connected devices and allows disconnecting them.
- */
 import { useEffect, useState } from "react";
 import type { BackendClient, DeviceInfo } from "../api/client";
 
@@ -30,7 +24,7 @@ export function DevicesPage({ client }: DevicesPageProps) {
       const list = await client.listDevices();
       setDevices(list);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Failed to load devices");
+      setLoadError(err instanceof Error ? err.message : "디바이스 목록을 불러오지 못했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +42,7 @@ export function DevicesPage({ client }: DevicesPageProps) {
       await client.revokeDevice(id);
       await loadDevices();
     } catch (err) {
-      setRevokeError(err instanceof Error ? err.message : "Failed to disconnect device");
+      setRevokeError(err instanceof Error ? err.message : "디바이스 연결 해제에 실패했습니다.");
     } finally {
       setRevokingId(undefined);
     }
@@ -57,31 +51,31 @@ export function DevicesPage({ client }: DevicesPageProps) {
   return (
     <div className="devices-page">
       <div className="devices-header">
-        <h2>Connected Devices</h2>
+        <h2>연결된 디바이스</h2>
       </div>
 
       {loadError ? (
         <p className="error-message">{loadError}</p>
       ) : isLoading ? (
-        <p className="loading-message">Loading devices...</p>
+        <p className="loading-message">디바이스 목록을 불러오는 중…</p>
       ) : devices.length === 0 ? (
         <div className="devices-empty">
-          <h3>No device connected</h3>
+          <h3>연결된 디바이스가 없습니다</h3>
           <p>
-            Start the Jasojeon runner on your machine to begin. Once running,
-            log in on this browser and we'll connect automatically.
+            로컬 컴퓨터에서 Jasojeon 러너를 실행한 뒤 이 브라우저에서
+            로그인하면 자동으로 연결됩니다.
           </p>
         </div>
       ) : (
         <table className="devices-table">
           <thead>
             <tr>
-              <th>Label</th>
+              <th>이름</th>
               <th>OS</th>
-              <th>Connected</th>
-              <th>Last Seen</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>연결 시각</th>
+              <th>최근 접속</th>
+              <th>상태</th>
+              <th>작업</th>
             </tr>
           </thead>
           <tbody>
@@ -96,9 +90,9 @@ export function DevicesPage({ client }: DevicesPageProps) {
                 <td>{formatDate(device.lastSeenAt)}</td>
                 <td>
                   {device.revokedAt ? (
-                    <span className="badge badge--revoked">Revoked</span>
+                    <span className="badge badge--revoked">해제됨</span>
                   ) : (
-                    <span className="badge badge--active">Active</span>
+                    <span className="badge badge--active">활성</span>
                   )}
                 </td>
                 <td>
@@ -108,7 +102,7 @@ export function DevicesPage({ client }: DevicesPageProps) {
                       disabled={revokingId === device.id}
                       onClick={() => void handleRevoke(device.id)}
                     >
-                      {revokingId === device.id ? "Disconnecting..." : "Disconnect"}
+                      {revokingId === device.id ? "해제 중…" : "연결 해제"}
                     </button>
                   )}
                 </td>

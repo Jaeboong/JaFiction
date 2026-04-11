@@ -40,15 +40,15 @@ describe("ConnectConsentModal", () => {
     const html = renderToStaticMarkup(
       <ConnectConsentModal backendClient={backendStub} runnerClient={runnerStub} />
     );
-    assert.match(html, /Connect your local environment/);
-    assert.match(html, /local CLI runner/);
-    assert.match(html, /I understand and consent/);
+    assert.match(html, /로컬 환경에 연결/);
+    assert.match(html, /로컬 CLI 러너/);
+    assert.match(html, /연결에 동의합니다/);
   });
 
   it("renders the Connect button", () => {
     const html = renderToStaticMarkup(
       <ConnectConsentModal backendClient={backendStub} runnerClient={runnerStub} />
     );
-    assert.match(html, /Connect/);
+    assert.match(html, /data-testid="connect-button"/);
   });
 });
