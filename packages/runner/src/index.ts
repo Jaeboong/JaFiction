@@ -7,6 +7,7 @@ import {
   saveDeviceToken,
 } from "./hosted/deviceTokenStore";
 import { startHostedOutboundClient } from "./hosted/outboundClient";
+import type { OutboundClientHandle } from "./hosted/outboundClient";
 import {
   pollClaim,
   pollClaimNonBlocking,
@@ -15,6 +16,20 @@ import {
 } from "./hosted/pairingClient";
 import { createRpcDispatcher } from "./hosted/rpcDispatcher";
 import { startEventForwarding } from "./hosted/eventForwarder";
+import type { RunnerContext } from "./runnerContext";
+import type { Logger } from "./hosted/outboundClient";
+
+function parseBackendUrls(): string[] {
+  const multi = process.env["JASOJEON_BACKEND_URLS"];
+  if (multi) {
+    return multi.split(",").map((u) => u.trim()).filter(Boolean);
+  }
+  const single = process.env["JASOJEON_BACKEND_URL"];
+  if (single) {
+    return [single];
+  }
+  return [];
+}
 
 async function main(): Promise<void> {
   try {
@@ -24,17 +39,47 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  await mainHosted();
-}
-
-async function mainHosted(): Promise<void> {
-  const backendUrl = process.env["JASOJEON_BACKEND_URL"];
-  if (!backendUrl) {
+  const backendUrls = parseBackendUrls();
+  if (backendUrls.length === 0) {
     process.stderr.write(
-      "[runner] JASOJEON_BACKEND_URL is not set. Set it to the backend base URL and try again.\n"
+      "[runner] JASOJEON_BACKEND_URL (or JASOJEON_BACKEND_URLS) is not set. Set it to the backend base URL and try again.\n"
     );
     process.exit(1);
   }
+
+  const safeMeta = (meta?: Record<string, unknown>): unknown =>
+    meta === undefined ? "" : redactSecrets(meta);
+  const logger: Logger = {
+    info: (msg: string, meta?: Record<string, unknown>) => console.log(redactSecrets(msg), safeMeta(meta)),
+    warn: (msg: string, meta?: Record<string, unknown>) => console.warn(redactSecrets(msg), safeMeta(meta)),
+    error: (msg: string, meta?: Record<string, unknown>) => console.error(redactSecrets(msg), safeMeta(meta))
+  };
+
+  const ctx = await createRunnerContext();
+
+  // 각 백엔드별 페어링 + 연결을 병렬로 시작.
+  // 토큰이 없는 백엔드는 pollClaim이 블로킹되므로 각각 독립 Promise로 실행.
+  const clients: OutboundClientHandle[] = [];
+
+  await Promise.all(
+    backendUrls.map(async (url) => {
+      const client = await connectToBackend({ backendUrl: url, ctx, logger });
+      clients.push(client);
+    })
+  );
+
+  process.on("SIGINT", () => {
+    console.log("[runner] SIGINT received — shutting down");
+    void Promise.all(clients.map((c) => c.close())).then(() => process.exit(0));
+  });
+}
+
+async function connectToBackend(opts: {
+  backendUrl: string;
+  ctx: RunnerContext;
+  logger: Logger;
+}): Promise<OutboundClientHandle> {
+  const { backendUrl, ctx, logger } = opts;
 
   let deviceToken = await loadDeviceToken(backendUrl);
   let deviceId = await loadDeviceId(backendUrl);
@@ -47,37 +92,35 @@ async function mainHosted(): Promise<void> {
       }
     } catch (err) {
       process.stderr.write(
-        `[runner] Failed to resolve existing device ID: ${err instanceof Error ? err.message : String(err)}\n`
+        `[runner][${backendUrl}] Failed to resolve existing device ID: ${err instanceof Error ? err.message : String(err)}\n`
       );
     }
   }
 
-  let claim:
-    | Awaited<ReturnType<typeof registerClaim>>
-    | undefined;
+  let claim: Awaited<ReturnType<typeof registerClaim>> | undefined;
 
   try {
     claim = await registerClaim({ backendUrl, deviceId });
   } catch (err) {
     if (!deviceToken) {
       process.stderr.write(
-        `[runner] Auto-claim failed: ${err instanceof Error ? err.message : String(err)}\n`
+        `[runner][${backendUrl}] Auto-claim failed: ${err instanceof Error ? err.message : String(err)}\n`
       );
       process.exit(1);
     }
     process.stderr.write(
-      `[runner] Device claim registration skipped: ${err instanceof Error ? err.message : String(err)}\n`
+      `[runner][${backendUrl}] Device claim registration skipped: ${err instanceof Error ? err.message : String(err)}\n`
     );
   }
 
   if (!deviceToken) {
-    console.log("[runner] No device token found — starting auto-claim flow.");
+    console.log(`[runner][${backendUrl}] No device token found — starting auto-claim flow.`);
     if (!claim) {
-      process.stderr.write("[runner] Auto-claim failed: missing claim registration\n");
+      process.stderr.write(`[runner][${backendUrl}] Auto-claim failed: missing claim registration\n`);
       process.exit(1);
     }
-    console.log(`[runner] Waiting for approval at ${backendUrl} (claim ${claim.claimId.slice(0, 8)}...)`);
-    console.log("[runner] Open the web UI, log in, and click Connect.");
+    console.log(`[runner][${backendUrl}] Waiting for approval (claim ${claim.claimId.slice(0, 8)}...)`);
+    console.log(`[runner][${backendUrl}] Open the web UI, log in, and click Connect.`);
     let result: Awaited<ReturnType<typeof pollClaim>>;
     try {
       result = await pollClaim({
@@ -87,17 +130,17 @@ async function mainHosted(): Promise<void> {
       });
     } catch (err) {
       process.stderr.write(
-        `[runner] Auto-claim failed: ${err instanceof Error ? err.message : String(err)}\n`
+        `[runner][${backendUrl}] Auto-claim failed: ${err instanceof Error ? err.message : String(err)}\n`
       );
       process.exit(1);
     }
     if (result.status !== "approved") {
-      process.stderr.write("[runner] Auto-claim failed: unexpected authorization response\n");
+      process.stderr.write(`[runner][${backendUrl}] Auto-claim failed: unexpected authorization response\n`);
       process.exit(1);
     }
     await saveDeviceToken(backendUrl, result.token);
     await saveDeviceId(backendUrl, result.deviceId);
-    console.log(`[runner] Device paired! Device ID: ${result.deviceId}`);
+    console.log(`[runner][${backendUrl}] Device paired! Device ID: ${result.deviceId}`);
     deviceToken = result.token;
     deviceId = result.deviceId;
   } else if (claim) {
@@ -112,16 +155,6 @@ async function mainHosted(): Promise<void> {
     }).catch(() => {});
   }
 
-  const safeMeta = (meta?: Record<string, unknown>): unknown =>
-    meta === undefined ? "" : redactSecrets(meta);
-  const logger = {
-    info: (msg: string, meta?: Record<string, unknown>) => console.log(redactSecrets(msg), safeMeta(meta)),
-    warn: (msg: string, meta?: Record<string, unknown>) => console.warn(redactSecrets(msg), safeMeta(meta)),
-    error: (msg: string, meta?: Record<string, unknown>) => console.error(redactSecrets(msg), safeMeta(meta))
-  };
-
-  const ctx = await createRunnerContext();
-
   const dispatcher = createRpcDispatcher({ runnerContext: ctx, logger });
 
   const client = startHostedOutboundClient({
@@ -129,18 +162,21 @@ async function mainHosted(): Promise<void> {
     deviceToken,
     runnerContext: ctx,
     onRpc: dispatcher,
-    logger
+    logger,
   });
 
   const disposeForwarding = startEventForwarding(client, ctx);
 
   console.log(`[runner] hosted mode — connecting to ${backendUrl}`);
 
-  process.on("SIGINT", () => {
-    console.log("[runner] SIGINT received — shutting down");
+  // close() 호출 시 이벤트 포워딩도 함께 정리.
+  const originalClose = client.close.bind(client);
+  client.close = () => {
     disposeForwarding();
-    void client.close().then(() => process.exit(0));
-  });
+    return originalClose();
+  };
+
+  return client;
 }
 
 if (require.main === module) {
