@@ -88,9 +88,17 @@ export async function registerRunnerSocket(
 
     ws.on("message", (raw) => {
       if (authed) {
-        // After auth, runner sends rpc_response or event frames.
-        // DeviceHub's message handler (attached on attach()) takes over.
-        // Nothing to do here.
+        // After auth, intercept application-level ping and reply with pong.
+        // All other frames (rpc_response, event) are handled by deviceHub's
+        // listener registered on attach().
+        try {
+          const frame = JSON.parse(String(raw)) as Record<string, unknown>;
+          if (frame["type"] === "ping") {
+            send({ type: "pong", ts: frame["ts"] });
+          }
+        } catch {
+          // ignore — deviceHub handles malformed frames
+        }
         return;
       }
 

@@ -58,15 +58,22 @@ async function main(): Promise<void> {
   const ctx = await createRunnerContext();
 
   // 각 백엔드별 페어링 + 연결을 병렬로 시작.
-  // 토큰이 없는 백엔드는 pollClaim이 블로킹되므로 각각 독립 Promise로 실행.
-  const clients: OutboundClientHandle[] = [];
-
-  await Promise.all(
-    backendUrls.map(async (url) => {
-      const client = await connectToBackend({ backendUrl: url, ctx, logger });
-      clients.push(client);
-    })
+  // 한 백엔드가 오프라인이거나 페어링 실패해도 다른 백엔드 연결은 계속 진행.
+  const results = await Promise.all(
+    backendUrls.map((url) =>
+      connectToBackend({ backendUrl: url, ctx, logger }).catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        process.stderr.write(`[runner][${url}] Skipping backend: ${msg}\n`);
+        return null;
+      })
+    )
   );
+
+  const clients = results.filter((c): c is OutboundClientHandle => c !== null);
+  if (clients.length === 0) {
+    process.stderr.write("[runner] No backends could be connected. Exiting.\n");
+    process.exit(1);
+  }
 
   process.on("SIGINT", () => {
     console.log("[runner] SIGINT received — shutting down");
@@ -103,10 +110,7 @@ async function connectToBackend(opts: {
     claim = await registerClaim({ backendUrl, deviceId });
   } catch (err) {
     if (!deviceToken) {
-      process.stderr.write(
-        `[runner][${backendUrl}] Auto-claim failed: ${err instanceof Error ? err.message : String(err)}\n`
-      );
-      process.exit(1);
+      throw new Error(`Auto-claim failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     process.stderr.write(
       `[runner][${backendUrl}] Device claim registration skipped: ${err instanceof Error ? err.message : String(err)}\n`
@@ -116,8 +120,7 @@ async function connectToBackend(opts: {
   if (!deviceToken) {
     console.log(`[runner][${backendUrl}] No device token found — starting auto-claim flow.`);
     if (!claim) {
-      process.stderr.write(`[runner][${backendUrl}] Auto-claim failed: missing claim registration\n`);
-      process.exit(1);
+      throw new Error("Auto-claim failed: missing claim registration");
     }
     console.log(`[runner][${backendUrl}] Waiting for approval (claim ${claim.claimId.slice(0, 8)}...)`);
     console.log(`[runner][${backendUrl}] Open the web UI, log in, and click Connect.`);
@@ -129,14 +132,10 @@ async function connectToBackend(opts: {
         pollToken: claim.pollToken,
       });
     } catch (err) {
-      process.stderr.write(
-        `[runner][${backendUrl}] Auto-claim failed: ${err instanceof Error ? err.message : String(err)}\n`
-      );
-      process.exit(1);
+      throw new Error(`Auto-claim failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     if (result.status !== "approved") {
-      process.stderr.write(`[runner][${backendUrl}] Auto-claim failed: unexpected authorization response\n`);
-      process.exit(1);
+      throw new Error("Auto-claim failed: unexpected authorization response");
     }
     await saveDeviceToken(backendUrl, result.token);
     await saveDeviceId(backendUrl, result.deviceId);

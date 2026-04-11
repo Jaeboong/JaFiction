@@ -6,8 +6,9 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/harness-common.sh"
 ensure_harness_dirs
 
 # Support multiple backend URLs via JASOJEON_BACKEND_URLS (comma-separated)
-# or a single URL via JASOJEON_BACKEND_URL. Default: localhost only.
-backend_urls="${JASOJEON_BACKEND_URLS:-${JASOJEON_BACKEND_URL:-http://localhost:4000}}"
+# or a single URL via JASOJEON_BACKEND_URL.
+# Default: localhost + hosted backend (both simultaneously).
+backend_urls="${JASOJEON_BACKEND_URLS:-${JASOJEON_BACKEND_URL:-http://localhost:4000,https://xn--9l4b13i8j.com}}"
 
 # Parse optional flags
 while [ $# -gt 0 ]; do
