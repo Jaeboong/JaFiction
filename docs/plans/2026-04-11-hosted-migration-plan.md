@@ -283,11 +283,19 @@ runs_meta (
 - **Acceptance**: `default-src 'none'; script-src 'self'; ...` 적용 후 브라우저 페이지 정상 로드. 로그에 `sk-`/`ghp_`/`AIza` 패턴 자동 마스킹 테스트.
 - **Risks / rollback**: CSP 가 inline 스타일을 깨뜨림 → 필요한 곳만 nonce 허용.
 
-### Phase 10 — 배포 스모크
-- **Objective**: Fly.io 또는 Railway 로 백엔드 + Postgres + Redis 를 배포하고 E2E 스모크(로그인 → 페어링 → `start_run` → 이벤트 수신)를 수행한다.
-- **Touched files**: `packages/backend/Dockerfile`, `fly.toml` 또는 `railway.json`, `docs/deploy/README.md`.
-- **Acceptance**: 배포 환경에서 1회 완전한 리뷰 런 성공. 백엔드 재시작 후 세션 유지 확인.
-- **Risks / rollback**: WSS TLS 종료 구성 오류 → provider 문서 기반 헬스체크 확장.
+### Phase 10 — 배포 스모크 (OCI self-host, 2단계)
+
+플랫폼을 Fly.io/Railway 에서 사용자 소유 OCI Ubuntu ARM64(17GB RAM) 로 변경. 도메인 `자소전.com`(punycode `xn--2t1b49b33i.com`) + Google OAuth 등록이 외부 선결 과제라 로컬에서 만드는 아티팩트와 실서버 실행을 분리한다.
+
+- **Stage A (로컬 아티팩트 생성, 이 레포 커밋 대상)**
+  - **Touched files**: `packages/backend/Dockerfile`, `packages/backend/docker-entrypoint.sh`, `nginx/Dockerfile`, `nginx/conf.d/jasojeon.conf`, `docker-compose.yml`, `.env.production.example`, `.dockerignore`, `docs/deploy/README.md`.
+  - **구조**: nginx(container, :80/:443) → backend(Fastify, 내부 :4000) → postgres + redis(모두 컨테이너, named volume). 웹 번들은 nginx Dockerfile 의 multi-stage 에서 Vite build 후 `/usr/share/nginx/html` 로 복사. 백엔드 이미지는 repo root 를 context 로 `npm ci --workspaces` → shared/backend tsc → prune → `node:22-alpine` runtime. 엔트리포인트가 `drizzle-kit migrate` 실행 후 서버 기동.
+  - **Acceptance**: `./scripts/check.sh` 통과, 신규 Dockerfile 이 arm64 multi-arch 이미지만 사용, 로컬 머신에서 실제 build/push 는 하지 않음.
+
+- **Stage B (사용자가 도메인 + OAuth 확보 후 OCI 에서 실행)**
+  - Stage B 절차는 `docs/deploy/README.md` 에 체크리스트로 정리. 핵심: `git clone` → `.env.production` 작성 → `docker compose up -d --build` → `/healthz` 스모크 → certbot HTTP-01 → nginx `:443` 블록 uncomment → Google OAuth 등록 후 재기동 → 로그인/페어링/`start_run` 엔드-투-엔드.
+  - **Acceptance**: 배포 환경에서 1회 완전한 리뷰 런 성공. 백엔드 재시작 후 세션 유지 확인.
+  - **Risks / rollback**: IDN 혼동(로그인 리다이렉트 URI 는 반드시 punycode), certbot webroot 경로 누락, OCI 보안 그룹에서 80/443 미개방.
 
 ---
 
