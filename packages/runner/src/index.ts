@@ -14,6 +14,8 @@ import { createProjectsRouter } from "./routes/projectsRouter";
 import { createProvidersRouter } from "./routes/providersRouter";
 import { createRunInterventionRouter, createRunsRouter } from "./routes/runsRouter";
 import { createSessionAuth } from "./security/sessionAuth";
+import { loadDeviceToken } from "./hosted/deviceTokenStore";
+import { startHostedOutboundClient } from "./hosted/outboundClient";
 
 export async function createRunnerServer(ctx: RunnerContext): Promise<{
   app: express.Express;
@@ -198,10 +200,60 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  const mode = process.env["JAFICTION_MODE"] ?? "local";
+
+  if (mode === "hosted") {
+    await mainHosted();
+  } else {
+    await mainLocal();
+  }
+}
+
+async function mainLocal(): Promise<void> {
   const ctx = await createRunnerContext();
   const { server, port } = await createRunnerServer(ctx);
   server.listen(port, () => {
     console.log(`JaFiction runner listening on http://localhost:${port}`);
+  });
+}
+
+async function mainHosted(): Promise<void> {
+  const backendUrl = process.env["JAFICTION_BACKEND_URL"];
+  if (!backendUrl) {
+    process.stderr.write(
+      "[runner] JAFICTION_BACKEND_URL is not set. Set it to the backend WSS base URL and try again.\n"
+    );
+    process.exit(1);
+  }
+
+  const deviceToken = await loadDeviceToken();
+  if (!deviceToken) {
+    process.stderr.write(
+      "[runner] No device token found. Run the pairing flow (Phase 5) to register this runner with the backend.\n"
+    );
+    process.exit(1);
+  }
+
+  const ctx = await createRunnerContext();
+
+  const client = startHostedOutboundClient({
+    backendUrl,
+    deviceToken,
+    runnerContext: ctx,
+    // onRpc is intentionally undefined here — Phase 3 will wire a real dispatcher.
+    onRpc: undefined,
+    logger: {
+      info: (msg, meta) => console.log(msg, meta ?? ""),
+      warn: (msg, meta) => console.warn(msg, meta ?? ""),
+      error: (msg, meta) => console.error(msg, meta ?? "")
+    }
+  });
+
+  console.log(`[runner] hosted mode — connecting to ${backendUrl}`);
+
+  process.on("SIGINT", () => {
+    console.log("[runner] SIGINT received — shutting down");
+    void client.close().then(() => process.exit(0));
   });
 }
 
