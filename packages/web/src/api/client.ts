@@ -467,27 +467,25 @@ function toWsUrl(baseUrl: string, pathname: string): string {
 export interface DeviceInfo {
   readonly id: string;
   readonly label: string;
-  readonly workspaceRoot: string;
+  readonly hostname: string | null;
+  readonly os: string | null;
   readonly createdAt: string;
   readonly lastSeenAt: string | null;
   readonly revokedAt: string | null;
 }
 
-export interface StartPairingResult {
-  readonly code: string;
-  readonly expiresAt: string;
-}
+export type ApproveDeviceClaimResult =
+  | { readonly status: "approved"; readonly deviceId: string; readonly label: string }
+  | { readonly status: "no_claim" }
+  | { readonly status: "multiple_claims"; readonly claims: ReadonlyArray<{ readonly claimId: string; readonly hostname: string; readonly os: string }> };
 
 export class BackendClient {
   constructor(readonly baseUrl: string) {}
 
-  async startPairing(opts: {
-    label: string;
-    workspaceRoot: string;
-  }): Promise<StartPairingResult> {
-    return this.request<StartPairingResult>("/api/pairing/start", {
+  async approveDeviceClaim(claimId?: string): Promise<ApproveDeviceClaimResult> {
+    return this.request<ApproveDeviceClaimResult>("/api/device-claim/approve", {
       method: "POST",
-      body: opts,
+      body: claimId !== undefined ? { claimId } : {},
     });
   }
 

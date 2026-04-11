@@ -33,7 +33,7 @@ describe("BootstrapGate", () => {
     assert.match(html, /href="\/auth\/google"/);
   });
 
-  it("renders the DeviceOnboarding body for reason 'device_offline'", () => {
+  it("renders the ConnectConsentModal body for reason 'device_offline'", () => {
     const html = renderToStaticMarkup(
       <BootstrapGate
         reason="device_offline"
@@ -44,7 +44,7 @@ describe("BootstrapGate", () => {
       />
     );
     assert.match(html, /data-testid="device-onboarding-body"/);
-    assert.match(html, /연결된 러너가 없습니다/);
+    assert.match(html, /Connect your local environment/);
   });
 
   it("renders the network retry card for reason 'network_error'", () => {

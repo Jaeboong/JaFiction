@@ -1,31 +1,29 @@
 /**
- * DeviceOnboarding — Stage 11.5
+ * DeviceOnboarding — Stage 11.9
  *
- * Rendered when bootstrap fails with reason "device_offline". The user is
- * authenticated but has no active runner connected to their account, so we
- * invite them to pair one. Internally reuses the existing DevicesPage
- * (pairing modal + device list) — it only needs a BackendClient, never a
- * RunnerClient, so it is safe in the offline gate.
+ * Rendered when bootstrap fails with reason "device_offline". Shows the
+ * ConnectConsentModal so the user can auto-pair their already-running runner
+ * with a single click.
  */
-import type { BackendClient } from "../../api/client";
-import { DevicesPage } from "../../pages/DevicesPage";
+import type { BackendClient, RunnerClient } from "../../api/client";
+import { ConnectConsentModal } from "./ConnectConsentModal";
 
 export interface DeviceOnboardingProps {
   readonly client: BackendClient;
+  readonly runnerClient?: RunnerClient;
 }
 
-export function DeviceOnboarding({ client }: DeviceOnboardingProps) {
-  return (
-    <section className="app-gate app-gate-device" aria-labelledby="device-onboarding-heading">
-      <p className="app-gate-kicker">Jasojeon</p>
-      <h1 id="device-onboarding-heading">연결된 러너가 없습니다.</h1>
-      <p className="app-gate-description">
-        계정에 연결된 활성 러너를 찾지 못했습니다. 아래에서 새 디바이스를 페어링하거나
-        이미 페어링된 러너를 다시 실행해 주세요.
-      </p>
-      <div className="app-gate-body" data-testid="device-onboarding-body">
-        <DevicesPage client={client} />
-      </div>
-    </section>
-  );
+// Minimal stub so ConnectConsentModal gets a RunnerClient even in contexts where
+// no live runner exists yet (the post-approval poll will fail gracefully and the
+// fallback window.location.reload() handles the transition).
+function makeStubRunnerClient(baseUrl: string): RunnerClient {
+  return {
+    baseUrl,
+    fetchState: async () => { throw new Error("no runner client"); },
+  } as unknown as RunnerClient;
+}
+
+export function DeviceOnboarding({ client, runnerClient }: DeviceOnboardingProps) {
+  const rc = runnerClient ?? makeStubRunnerClient(client.baseUrl);
+  return <ConnectConsentModal backendClient={client} runnerClient={rc} />;
 }
