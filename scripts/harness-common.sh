@@ -7,6 +7,11 @@ LOG_DIR="${HARNESS_DIR}/logs"
 WEB_PID_FILE="${PID_DIR}/web.pid"
 WEB_LOG_FILE="${LOG_DIR}/web.log"
 WEB_PORT="${JASOJEON_WEB_PORT:-4124}"
+BACKEND_PID_FILE="${PID_DIR}/backend.pid"
+BACKEND_LOG_FILE="${LOG_DIR}/backend.log"
+RUNNER_PID_FILE="${PID_DIR}/runner.pid"
+RUNNER_LOG_FILE="${LOG_DIR}/runner.log"
+DEV_COMPOSE_FILE="${ROOT_DIR}/docker-compose.dev.yml"
 
 ensure_harness_dirs() {
   mkdir -p "${PID_DIR}" "${LOG_DIR}"

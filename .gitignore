@@ -21,6 +21,7 @@ dist-tools/
 .env.*
 !.env.example
 !.env.production.example
+!.env.dev.example
 client_secret*.json
 *.pem
 *.key

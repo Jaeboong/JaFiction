@@ -1,0 +1,42 @@
+# Jasojeon dev infrastructure compose (Stage 11.6)
+#
+# Brings up Postgres + Redis only. Backend + runner stay on the host for fast
+# edit loops.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jasojeon
+      POSTGRES_USER: jasojeon
+      POSTGRES_PASSWORD: devpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - jasojeon_dev_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6380:6379"
+    volumes:
+      - jasojeon_dev_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  jasojeon_dev_pg:
+    name: jasojeon_dev_pg
+  jasojeon_dev_redis:
+    name: jasojeon_dev_redis
