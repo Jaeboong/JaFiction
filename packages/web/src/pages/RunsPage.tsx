@@ -7,7 +7,7 @@ import type {
   RunLedgerEntry,
   SidebarState
 } from "@jafiction/shared";
-import { Renderer, marked, type Tokens } from "marked";
+import { renderMarkdown } from "../lib/markdown";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   buildParticipantSelectionFromDefaults,
@@ -1516,71 +1516,6 @@ function RunFeed({
   );
 }
 
-const markdownRenderer = new Renderer();
-const allowedLinkProtocols = new Set(["http:", "https:", "mailto:", "tel:"]);
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-function sanitizeUrl(raw: string, kind: "link" | "image"): string | undefined {
-  const value = raw.trim();
-  if (!value) {
-    return undefined;
-  }
-
-  if (
-    value.startsWith("#") ||
-    value.startsWith("/") ||
-    value.startsWith("./") ||
-    value.startsWith("../") ||
-    value.startsWith("?") ||
-    value.startsWith("//")
-  ) {
-    return escapeHtml(value);
-  }
-
-  try {
-    const parsed = new URL(value);
-    const isAllowed = kind === "image"
-      ? parsed.protocol === "http:" || parsed.protocol === "https:"
-      : allowedLinkProtocols.has(parsed.protocol);
-    return isAllowed ? escapeHtml(value) : undefined;
-  } catch {
-    return /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(value) ? undefined : escapeHtml(value);
-  }
-}
-
-markdownRenderer.html = ({ text }: Tokens.HTML | Tokens.Tag): string => escapeHtml(text);
-markdownRenderer.link = ({ href, title, tokens }: Tokens.Link): string => {
-  const safeHref = sanitizeUrl(href, "link");
-  const label = markdownRenderer.parser.parseInline(tokens);
-  if (!safeHref) {
-    return label;
-  }
-  const titleAttribute = title ? ` title="${escapeHtml(title)}"` : "";
-  return `<a href="${safeHref}"${titleAttribute} rel="noreferrer noopener">${label}</a>`;
-};
-markdownRenderer.image = ({ href, title, text }: Tokens.Image): string => {
-  const safeHref = sanitizeUrl(href, "image");
-  if (!safeHref) {
-    return escapeHtml(text);
-  }
-  const titleAttribute = title ? ` title="${escapeHtml(title)}"` : "";
-  return `<img src="${safeHref}" alt="${escapeHtml(text)}"${titleAttribute}>`;
-};
-
-marked.use({ async: false, breaks: true, gfm: true, renderer: markdownRenderer });
-
-function renderMarkdown(raw: string): string {
-  const parsed = marked.parse(raw);
-  return typeof parsed === "string" ? parsed.trim() : "";
-}
 
 function FinalDraftCard({
   color,
