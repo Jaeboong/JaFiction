@@ -37,13 +37,18 @@ const defaultLogger: Logger = {
 // ---------------------------------------------------------------------------
 // Error taxonomy
 // ---------------------------------------------------------------------------
-type ErrorCode = "bad_request" | "not_found" | "invalid_input" | "internal" | "unauthorized" | "unknown_op";
+type ErrorCode = "bad_request" | "not_found" | "invalid_input" | "internal" | "unauthorized" | "unknown_op" | "busy";
 
 function classifyError(error: unknown): { code: ErrorCode; message: string } {
   if (error && typeof error === "object") {
     const tagged = error as { code?: string; message?: string };
     const code = tagged.code;
-    if (code === "not_found" || code === "invalid_input" || code === "unauthorized") {
+    if (
+      code === "not_found" ||
+      code === "invalid_input" ||
+      code === "unauthorized" ||
+      code === "busy"
+    ) {
       return { code, message: tagged.message ?? String(error) };
     }
   }
@@ -90,12 +95,18 @@ export function createRpcDispatcher(
     // 1. Validate envelope
     const parseResult = RpcRequestSchema.safeParse(rawReq);
     if (!parseResult.success) {
-      log.warn("rpc:bad_request", { error: parseResult.error.message });
+      // Log only structural issue info (path + code) — never the raw input or zod message,
+      // which may embed secrets from save_provider_api_key / notion_connect / opendart_save_key.
+      const issues = parseResult.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        code: issue.code
+      }));
+      log.warn("rpc:bad_request", { issues });
       return {
         v: 1,
         id: typeof rawReq === "object" && rawReq !== null && "id" in rawReq ? String((rawReq as Record<string, unknown>).id) : "unknown",
         ok: false,
-        error: { code: "bad_request", message: parseResult.error.message }
+        error: { code: "bad_request", message: "Invalid request envelope" }
       };
     }
 

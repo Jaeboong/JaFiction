@@ -7,7 +7,7 @@ export async function registerGoogleOauth(
   env: Pick<Env, "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "PUBLIC_BASE_URL">
 ): Promise<void> {
   await app.register(fastifyOauth2, {
-    name: "googleOAuth2",
+    name: "oauth2Google",
     scope: ["openid", "email", "profile"],
     credentials: {
       client: {

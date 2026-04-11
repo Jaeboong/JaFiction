@@ -46,7 +46,7 @@ export async function getRunMessages(
         ctx.storage().loadRunChatMessages(project.slug, runId),
         ctx.storage().loadRunLedgers(project.slug, runId)
       ]);
-      if (messages !== null) {
+      if (messages !== undefined) {
         return {
           messages: messages ?? [],
           ledgers: ledgers ?? [],
@@ -64,6 +64,17 @@ export async function startRun(
   ctx: RunnerContext,
   payload: StartRunPayload
 ): Promise<StartRunResult> {
+  // TODO(phase-6): replace with a device-keyed run session map to support
+  // concurrent runs per user once the relay layer can route by device_id.
+  // For the 1-user MVP we enforce a single active session slot here.
+  const snapshot = ctx.runSessions.snapshot();
+  if (snapshot.status !== "idle") {
+    throw Object.assign(
+      new Error("A run is already active. Only one run can be active at a time."),
+      { code: "busy" }
+    );
+  }
+
   const request: RunRequest = {
     projectSlug: payload.slug,
     question: payload.question,

@@ -136,6 +136,54 @@ test("Second login with same google_sub reuses existing user", async () => {
   await app.close();
 });
 
+// S12: existing session must be destroyed on new login so stale rows don't linger.
+test("S12: second login destroys old session row before issuing new one", async () => {
+  const deps = makeTestDeps();
+  const app = await buildTestApp(deps);
+
+  // First login — creates session row A
+  const res1 = await app.inject({
+    method: "GET",
+    url: "/auth/google/callback?google_sub=sub-s12&email=s12%40example.com",
+  });
+  const rawCookie1 = extractSessionCookie(res1.headers["set-cookie"]);
+
+  // Verify session A is live
+  const meRes1 = await app.inject({
+    method: "GET",
+    url: "/api/me",
+    headers: { cookie: `jf_sid=${rawCookie1}` },
+  });
+  assert.equal(meRes1.statusCode, 200, "First session must be valid before second login");
+
+  // Second login for the same user — should destroy session A before issuing session B
+  const res2 = await app.inject({
+    method: "GET",
+    url: "/auth/google/callback?google_sub=sub-s12&email=s12%40example.com",
+    headers: { cookie: `jf_sid=${rawCookie1}` },
+  });
+  assert.equal(res2.statusCode, 302, "Second callback should redirect");
+  const rawCookie2 = extractSessionCookie(res2.headers["set-cookie"]);
+
+  // Session A must now be invalid (destroyed by the second login)
+  const meAfterSecond = await app.inject({
+    method: "GET",
+    url: "/api/me",
+    headers: { cookie: `jf_sid=${rawCookie1}` },
+  });
+  assert.equal(meAfterSecond.statusCode, 401, "Old session must be destroyed after new login");
+
+  // Session B must be valid
+  const meWithB = await app.inject({
+    method: "GET",
+    url: "/api/me",
+    headers: { cookie: `jf_sid=${rawCookie2}` },
+  });
+  assert.equal(meWithB.statusCode, 200, "New session must be valid");
+
+  await app.close();
+});
+
 function extractSessionCookie(
   header: string | string[] | undefined
 ): string {

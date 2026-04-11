@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import "@fastify/oauth2";
 import { eq } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { users } from "../db/schema";
@@ -62,17 +63,26 @@ export async function registerAuth(
 
   // /auth/google/callback
   app.get("/auth/google/callback", async (request, reply) => {
-    // @fastify/oauth2 attaches getAccessTokenFromAuthorizationCodeFlow to the app
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const appAny = app as any;
-    if (typeof appAny.googleOAuth2?.getAccessTokenFromAuthorizationCodeFlow !== "function") {
+    // Destroy any pre-existing session to prevent session fixation / stale row accumulation
+    const existingRaw = request.cookies[SESSION_COOKIE];
+    if (existingRaw) {
+      try {
+        await store.destroySession(existingRaw);
+      } catch {
+        // Best-effort; old session may already be expired or invalid
+      }
+    }
+
+    // @fastify/oauth2 attaches getAccessTokenFromAuthorizationCodeFlow to app.oauth2Google
+    // The module augmentation in @fastify/oauth2 covers names matching oauth2${UpperCase}${string}
+    if (typeof app.oauth2Google?.getAccessTokenFromAuthorizationCodeFlow !== "function") {
       await reply.code(500).send({ error: "OAuth2 plugin not registered" });
       return;
     }
 
     let tokenResponse: GoogleTokenResponse;
     try {
-      const token = await appAny.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
+      const token = await app.oauth2Google.getAccessTokenFromAuthorizationCodeFlow(request);
       tokenResponse = token.token as GoogleTokenResponse;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

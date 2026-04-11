@@ -794,6 +794,182 @@ test("redactForLog — other ops are not redacted", () => {
 });
 
 // ---------------------------------------------------------------------------
+// B2: bad_request log must not leak secret values from failed parse
+// ---------------------------------------------------------------------------
+test("B2: rpc:bad_request log — secret value must not appear in warn log", async () => {
+  const h = await makeHarness();
+  try {
+    // This request fails .strict() because of the extraField — zod's error message
+    // would embed the entire payload including the secret key if we logged error.message.
+    const secretKey = "sk-SECRET-VALUE-XYZ";
+    const res = await h.dispatch({
+      v: 1,
+      id: "x",
+      op: "save_provider_api_key",
+      payload: { provider: "claude", key: secretKey, extraField: 1 }
+    });
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "bad_request");
+      // The response message must not echo the secret
+      assert.ok(!res.error.message.includes(secretKey), "Response must not echo secret value");
+    }
+    // No log entry may contain the raw secret
+    const allLogText = JSON.stringify(h.logs);
+    assert.ok(!allLogText.includes(secretKey), "Secret must not appear in any log entry");
+    // Warn log must exist but only contain path/code info
+    const warnEntry = h.logs.find((l) => l.level === "warn" && l.msg === "rpc:bad_request");
+    assert.ok(warnEntry, "A warn log entry must be emitted for bad_request");
+    assert.ok(warnEntry.meta && "issues" in warnEntry.meta, "Warn log must contain issues array");
+  } finally {
+    await h.cleanup();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// S4: start_run busy guard — second concurrent start must return busy
+// ---------------------------------------------------------------------------
+test("S4: rpc:start_run — returns busy when a run is already active", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "BusyCo" });
+
+    // Manually start a session to simulate an active run
+    h.ctx.runSessions.start(project.slug, "realtime");
+
+    // Now attempt a second start_run — must return busy, not corrupt state
+    const res = await h.dispatch(makeEnvelope("start_run", {
+      slug: project.slug,
+      question: "Q",
+      draft: "D",
+      reviewMode: "realtime",
+      coordinatorProvider: "claude",
+      reviewerProviders: [],
+      rounds: 1,
+      selectedDocumentIds: []
+    }));
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "busy");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// B1: get_run_messages returns correct data when run is in second project
+// ---------------------------------------------------------------------------
+test("B1: rpc:get_run_messages — returns messages when run lives in second project", async () => {
+  const h = await makeHarness();
+  try {
+    // First project — has no runs, so loadRunChatMessages returns undefined
+    await h.storage.createProject({ companyName: "ProjectAlpha" });
+
+    // Second project — has the run we're looking for
+    const project2 = await h.storage.createProject({ companyName: "ProjectBeta" });
+    await h.storage.createRun({
+      id: "run-in-second-project",
+      projectSlug: project2.slug,
+      question: "Q2",
+      draft: "D2",
+      reviewMode: "realtime",
+      coordinatorProvider: "claude",
+      reviewerProviders: [],
+      rounds: 1,
+      maxRoundsPerSection: 1,
+      selectedDocumentIds: [],
+      status: "completed",
+      startedAt: "2026-01-01T00:00:00.000Z",
+      finishedAt: "2026-01-01T00:01:00.000Z"
+    });
+    await h.storage.saveRunChatMessages(project2.slug, "run-in-second-project", [
+      {
+        id: "msg-b1",
+        providerId: "claude",
+        participantId: "coordinator",
+        participantLabel: "Coord",
+        speaker: "Claude",
+        speakerRole: "coordinator",
+        recipient: "All",
+        round: 1,
+        content: "Hello from second project",
+        startedAt: "2026-01-01T00:00:01.000Z",
+        finishedAt: "2026-01-01T00:00:05.000Z",
+        status: "completed"
+      }
+    ]);
+
+    const res = await h.dispatch(makeEnvelope("get_run_messages", { runId: "run-in-second-project" }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      const msgs = res.result.messages as unknown[];
+      assert.ok(msgs.length > 0, "Should return messages from second project — was returning empty due to !== null bug");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// B3: save_project rejects unsupported fields (rubric, pinnedDocumentIds, etc.)
+// ---------------------------------------------------------------------------
+test("B3: rpc:save_project — rejects rubric field (strict schema, not silently dropped)", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "StrictCo" });
+    const res = await h.dispatch({
+      v: 1,
+      id: "test-b3-rubric",
+      op: "save_project",
+      payload: { slug: project.slug, patch: { rubric: "new rubric text" } }
+    });
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "bad_request", "rubric field must be rejected as bad_request");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("B3: rpc:save_project — rejects pinnedDocumentIds field", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "StrictCo2" });
+    const res = await h.dispatch({
+      v: 1,
+      id: "test-b3-pinned",
+      op: "save_project",
+      payload: { slug: project.slug, patch: { pinnedDocumentIds: ["doc-1"] } }
+    });
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "bad_request");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("B3: rpc:save_project — accepts supported field (companyName) and persists it", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "OldName" });
+    const res = await h.dispatch(makeEnvelope("save_project", {
+      slug: project.slug,
+      patch: { companyName: "NewName" }
+    }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.companyName, "NewName");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+// ---------------------------------------------------------------------------
 // OP_NAMES count sanity
 // ---------------------------------------------------------------------------
 test("OP_NAMES contains exactly 23 ops", () => {

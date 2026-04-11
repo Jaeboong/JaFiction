@@ -85,6 +85,16 @@ export async function buildTestApp(deps: TestAppDeps): Promise<FastifyInstance> 
       return;
     }
 
+    // S12: destroy any pre-existing session before issuing a new one
+    const existingRaw = request.cookies[SESSION_COOKIE];
+    if (existingRaw) {
+      try {
+        await deps.store.destroySession(existingRaw);
+      } catch {
+        // best-effort
+      }
+    }
+
     // Find or create user in userMap
     let userId: string | undefined;
     for (const [id, u] of deps.userMap.entries()) {

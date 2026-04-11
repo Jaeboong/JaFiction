@@ -133,17 +133,15 @@ export function makeRequireSession(store: SessionStore) {
   return async function requireSession(
     request: FastifyRequest,
     reply: FastifyReply
-  ): Promise<void> {
+  ): Promise<FastifyReply | void> {
     const raw = request.cookies[SESSION_COOKIE];
     if (!raw) {
-      await reply.code(401).send({ error: "Unauthorized" });
-      return;
+      return reply.code(401).send({ error: "Unauthorized" });
     }
 
     const result = await store.verifySession(raw);
     if (!result) {
-      await reply.code(401).send({ error: "Unauthorized" });
-      return;
+      return reply.code(401).send({ error: "Unauthorized" });
     }
 
     (request as AuthenticatedRequest).sessionData = result;

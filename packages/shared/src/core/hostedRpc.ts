@@ -77,7 +77,12 @@ const WorkspaceFileEntrySchema = z.object({
   sizeBytes: z.number().int().min(0).optional()
 }).strict();
 
-// ProjectPatch: partial update for save_project
+// ProjectPatch: partial update for save_project.
+// Only fields that updateProjectInfo() already persists are accepted here.
+// rubric, pinnedDocumentIds, charLimit, notionPageIds are intentionally excluded —
+// TODO: add dedicated ops (save_project_rubric, save_project_char_limit, etc.) in a
+// later phase when the web UI needs them. Using .strict() so callers receive a clear
+// bad_request instead of a silent no-op for unsupported fields.
 const ProjectPatchSchema = z.object({
   companyName: z.string().optional(),
   roleName: z.string().optional(),
@@ -94,11 +99,7 @@ const ProjectPatchSchema = z.object({
   jobPostingUrl: z.string().optional(),
   jobPostingText: z.string().optional(),
   essayQuestions: z.array(z.string()).optional(),
-  openDartCorpCode: z.string().optional(),
-  rubric: z.string().optional(),
-  pinnedDocumentIds: z.array(z.string()).optional(),
-  charLimit: z.number().int().min(1).optional(),
-  notionPageIds: z.array(z.string()).optional()
+  openDartCorpCode: z.string().optional()
 }).strict();
 
 // ProviderConfig for save_provider_config
