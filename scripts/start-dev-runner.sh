@@ -5,13 +5,19 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/harness-common.sh"
 
 ensure_harness_dirs
 
-backend_url="${JASOJEON_BACKEND_URL:-http://localhost:4000}"
+# Support multiple backend URLs via JASOJEON_BACKEND_URLS (comma-separated)
+# or a single URL via JASOJEON_BACKEND_URL. Default: localhost only.
+backend_urls="${JASOJEON_BACKEND_URLS:-${JASOJEON_BACKEND_URL:-http://localhost:4000}}"
 
-# Parse optional --backend-url flag
+# Parse optional flags
 while [ $# -gt 0 ]; do
   case "$1" in
     --backend-url)
-      backend_url="$2"
+      backend_urls="$2"
+      shift 2
+      ;;
+    --backend-urls)
+      backend_urls="$2"
       shift 2
       ;;
     *)
@@ -27,14 +33,14 @@ stop_pid_file "runner" "${RUNNER_PID_FILE}" || true
 # Runner auto-claims on first boot — no pairing prompt.
 setsid bash -lc '
   export JASOJEON_MODE="hosted"
-  export JASOJEON_BACKEND_URL="$1"
+  export JASOJEON_BACKEND_URLS="$1"
   exec "$2" "$3" \
     --label runner \
     --pidfile "$4" \
     --logfile "$5" \
     -- "$6" "$7" "$8"
 ' _ \
-  "${backend_url}" \
+  "${backend_urls}" \
   "${ROOT_DIR}/scripts/with-node.sh" \
   "${ROOT_DIR}/scripts/lib/supervise.mjs" \
   "${RUNNER_PID_FILE}" \
