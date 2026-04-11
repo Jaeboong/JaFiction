@@ -21,52 +21,10 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# --- 1. Idempotent: stop existing runner if running --------------------------
-if [ -f "${RUNNER_PID_FILE}" ]; then
-  existing_pid="$(cat "${RUNNER_PID_FILE}")"
-  if [ -n "${existing_pid}" ] && process_is_running "${existing_pid}"; then
-    echo "[jasojeon] Runner already running (pid ${existing_pid}), stopping first..."
-    stop_pid_file "runner" "${RUNNER_PID_FILE}" || true
-  else
-    rm -f "${RUNNER_PID_FILE}"
-  fi
-fi
-
-# --- 2. Check for existing device token --------------------------------------
-if ! "${ROOT_DIR}/scripts/with-node.sh" \
-     "${ROOT_DIR}/node_modules/tsx/dist/cli.mjs" \
-     "${ROOT_DIR}/packages/runner/src/hosted/checkToken.ts" 2>/dev/null; then
-
-  echo ""
-  echo "  → Open ${backend_url} in your browser, sign in, and go to Settings → Devices → Add device."
-  echo ""
-
-  if [ -n "${JASOJEON_PAIRING_CODE:-}" ]; then
-    pairing_code="${JASOJEON_PAIRING_CODE}"
-    echo "  → Using pairing code from \$JASOJEON_PAIRING_CODE."
-  else
-    printf "  → Paste the 8-character pairing code here: "
-    read -r pairing_code
-  fi
-
-  echo ""
-  echo "[jasojeon] Pairing runner..."
-  if ! JASOJEON_MODE=pair \
-       JASOJEON_BACKEND_URL="${backend_url}" \
-       JASOJEON_PAIRING_CODE="${pairing_code}" \
-       "${ROOT_DIR}/scripts/with-node.sh" \
-       "${ROOT_DIR}/node_modules/tsx/dist/cli.mjs" \
-       "${ROOT_DIR}/packages/runner/src/index.ts"; then
-    echo "[jasojeon] Pairing failed." >&2
-    exit 1
-  fi
-
-  echo "[jasojeon] Paired. Starting runner..."
-fi
-
-# --- 3. Start runner under supervisor ----------------------------------------
+stop_pid_file "runner" "${RUNNER_PID_FILE}" || true
 : > "${RUNNER_LOG_FILE}"
 
+# Runner auto-claims on first boot — no pairing prompt.
 setsid bash -lc '
   export JASOJEON_MODE="hosted"
   export JASOJEON_BACKEND_URL="$1"
@@ -89,22 +47,23 @@ setsid bash -lc '
 echo "[jasojeon] Runner supervisor started."
 echo "[jasojeon] Runner log: ${RUNNER_LOG_FILE}"
 
-# --- 4. Wait for runner to connect to backend --------------------------------
-echo "[jasojeon] Waiting for runner to connect (30s)..."
+# Wait for runner to either connect (already paired) or start the auto-claim
+# poll (first boot). Both log "hosted mode — connecting to" or "Waiting for approval".
+echo "[jasojeon] Waiting for runner to start (30s)..."
 deadline=$((SECONDS + 30))
-connected=0
+started=0
 while [ "${SECONDS}" -lt "${deadline}" ]; do
-  if [ -f "${RUNNER_LOG_FILE}" ] && grep -q "hosted mode — connecting to" "${RUNNER_LOG_FILE}" 2>/dev/null; then
-    connected=1
+  if [ -f "${RUNNER_LOG_FILE}" ] && grep -qE "hosted mode — connecting to|Waiting for approval" "${RUNNER_LOG_FILE}" 2>/dev/null; then
+    started=1
     break
   fi
   sleep 1
 done
 
-if [ "${connected}" -eq 0 ]; then
+if [ "${started}" -eq 0 ]; then
   print_log_tail "runner" "${RUNNER_LOG_FILE}"
-  echo "[jasojeon] Runner did not connect within 30s." >&2
+  echo "[jasojeon] Runner did not start within 30s." >&2
   exit 1
 fi
 
-echo "[jasojeon] Runner is connected to ${backend_url} (pid $(cat "${RUNNER_PID_FILE}" 2>/dev/null || echo unknown))."
+echo "[jasojeon] Runner started (pid $(cat "${RUNNER_PID_FILE}" 2>/dev/null || echo unknown))."
