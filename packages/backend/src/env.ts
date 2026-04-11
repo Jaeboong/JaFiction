@@ -9,7 +9,7 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PUBLIC_BASE_URL: z.string().url(),
-}).strict();
+});
 
 export type Env = z.infer<typeof EnvSchema>;
 
