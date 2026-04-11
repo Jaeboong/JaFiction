@@ -12,6 +12,11 @@ ARG NGINX_IMAGE=nginx:alpine
 FROM ${NODE_IMAGE} AS web-build
 WORKDIR /app
 
+# Public base URL for the backend — baked into the Vite bundle at build time
+# to flip the UI into hosted mode (packages/web/src/App.tsx reads this).
+ARG HOSTED_API_BASE
+ENV VITE_HOSTED_API_BASE=${HOSTED_API_BASE}
+
 COPY package.json package-lock.json tsconfig.base.json tsconfig.json ./
 COPY packages/shared/package.json   packages/shared/package.json
 COPY packages/runner/package.json   packages/runner/package.json

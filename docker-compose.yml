@@ -60,6 +60,8 @@ services:
     build:
       context: .
       dockerfile: nginx/Dockerfile
+      args:
+        HOSTED_API_BASE: ${PUBLIC_BASE_URL}
     restart: unless-stopped
     depends_on:
       - backend
