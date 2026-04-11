@@ -522,6 +522,9 @@ button:focus-visible {
   margin-bottom: 24px;
   display: block;
   border-radius: 20px;
+  background: #fff;
+  padding: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
 }
 
 .login-brand-name {

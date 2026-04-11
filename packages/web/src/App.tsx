@@ -407,12 +407,7 @@ export function App() {
       <header className="app-header" aria-label="Main navigation">
         <div className="app-header-left">
           <div className="app-brand" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" className="app-brand-mark">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" fill="#111827" />
-              <rect x="14" y="3" width="7" height="7" rx="1.5" fill="#111827" fillOpacity="0.3" />
-              <rect x="3" y="14" width="7" height="7" rx="1.5" fill="#111827" fillOpacity="0.6" />
-              <path d="M14 15.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4z" stroke="#111827" strokeWidth="1.5" />
-            </svg>
+            <img src="/jasojeon.png" alt="자소전" className="app-brand-mark" />
             <span className="app-brand-name">자소전</span>
           </div>
 
