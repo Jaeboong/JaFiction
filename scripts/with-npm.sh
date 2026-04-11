@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 declare -a candidates=()
 
-if [ -n "${JAFICTION_NPM_CLI_JS:-}" ]; then
-  candidates+=("${JAFICTION_NPM_CLI_JS}")
+if [ -n "${JASOJEON_NPM_CLI_JS:-}" ]; then
+  candidates+=("${JASOJEON_NPM_CLI_JS}")
 fi
 
 if command -v npm >/dev/null 2>&1; then
@@ -36,5 +36,5 @@ for candidate in "${candidates[@]}"; do
 done
 
 echo "Unable to locate npm-cli.js for a safe WSL invocation." >&2
-echo "Use the direct harness scripts under ./scripts or set JAFICTION_NPM_CLI_JS." >&2
+echo "Use the direct harness scripts under ./scripts or set JASOJEON_NPM_CLI_JS." >&2
 exit 1

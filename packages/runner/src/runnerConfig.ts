@@ -8,7 +8,7 @@ import {
   defaultProviderCommands,
   essayRoleIds,
   providerIds
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 
 interface ProviderConfigRecord {
   command: string;

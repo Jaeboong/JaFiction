@@ -4,7 +4,7 @@ import {
   OpendartTestPayload,
   OpendartTestResult,
   OpenDartClient
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { openDartSecretKey, RunnerContext } from "../runnerContext";
 
 export async function opendartSaveKey(

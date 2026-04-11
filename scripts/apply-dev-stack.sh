@@ -9,4 +9,4 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "${ROOT_DIR}/scripts/start-dev-web.sh"
 "${ROOT_DIR}/scripts/status-dev-stack.sh"
 
-echo "[jafiction] Development stack applied."
+echo "[jasojeon] Development stack applied."

@@ -1,5 +1,5 @@
 {
-  "name": "@jafiction/backend",
+  "name": "@jasojeon/backend",
   "version": "0.1.0",
   "private": true,
   "main": "dist/index.js",
@@ -16,7 +16,7 @@
     "@fastify/helmet": "^11.1.1",
     "@fastify/oauth2": "^7.2.0",
     "@fastify/websocket": "^8.3.1",
-    "@jafiction/shared": "file:../shared",
+    "@jasojeon/shared": "file:../shared",
     "drizzle-orm": "^0.38.4",
     "fastify": "^4.28.1",
     "ioredis": "^5.3.2",

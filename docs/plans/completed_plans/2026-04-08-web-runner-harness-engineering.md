@@ -1,8 +1,8 @@
-# JaFiction Web Runner Harness Implementation Plan
+# Jasojeon Web Runner Harness Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add a JaFiction-specific repository harness plane, stable Node/npm wrappers, and a web/runner development apply harness that replaces the old extension install/deploy harness idea.
+**Goal:** Add a Jasojeon-specific repository harness plane, stable Node/npm wrappers, and a web/runner development apply harness that replaces the old extension install/deploy harness idea.
 
 **Architecture:** Keep the current product runtime under `packages/` unchanged as much as possible, then add a separate harness plane at the repo root under `docs/development/`, `tools/`, `scripts/`, and `.github/`. Make every harness entrypoint bypass broken WSL npm shims by resolving a usable `node` binary first and then invoking real CLI JS entrypoints or direct shell scripts.
 
@@ -18,7 +18,7 @@
 - Create: `.github/pull_request_template.md`
 - Modify: `README.md`
 
-**Step 1:** Write the harness-vs-product boundary for JaFiction.
+**Step 1:** Write the harness-vs-product boundary for Jasojeon.
 
 **Step 2:** Document deterministic validation vs live dev apply rules.
 

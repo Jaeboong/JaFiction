@@ -7,7 +7,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "paths": {
-      "@jafiction/shared": [
+      "@jasojeon/shared": [
         "../shared/dist/index.d.ts"
       ]
     },

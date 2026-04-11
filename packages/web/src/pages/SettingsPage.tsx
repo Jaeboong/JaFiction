@@ -1,4 +1,4 @@
-import type { SidebarState } from "@jafiction/shared";
+import type { SidebarState } from "@jasojeon/shared";
 import { useEffect, useRef, useState } from "react";
 import { AgentEffortSection } from "../components/AgentEffortSection";
 import { authStatusLabel, statusToneForAuthStatus } from "../formatters";

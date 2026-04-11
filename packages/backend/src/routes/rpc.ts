@@ -15,8 +15,8 @@
 
 import type { FastifyInstance } from "fastify";
 import { eq, and, isNull } from "drizzle-orm";
-import { RpcRequestSchema } from "@jafiction/shared";
-import type { RpcResponse } from "@jafiction/shared";
+import { RpcRequestSchema } from "@jasojeon/shared";
+import type { RpcResponse } from "@jasojeon/shared";
 import type { Db } from "../db/client";
 import { devices } from "../db/schema";
 import type { SessionStore } from "../auth/session";

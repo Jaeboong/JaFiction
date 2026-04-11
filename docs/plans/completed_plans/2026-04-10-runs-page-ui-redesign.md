@@ -6,7 +6,7 @@
 
 **Architecture:** Keep the existing `RunsPage` composition, but move run action gating to the page level so `RunControlPanel` can render the correct header action for the selected project and live run state. Reuse the existing essay answer persistence path by adding a lightweight draft-save route in `projectsRouter`, then thread a matching client method and `App` callback into `RunsPage`.
 
-**Tech Stack:** React, TypeScript, Express, existing JaFiction runner/client/view-model contracts, CSS in `packages/web/src/styles/runs.css`
+**Tech Stack:** React, TypeScript, Express, existing Jasojeon runner/client/view-model contracts, CSS in `packages/web/src/styles/runs.css`
 
 ---
 

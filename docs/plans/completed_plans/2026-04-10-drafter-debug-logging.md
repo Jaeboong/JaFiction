@@ -4,7 +4,7 @@
 
 **Goal:** Add opt-in JSONL instrumentation around drafter prompt assembly, raw responses, parsing, and chat-message sanitization so the coordinator-instruction contamination point can be traced without changing runtime behavior.
 
-**Architecture:** Keep the logger isolated in a new shared utility that silently no-ops unless both `JAFICTION_DRAFTER_DEBUG=1` and `JAFICTION_DRAFTER_DEBUG_FILE` are set. Call that helper only at the existing drafter execution and chat-message persistence boundaries in `orchestrator.ts`, and wire the dev runner entrypoint to emit logs into `.harness/logs/drafter-debug.jsonl`.
+**Architecture:** Keep the logger isolated in a new shared utility that silently no-ops unless both `JASOJEON_DRAFTER_DEBUG=1` and `JASOJEON_DRAFTER_DEBUG_FILE` are set. Call that helper only at the existing drafter execution and chat-message persistence boundaries in `orchestrator.ts`, and wire the dev runner entrypoint to emit logs into `.harness/logs/drafter-debug.jsonl`.
 
 **Tech Stack:** TypeScript, Node `fs`, shared orchestrator pipeline, bash harness scripts
 
@@ -21,7 +21,7 @@ Implement `logDrafterDebug(event, data)` so it appends one JSON object per line 
 
 **Step 2: Keep it strictly opt-in and non-throwing**
 
-Gate logging on `JAFICTION_DRAFTER_DEBUG=1` plus a configured file path, and swallow all file-write errors.
+Gate logging on `JASOJEON_DRAFTER_DEBUG=1` plus a configured file path, and swallow all file-write errors.
 
 ### Task 2: Instrument the orchestrator capture points
 

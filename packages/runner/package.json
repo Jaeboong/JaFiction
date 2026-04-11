@@ -1,5 +1,5 @@
 {
-  "name": "@jafiction/runner",
+  "name": "@jasojeon/runner",
   "version": "0.1.0",
   "private": true,
   "main": "dist/index.js",
@@ -11,7 +11,7 @@
     "test": "../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js -p tsconfig.json && ../../scripts/with-node.sh --test dist/test/*.test.js"
   },
   "dependencies": {
-    "@jafiction/shared": "file:../shared",
+    "@jasojeon/shared": "file:../shared",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.2",

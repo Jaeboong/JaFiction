@@ -75,7 +75,7 @@ export function resolveNodeRuntime(
   throw new Error(
     `Unable to locate a usable Node.js runtime.\n` +
       `Checked candidates:\n${candidateList}\n\n` +
-      `To override, set the JAFICTION_NODE_BIN environment variable to an absolute path to the node binary.`
+      `To override, set the JASOJEON_NODE_BIN environment variable to an absolute path to the node binary.`
   );
 }
 
@@ -116,7 +116,7 @@ const defaultCandidateProvider: CandidateProvider = {
     const candidates: string[] = [];
 
     // 1. Explicit override
-    const override = process.env["JAFICTION_NODE_BIN"];
+    const override = process.env["JASOJEON_NODE_BIN"];
     if (override) {
       candidates.push(override);
     }

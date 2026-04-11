@@ -13,4 +13,4 @@ kill_matching_processes "runner" "${ROOT_DIR}/node_modules/.bin/tsx watch src/in
 kill_port_listeners "web" "${WEB_PORT}"
 kill_port_listeners "runner" "$(runner_port)"
 
-echo "[jafiction] Development stack stopped."
+echo "[jasojeon] Development stack stopped."

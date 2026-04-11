@@ -1,6 +1,6 @@
 # Rollup CommonJS Interop Warning Fix
 
-**Goal:** Remove the Vite/Rollup warning about `parseReviewerCardContent` from `@jafiction/shared` without changing the runner's CommonJS runtime contract.
+**Goal:** Remove the Vite/Rollup warning about `parseReviewerCardContent` from `@jasojeon/shared` without changing the runner's CommonJS runtime contract.
 
 **Root Cause:** `packages/shared` currently emits CommonJS only, and the workspace-linked package resolves to `packages/shared/dist/index.js` outside `node_modules`. The web app only needed the reviewer-card parser at runtime, but importing it through the package root forced Rollup into CommonJS named-export interop on the full shared entrypoint.
 
@@ -16,7 +16,7 @@
 
 **Steps:**
 1. Confirm `shared` is CommonJS-only and does not publish dual exports.
-2. Confirm `web` resolves `@jafiction/shared` through the workspace package and only uses the dist declarations for types.
+2. Confirm `web` resolves `@jasojeon/shared` through the workspace package and only uses the dist declarations for types.
 3. Reproduce the warning with the official web build command.
 
 ### Task 2: Limit the fix to the web bundler

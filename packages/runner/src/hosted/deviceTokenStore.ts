@@ -9,7 +9,7 @@ const DEVICE_TOKEN_KEY = "hosted.deviceToken";
 
 // Resolve the same secrets.enc path that createRunnerContext uses.
 function resolveSecretsPath(): string {
-  const storageRoot = path.join(os.homedir(), ".jafiction");
+  const storageRoot = path.join(os.homedir(), ".jasojeon");
   return path.join(storageRoot, "secrets.enc");
 }
 

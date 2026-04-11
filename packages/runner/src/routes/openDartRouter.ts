@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { OpenDartClient } from "@jafiction/shared";
+import { OpenDartClient } from "@jasojeon/shared";
 import { openDartSecretKey, RunnerContext } from "../runnerContext";
 
 export function createOpenDartRouter(ctx: RunnerContext): Router {

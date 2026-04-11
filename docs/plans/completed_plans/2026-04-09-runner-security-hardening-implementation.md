@@ -54,7 +54,7 @@
 - Review: `README.md`
 
 **Steps:**
-1. Replace the `username:homedir:jafiction-local` fallback with an explicit secure key source order: `JAFICTION_SECRET_PASSPHRASE` first, otherwise a machine-local random key file under `~/.jafiction/`.
+1. Replace the `username:homedir:jasojeon-local` fallback with an explicit secure key source order: `JASOJEON_SECRET_PASSPHRASE` first, otherwise a machine-local random key file under `~/.jasojeon/`.
 2. Create the machine-local key file with strict permissions, load it deterministically on later boots, and fail closed if the runner cannot obtain secure key material.
 3. Add one-time migration logic: if an existing `secrets.enc` only decrypts with the legacy predictable seed, immediately mint the new machine key and re-encrypt with the hardened key source.
 4. Add tests for fresh initialization, legacy-secret migration, repeated reads with the machine key, and failure when the encrypted blob is copied without the matching key material.
@@ -94,6 +94,6 @@
    Run: `./scripts/status-dev-stack.sh`
    Expected: runner and web are both healthy on their official localhost origins.
 5. Manually verify three scenarios in a browser:
-   - The official JaFiction web UI can bootstrap and use HTTP + WebSocket normally.
+   - The official Jasojeon web UI can bootstrap and use HTTP + WebSocket normally.
    - A different origin cannot read `/api/session` or issue authenticated API calls.
    - A stale run tab receives a 409 instead of mutating the current active run.

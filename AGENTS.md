@@ -1,4 +1,4 @@
-# JaFiction Repository AGENTS Guide
+# Jasojeon Repository AGENTS Guide
 
 This file is the first repo-level instruction for coding agents working in this repository.
 

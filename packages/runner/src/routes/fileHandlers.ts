@@ -5,7 +5,7 @@ import {
   ReadFileResult,
   WriteFilePayload,
   WriteFileResult
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { createFileRpc, FileRpc } from "../hosted/fileRpc";
 import { RunnerContext } from "../runnerContext";
 

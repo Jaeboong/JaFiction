@@ -4,7 +4,7 @@ import type {
   ProviderId,
   ProviderRuntimeState,
   SidebarState
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { startTransition, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { RunnerClient, BackendClient } from "./api/client";
 import { decodeSidebarStateFrame } from "./lib/wsFrames";
@@ -351,7 +351,7 @@ export function App() {
                 <rect x="3" y="14" width="7" height="7" rx="1.5" fill="#111827" fillOpacity="0.6" />
                 <path d="M14 15.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4z" stroke="#111827" strokeWidth="1.5" />
               </svg>
-              <span className="app-brand-name">JaFiction</span>
+              <span className="app-brand-name">Jasojeon</span>
             </div>
 
             {renderTabNav()}
@@ -370,7 +370,7 @@ export function App() {
 
         <div className="app-stage app-stage-loading">
           <section className="app-loading-card">
-            <p className="app-loading-kicker">JaFiction</p>
+            <p className="app-loading-kicker">Jasojeon</p>
             <h1>로컬 러너와 연결 중입니다.</h1>
             <p>{errorMessage ?? `시도 중: ${runnerBaseUrl}`}</p>
           </section>
@@ -390,7 +390,7 @@ export function App() {
               <rect x="3" y="14" width="7" height="7" rx="1.5" fill="#111827" fillOpacity="0.6" />
               <path d="M14 15.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4z" stroke="#111827" strokeWidth="1.5" />
             </svg>
-            <span className="app-brand-name">JaFiction</span>
+            <span className="app-brand-name">Jasojeon</span>
           </div>
 
           {renderTabNav()}
@@ -864,7 +864,7 @@ function getErrorMessage(error: unknown): string {
 
 function describeRunnerBootstrapError(runnerBaseUrl: string, error: unknown): string {
   const message = getErrorMessage(error);
-  if (message.includes("approved local JaFiction UI")) {
+  if (message.includes("approved local Jasojeon UI")) {
     return `선택한 러너 주소 ${runnerBaseUrl} 은(는) 현재 UI origin ${window.location.origin} 에서 허용되지 않았습니다. 공식 dev web origin 또는 runner 자체 origin에서 다시 시도해 주세요.`;
   }
 

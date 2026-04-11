@@ -13,8 +13,8 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import test from "node:test";
 import { WebSocketServer, WebSocket } from "ws";
-import type { EventEnvelope, RpcRequest, RpcResponse } from "@jafiction/shared";
-import { EventEnvelopeSchema, RpcRequestSchema, RpcResponseSchema } from "@jafiction/shared";
+import type { EventEnvelope, RpcRequest, RpcResponse } from "@jasojeon/shared";
+import { EventEnvelopeSchema, RpcRequestSchema, RpcResponseSchema } from "@jasojeon/shared";
 import { startHostedOutboundClient } from "../hosted/outboundClient";
 import type { RunnerContext } from "../runnerContext";
 

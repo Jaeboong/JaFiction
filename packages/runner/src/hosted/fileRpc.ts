@@ -26,7 +26,7 @@ import {
   WriteFilePayload,
   WriteFileResult,
   validateWorkspaceInputPath
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 
 // Minimal logger surface — matches rpcDispatcher.Logger.
 export interface FileRpcLogger {

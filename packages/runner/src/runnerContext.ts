@@ -10,14 +10,14 @@ import {
   RunSessionManager,
   SidebarState,
   SidebarStateStore
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { version } from "../package.json";
 import { RunnerConfig } from "./runnerConfig";
 import { FileSecretStore } from "./secretStore";
 import { RunHub } from "./ws/runHub";
 import { StateHub } from "./ws/stateHub";
 
-export const openDartSecretKey = "jafiction.apiKey.openDart";
+export const openDartSecretKey = "jasojeon.apiKey.openDart";
 
 export interface RunnerContext {
   readonly workspaceRoot: string;
@@ -44,7 +44,7 @@ export interface RunnerContext {
 
 export async function createRunnerContext(): Promise<RunnerContext> {
   const workspaceRoot = os.homedir();
-  const storageRoot = path.join(workspaceRoot, ".jafiction");
+  const storageRoot = path.join(workspaceRoot, ".jasojeon");
   const config = new RunnerConfig(path.join(storageRoot, "runner.json"));
   const secrets = new FileSecretStore(path.join(storageRoot, "secrets.enc"));
   const storage = new ForJobStorage(workspaceRoot, storageRoot);

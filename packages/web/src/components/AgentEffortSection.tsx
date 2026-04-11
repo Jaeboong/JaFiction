@@ -1,4 +1,4 @@
-import type { AgentDefaults, EssayRoleId, ProviderId, ProviderRuntimeState } from "@jafiction/shared";
+import type { AgentDefaults, EssayRoleId, ProviderId, ProviderRuntimeState } from "@jasojeon/shared";
 import { useEffect, useMemo, useState } from "react";
 import { essayRoleIds, essayRoleLabels, materializeAgentDefaults } from "../agentDefaults";
 import { providerName } from "../formatters";

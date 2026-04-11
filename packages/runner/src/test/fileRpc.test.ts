@@ -13,7 +13,7 @@ interface Fixture {
 }
 
 async function makeFixture(): Promise<Fixture> {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-filerpc-"));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-filerpc-"));
   // Realpath the root up front — on macOS `/var/folders/...` is a symlink
   // to `/private/var/...`, and the rpc internally realpaths root, so tests
   // must compare against the real one.
@@ -116,7 +116,7 @@ test("fileRpc: rejects empty path", async () => {
 // ---------------------------------------------------------------------------
 test("fileRpc: rejects read via symlink escaping the root", async () => {
   const f = await makeFixture();
-  const outside = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-outside-"));
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-outside-"));
   try {
     const outsideReal = await fs.realpath(outside);
     await fs.writeFile(path.join(outsideReal, "secret.txt"), "top-secret");
@@ -134,7 +134,7 @@ test("fileRpc: rejects read via symlink escaping the root", async () => {
 
 test("fileRpc: rejects write into symlinked-out directory", async () => {
   const f = await makeFixture();
-  const outside = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-outside-"));
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-outside-"));
   try {
     const outsideReal = await fs.realpath(outside);
     await fs.symlink(outsideReal, path.join(f.root, "escape"));

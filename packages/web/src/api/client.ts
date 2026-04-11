@@ -15,7 +15,7 @@ import type {
   SaveProjectResult,
   SidebarState,
   StartRunResult
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 
 export interface SessionPayload {
   state: SidebarState;

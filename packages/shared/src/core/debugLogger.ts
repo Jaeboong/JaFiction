@@ -1,7 +1,7 @@
 import fs from "node:fs";
 
-const DEBUG_FILE = process.env.JAFICTION_DRAFTER_DEBUG_FILE;
-const ENABLED = process.env.JAFICTION_DRAFTER_DEBUG === "1" && !!DEBUG_FILE;
+const DEBUG_FILE = process.env.JASOJEON_DRAFTER_DEBUG_FILE;
+const ENABLED = process.env.JASOJEON_DRAFTER_DEBUG === "1" && !!DEBUG_FILE;
 
 export function logDrafterDebug(event: string, data: Record<string, unknown>): void {
   if (!ENABLED || !DEBUG_FILE) {

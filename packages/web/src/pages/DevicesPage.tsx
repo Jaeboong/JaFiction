@@ -264,9 +264,9 @@ export function DevicesPage({ client }: DevicesPageProps) {
                   Run the following command on your local machine:
                 </p>
                 <pre className="pairing-command">{[
-                  `JAFICTION_MODE=pair \\`,
-                  `JAFICTION_BACKEND_URL=${window.location.origin} \\`,
-                  `JAFICTION_PAIRING_CODE=${pairingState.code} \\`,
+                  `JASOJEON_MODE=pair \\`,
+                  `JASOJEON_BACKEND_URL=${window.location.origin} \\`,
+                  `JASOJEON_PAIRING_CODE=${pairingState.code} \\`,
                   `./scripts/with-npm.sh run -w packages/runner start`,
                 ].join("\n")}</pre>
 

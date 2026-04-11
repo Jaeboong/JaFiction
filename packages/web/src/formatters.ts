@@ -6,7 +6,7 @@ import type {
   ReviewMode,
   RunStatus,
   SourceType
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 
 export type StatusTone = "positive" | "warning" | "negative" | "neutral" | "info";
 

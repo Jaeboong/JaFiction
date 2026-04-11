@@ -1,4 +1,4 @@
-import { GetStatePayload, GetStateResult } from "@jafiction/shared";
+import { GetStatePayload, GetStateResult } from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
 export async function getState(

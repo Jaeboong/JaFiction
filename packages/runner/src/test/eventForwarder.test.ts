@@ -13,8 +13,8 @@ import { RunHub } from "../ws/runHub";
 import { startEventForwarding } from "../hosted/eventForwarder";
 import type { OutboundClientHandle } from "../hosted/outboundClient";
 import type { RunnerContext } from "../runnerContext";
-import { RunSessionManager } from "@jafiction/shared";
-import type { EventEnvelope, SidebarState, RunEvent } from "@jafiction/shared";
+import { RunSessionManager } from "@jasojeon/shared";
+import type { EventEnvelope, SidebarState, RunEvent } from "@jasojeon/shared";
 
 // ---------------------------------------------------------------------------
 // Minimal fake OutboundClientHandle

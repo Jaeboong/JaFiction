@@ -226,7 +226,7 @@ export async function performGeminiNotionOAuth(
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       token_endpoint_auth_method: "none",
-      client_name: "JaFiction"
+      client_name: "Jasojeon"
     });
 
     const codeVerifier = createCodeVerifier();

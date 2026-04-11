@@ -20,7 +20,7 @@ import {
   resolveRoleAssignments,
   deriveLegacyParticipantsFromRoles,
   isRunAbortedError
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
 export async function listRuns(

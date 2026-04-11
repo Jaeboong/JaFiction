@@ -12,7 +12,7 @@ import {
   RunSessionManager,
   SidebarState,
   providerIds
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { createRpcDispatcher, redactForLog, Logger } from "../hosted/rpcDispatcher";
 import type { RunnerContext } from "../runnerContext";
 
@@ -53,8 +53,8 @@ interface Harness {
 }
 
 async function makeHarness(opts: HarnessOpts = {}): Promise<Harness> {
-  const workspaceRoot = opts.workspaceRoot ?? await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-rpc-test-"));
-  const storageRoot = opts.storageRoot ?? path.join(workspaceRoot, ".jafiction");
+  const workspaceRoot = opts.workspaceRoot ?? await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-rpc-test-"));
+  const storageRoot = opts.storageRoot ?? path.join(workspaceRoot, ".jasojeon");
   const storage = opts.storage ?? new ForJobStorage(workspaceRoot, storageRoot);
   await storage.ensureInitialized();
 

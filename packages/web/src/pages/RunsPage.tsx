@@ -6,7 +6,7 @@ import type {
   RunEvent,
   RunLedgerEntry,
   SidebarState
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { renderMarkdown } from "../lib/markdown";
 import { decodeRunEventFrame } from "../lib/wsFrames";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";

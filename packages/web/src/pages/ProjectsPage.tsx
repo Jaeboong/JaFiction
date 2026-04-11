@@ -4,7 +4,7 @@ import type {
   ProjectInsightWorkspaceState,
   ProjectRecord,
   ProjectViewModel
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { useEffect, useRef, useState } from "react";
 import { ProjectInsightModal } from "../components/ProjectInsightModal";
 import { hasInsightDocuments, isInsightDocumentTitle } from "../insightDocuments";

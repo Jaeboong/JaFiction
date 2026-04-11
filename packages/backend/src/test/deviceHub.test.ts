@@ -5,7 +5,7 @@ import { describe, it, before } from "node:test";
 import assert from "node:assert/strict";
 import { createDeviceHub } from "../ws/deviceHub";
 import { makeFakePubSubRedis, makeWsPair } from "./fakes";
-import type { RpcResponse, EventEnvelope } from "@jafiction/shared";
+import type { RpcResponse, EventEnvelope } from "@jasojeon/shared";
 
 function makeHub() {
   const redis = makeFakePubSubRedis();
@@ -185,7 +185,7 @@ describe("DeviceHub", () => {
     const envelope: EventEnvelope = {
       v: 1,
       event: "run_event",
-      payload: { runId: "run-1", event: validRunEvent as unknown as import("@jafiction/shared").RunEvent }
+      payload: { runId: "run-1", event: validRunEvent as unknown as import("@jasojeon/shared").RunEvent }
     };
     client.send(JSON.stringify(envelope));
 

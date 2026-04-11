@@ -8,7 +8,7 @@ RUNNER_PID_FILE="${PID_DIR}/runner.pid"
 WEB_PID_FILE="${PID_DIR}/web.pid"
 RUNNER_LOG_FILE="${LOG_DIR}/runner.log"
 WEB_LOG_FILE="${LOG_DIR}/web.log"
-WEB_PORT="${JAFICTION_WEB_PORT:-4124}"
+WEB_PORT="${JASOJEON_WEB_PORT:-4124}"
 
 ensure_harness_dirs() {
   mkdir -p "${PID_DIR}" "${LOG_DIR}"
@@ -26,7 +26,7 @@ runner_port() {
       }
     } catch {}
     process.stdout.write(String(port));
-  ' "${HOME}/.jafiction/runner.json"
+  ' "${HOME}/.jasojeon/runner.json"
 }
 
 runner_base_url() {
@@ -71,7 +71,7 @@ stop_pid_file() {
   fi
 
   rm -f "${pid_file}"
-  echo "[jafiction] Stopped ${label} process."
+  echo "[jasojeon] Stopped ${label} process."
 }
 
 http_ok() {
@@ -113,7 +113,7 @@ kill_port_listeners() {
   if fuser "${port}/tcp" >/dev/null 2>&1; then
     fuser -k "${port}/tcp" >/dev/null 2>&1 || true
     sleep 1
-    echo "[jafiction] Cleared existing ${label} listener on port ${port}."
+    echo "[jasojeon] Cleared existing ${label} listener on port ${port}."
   fi
 }
 
@@ -138,7 +138,7 @@ kill_matching_processes() {
       fi
       kill -9 "${pid}" >/dev/null 2>&1 || true
     done < <(pgrep -f "${pattern}" || true)
-    echo "[jafiction] Cleared stray ${label} processes matching ${pattern}."
+    echo "[jasojeon] Cleared stray ${label} processes matching ${pattern}."
   fi
 }
 
@@ -146,7 +146,7 @@ print_log_tail() {
   local label="$1"
   local log_file="$2"
   if [ -f "${log_file}" ]; then
-    echo "[jafiction] Recent ${label} log output:" >&2
+    echo "[jasojeon] Recent ${label} log output:" >&2
     tail -n 40 "${log_file}" >&2 || true
   fi
 }

@@ -8,7 +8,7 @@
 
 ### 1.1 현재 상태
 
-forJob VS Code Extension은 역할(role)별로 프로바이더·모델·에포트를 개별 설정할 수 있는 `RoleAssignment` 구조를 갖추고 있었다. JaFiction으로 재설계하면서 공유 타입(`packages/shared`)에는 해당 구조가 그대로 남아 있고, 러너의 실행 파이프라인도 `RunRequest.roleAssignments`를 처리할 수 있지만, **웹 UI에서 이를 설정하는 화면이 없다.**
+forJob VS Code Extension은 역할(role)별로 프로바이더·모델·에포트를 개별 설정할 수 있는 `RoleAssignment` 구조를 갖추고 있었다. Jasojeon으로 재설계하면서 공유 타입(`packages/shared`)에는 해당 구조가 그대로 남아 있고, 러너의 실행 파이프라인도 `RunRequest.roleAssignments`를 처리할 수 있지만, **웹 UI에서 이를 설정하는 화면이 없다.**
 
 현재 웹 UI에서 프로바이더 레벨의 모델·에포트는 설정 가능하지만 (ProvidersPage), 역할별 개별 설정은 불가능하다.
 
@@ -120,7 +120,7 @@ agentDefaults: essayRoleIds.reduce((acc, roleId) => {
 
 ### 3.2 저장 파일 경로
 
-기존 `~/.jafiction/config.json`에 `agentDefaults` 필드가 추가된다. 별도 파일 분리 없음.
+기존 `~/.jasojeon/config.json`에 `agentDefaults` 필드가 추가된다. 별도 파일 분리 없음.
 
 ---
 
@@ -480,10 +480,10 @@ async saveAgentDefaults(agentDefaults: AgentDefaults): Promise<void> {
 
 ## 12. 비고: forJob와의 차이
 
-| 항목 | forJob | JaFiction (이번 설계) |
+| 항목 | forJob | Jasojeon (이번 설계) |
 |------|--------|----------------------|
 | 설정 위치 | 실행 설정 모달 내 (per-run) | 개요 탭 전역 기본값 (global default) |
-| 저장소 | VS Code workspace config | `~/.jafiction/config.json` |
+| 저장소 | VS Code workspace config | `~/.jasojeon/config.json` |
 | 적용 범위 | 해당 실행 1회만 | 이후 모든 실행에 자동 적용 |
 | UI 진입 | 실행 직전 고급 설정 | 개요 탭 → 에이전트 에포트 섹션 |
 

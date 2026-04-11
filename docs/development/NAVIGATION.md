@@ -1,4 +1,4 @@
-# JaFiction Codebase Navigation
+# Jasojeon Codebase Navigation
 
 Use this document to find the right file quickly before reading or editing.  
 For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPERATING_RULES.md`.

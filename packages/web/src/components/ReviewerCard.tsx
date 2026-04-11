@@ -1,4 +1,4 @@
-import { parseReviewerCardContent, type ReviewerCardContent } from "@jafiction/shared/reviewerCard";
+import { parseReviewerCardContent, type ReviewerCardContent } from "@jasojeon/shared/reviewerCard";
 
 interface ReviewerCardProps {
   color: string;
@@ -7,8 +7,8 @@ interface ReviewerCardProps {
 
 type ReviewerStatusTone = "revise" | "approve" | "block" | "neutral";
 
-export type { ReviewerCardContent } from "@jafiction/shared/reviewerCard";
-export { parseReviewerCardContent } from "@jafiction/shared/reviewerCard";
+export type { ReviewerCardContent } from "@jasojeon/shared/reviewerCard";
+export { parseReviewerCardContent } from "@jasojeon/shared/reviewerCard";
 
 function reviewerStatusTone(status?: string): ReviewerStatusTone {
   switch (status) {

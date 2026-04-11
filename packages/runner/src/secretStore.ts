@@ -2,7 +2,7 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { ProviderSecretStore } from "@jafiction/shared";
+import { ProviderSecretStore } from "@jasojeon/shared";
 
 interface SecretPayload {
   iv: string;
@@ -103,7 +103,7 @@ export class FileSecretStore implements ProviderSecretStore {
       return this.primaryKey;
     }
 
-    const passphrase = this.options.env?.JAFICTION_SECRET_PASSPHRASE?.trim();
+    const passphrase = this.options.env?.JASOJEON_SECRET_PASSPHRASE?.trim();
     if (passphrase) {
       this.primaryKey = deriveKey(passphrase);
       return this.primaryKey;
@@ -160,7 +160,7 @@ function deriveKey(seed: string): Buffer {
 }
 
 function legacySeed(): string {
-  return `${os.userInfo().username}:${os.homedir()}:jafiction-local`;
+  return `${os.userInfo().username}:${os.homedir()}:jasojeon-local`;
 }
 
 async function readPayload(filePath: string): Promise<SecretPayload> {

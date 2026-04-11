@@ -4,8 +4,8 @@ set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/harness-common.sh"
 
 ensure_harness_dirs
-export JAFICTION_DRAFTER_DEBUG=1
-export JAFICTION_DRAFTER_DEBUG_FILE="${ROOT_DIR}/.harness/logs/drafter-debug.jsonl"
+export JASOJEON_DRAFTER_DEBUG=1
+export JASOJEON_DRAFTER_DEBUG_FILE="${ROOT_DIR}/.harness/logs/drafter-debug.jsonl"
 
 if [ "${1:-}" = "--foreground" ]; then
   cd "${ROOT_DIR}/packages/runner"
@@ -20,8 +20,8 @@ kill_port_listeners "runner" "${runner_port_value}"
 setsid bash -lc '
   cd "$1"
   exec env \
-    JAFICTION_DRAFTER_DEBUG="$JAFICTION_DRAFTER_DEBUG" \
-    JAFICTION_DRAFTER_DEBUG_FILE="$JAFICTION_DRAFTER_DEBUG_FILE" \
+    JASOJEON_DRAFTER_DEBUG="$JASOJEON_DRAFTER_DEBUG" \
+    JASOJEON_DRAFTER_DEBUG_FILE="$JASOJEON_DRAFTER_DEBUG_FILE" \
     "$2" "$3" watch src/index.ts
 ' _ \
   "${ROOT_DIR}/packages/runner" \
@@ -34,8 +34,8 @@ runner_pid="$(cat "${RUNNER_PID_FILE}")"
 
 if ! wait_for_http "$(runner_base_url)/api/session" 30; then
   print_log_tail "runner" "${RUNNER_LOG_FILE}"
-  echo "[jafiction] Runner dev server did not become ready." >&2
+  echo "[jasojeon] Runner dev server did not become ready." >&2
   exit 1
 fi
 
-echo "[jafiction] Runner dev server is ready at $(runner_base_url) (pid ${runner_pid})."
+echo "[jasojeon] Runner dev server is ready at $(runner_base_url) (pid ${runner_pid})."

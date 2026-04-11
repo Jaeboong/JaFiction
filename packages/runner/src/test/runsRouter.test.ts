@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import test from "node:test";
 import type { AddressInfo } from "node:net";
-import { ForJobStorage, RunSessionManager, RunSessionState } from "@jafiction/shared";
+import { ForJobStorage, RunSessionManager, RunSessionState } from "@jasojeon/shared";
 import { createRunnerServer } from "../index";
 import type { RunnerContext } from "../runnerContext";
 
@@ -329,8 +329,8 @@ async function startHarness(): Promise<{
   pushCount: number;
   refreshProjectsCalls: Array<string | undefined>;
 }> {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-runs-router-"));
-  const storageRoot = path.join(tempDir, ".jafiction");
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-runs-router-"));
+  const storageRoot = path.join(tempDir, ".jasojeon");
   const storage = new ForJobStorage(tempDir, storageRoot);
   await storage.ensureInitialized();
   const abortStateUpdates: RunSessionState[] = [];

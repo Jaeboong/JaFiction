@@ -2,7 +2,7 @@ import * as assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import type { AddressInfo } from "node:net";
-import { RunSessionManager } from "@jafiction/shared";
+import { RunSessionManager } from "@jasojeon/shared";
 import WebSocket from "ws";
 import { createRunnerServer } from "../index";
 import type { RunnerContext } from "../runnerContext";
@@ -33,7 +33,7 @@ test("trusted local origin can bootstrap a cookie-backed session without leaking
   const payload = await response.json() as { token?: string; state: { extensionVersion: string }; storageRoot: string };
   assert.equal(payload.token, undefined);
   assert.equal(payload.state.extensionVersion, "test-version");
-  assert.equal(payload.storageRoot, "/tmp/jafiction-storage");
+  assert.equal(payload.storageRoot, "/tmp/jasojeon-storage");
 
   const setCookie = response.headers.get("set-cookie");
   assert.match(setCookie ?? "", new RegExp(`${runnerSessionCookieName}=`));
@@ -183,8 +183,8 @@ function createTestContext(): RunnerContext {
   };
 
   return {
-    workspaceRoot: "/tmp/jafiction-workspace",
-    storageRoot: "/tmp/jafiction-storage",
+    workspaceRoot: "/tmp/jasojeon-workspace",
+    storageRoot: "/tmp/jasojeon-storage",
     stateStore: {
       setRunState: () => undefined,
       refreshProjects: async () => undefined,

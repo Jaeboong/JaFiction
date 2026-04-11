@@ -1,5 +1,5 @@
 {
-  "name": "@jafiction/web",
+  "name": "@jasojeon/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "test": "../../scripts/with-node.sh ../../node_modules/.bin/vitest run"
   },
   "dependencies": {
-    "@jafiction/shared": "file:../shared",
+    "@jasojeon/shared": "file:../shared",
     "dompurify": "^3.2.6",
     "marked": "^18.0.0",
     "react": "^19.1.0",

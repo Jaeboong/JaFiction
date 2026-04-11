@@ -1,4 +1,4 @@
-# JaFiction 아키텍처 설계서
+# Jasojeon 아키텍처 설계서
 
 > ForJob VS Code Extension → 웹 UI + 로컬 러너 재설계
 
@@ -77,7 +77,7 @@ VS Code Webview (UI)
 │ 사용자 로컬 머신 │
 │ │
 │ ┌──────────────┐ HTTP/WS ┌───────────────────┐ │
-│ │ 브라우저 │ ◄─────────────► │ JaFiction Runner │ │
+│ │ 브라우저 │ ◄─────────────► │ Jasojeon Runner │ │
 │ │ (웹 UI) │ localhost:포트 │ (Node.js 프로세스) │ │
 │ └──────────────┘ └─────────┬─────────┘ │
 │ │ │
@@ -89,7 +89,7 @@ VS Code Webview (UI)
 │ │ │
 │ ┌────────▼────────┐ │
 │ │ 로컬 파일시스템 │ │
-│ │ ~/.jafiction/ │ │
+│ │ ~/.jasojeon/ │ │
 │ └─────────────────┘ │
 └─────────────────────────────────────────────────────────┘
 (선택적)
@@ -98,7 +98,7 @@ VS Code Webview (UI)
 └──────────┘
 
 
-### 3.2 프로세스 구조 (JaFiction)
+### 3.2 프로세스 구조 (Jasojeon)
 
 
 packages/
@@ -121,7 +121,7 @@ runner/ ← 로컬 러너 (Node.js HTTP + WebSocket 서버)
 src/
 index.ts ← Express + WebSocket 서버 진입점
 runnerConfig.ts ← YAML/JSON 설정 로드 (vscode.getConfiguration 대체)
-secretStore.ts ← keytar 또는 ~/.jafiction/secrets.enc (vscode.SecretStorage 대체)
+secretStore.ts ← keytar 또는 ~/.jasojeon/secrets.enc (vscode.SecretStorage 대체)
 providerRegistry.ts ← VS Code 의존성 제거한 ProviderRegistry 구현
 routes/
 projectsRouter.ts
@@ -153,7 +153,7 @@ components/
 ### 3.4 데이터 저장 전략
 
 
-~/.jafiction/ ← storageRoot
+~/.jasojeon/ ← storageRoot
 profile/
 raw/ ← 원본 파일 (PDF, PPTX 등)
 normalized/ ← 정규화된 텍스트
@@ -177,15 +177,15 @@ runner.yaml ← 러너 설정 (포트, provider 커맨드 등)
 secrets.enc ← 암호화된 API 키 저장소 (keytar 사용 권장)
 
 
-`ForJobStorage`는 `workspaceRoot`를 `~/.jafiction`으로 바꾸면 **그대로 동작**.
+`ForJobStorage`는 `workspaceRoot`를 `~/.jasojeon`으로 바꾸면 **그대로 동작**.
 
 ### 3.5 CLI 인증/시크릿 관리 전략
 
 **현재:** `vscode.SecretStorage` (OS keychain 위임)
 
-**JaFiction 러너:**
+**Jasojeon 러너:**
 - 1순위: `keytar` npm 패키지 → OS native keychain (macOS Keychain, Windows Credential Manager, libsecret)
-- 2순위: `~/.jafiction/secrets.enc` (AES-256, passphrase는 환경변수 또는 초기 설정 시 입력)
+- 2순위: `~/.jasojeon/secrets.enc` (AES-256, passphrase는 환경변수 또는 초기 설정 시 입력)
 
 ```typescript
 // packages/runner/src/secretStore.ts
@@ -201,13 +201,13 @@ export class KeytarSecretStore implements SecretStore { ... }
 ProviderRegistry의 SecretStore 타입 (Pick<vscode.SecretStorage, "get" | "store" | "delete">)과 시그니처가 동일하므로 어댑터 없이 교체 가능.
 
 관리 대상 시크릿:
-- provider API 키: `jafiction.apiKey.{providerId}`
-- OpenDART API 키: `jafiction.apiKey.openDart` (기존 forJob과 동일한 패턴으로 통합)
+- provider API 키: `jasojeon.apiKey.{providerId}`
+- OpenDART API 키: `jasojeon.apiKey.openDart` (기존 forJob과 동일한 패턴으로 통합)
 
 3.6 Notion MCP 처리 전략
 현재: 로컬 CLI에 MCP 설정 → CLI 실행 시 자동 연결
 
-JaFiction: 동일. 사용자가 로컬에서 claude mcp add notion ... 등으로 설정 → 러너가 CLI 실행 시 그 설정 그대로 사용.
+Jasojeon: 동일. 사용자가 로컬에서 claude mcp add notion ... 등으로 설정 → 러너가 CLI 실행 시 그 설정 그대로 사용.
 
 notionMcp.ts의 파싱 로직 (parseClaudeNotionStatus 등) → 그대로 재사용
 Notion MCP 상태 조회: 러너가 CLI mcp list 실행 → 결과 반환
@@ -412,7 +412,7 @@ completeEssayQuestion	POST /api/projects/:slug/essay/:index/complete
 
 import type { SecretStore } from "./secretStore";
 import type { RunnerConfig } from "./runnerConfig";
-import type { ProviderStore } from "@jafiction/shared";  // storageInterfaces.ts
+import type { ProviderStore } from "@jasojeon/shared";  // storageInterfaces.ts
 
 export class ProviderRegistry {
   constructor(
@@ -426,7 +426,7 @@ export class ProviderRegistry {
   }
 
   async getApiKey(providerId): Promise<string | undefined> {
-    return this.secrets.get(`jafiction.apiKey.${providerId}`);
+    return this.secrets.get(`jasojeon.apiKey.${providerId}`);
   }
   // ...
 }
@@ -462,7 +462,7 @@ WS   /ws/state
 
 | 항목 | 리스크 | 완화 방안 |
 |------|--------|-----------|
-| 러너 설치/시작 UX | 사용자가 터미널에서 jafiction 실행해야 함 | 초기엔 수동, 이후 native app wrapper (Tauri/Electron-lite) 고려 |
+| 러너 설치/시작 UX | 사용자가 터미널에서 jasojeon 실행해야 함 | 초기엔 수동, 이후 native app wrapper (Tauri/Electron-lite) 고려 |
 | 포트 충돌 | localhost 포트 기본값 충돌 | 기본 포트 + 자동 fallback 포트 탐지 |
 | keytar 플랫폼 지원 | Linux libsecret 미설치 | 파일 기반 시크릿 폴백 구현 |
 | CORS | 브라우저 → localhost 요청 | Runner에서 특정 origin 허용 또는 file:// 앱으로 배포 |
@@ -472,15 +472,15 @@ WS   /ws/state
 오픈 질문:
 
 러너 배포 방식: npm global install vs Tauri standalone app?
-../JaFiction 디렉토리 기준 monorepo 구조로 시작?
+../Jasojeon 디렉토리 기준 monorepo 구조로 시작?
 웹 UI 프레임워크: React (현 webview 코드 참고) vs 다른 선택?
-essayQuestionWorkflow.ts, companyInsightArtifacts.ts 등 ForJob 특화 기능을 JaFiction에 그대로 포함할지?
+essayQuestionWorkflow.ts, companyInsightArtifacts.ts 등 ForJob 특화 기능을 Jasojeon에 그대로 포함할지?
 8. 다음 단계 (구현 순서)
-monorepo 구조 초기화 — ../JaFiction 기준, pnpm workspaces 또는 npm workspaces
+monorepo 구조 초기화 — ../Jasojeon 기준, pnpm workspaces 또는 npm workspaces
 packages/shared 구성 — ForJob 코어 모듈 이식 (VS Code 무관 파일 전체)
 packages/runner 뼈대 — Express + WS 서버, runnerConfig.ts, SecretStore 구현
 ProviderRegistry 어댑터 — vscode 의존 제거, SecretStore/RunnerConfig 인터페이스로 교체
-ForJobStorage 이식 — workspaceRoot = ~/.jafiction, 스토리지 초기화
+ForJobStorage 이식 — workspaceRoot = ~/.jasojeon, 스토리지 초기화
 핵심 API 라우터 — providers, profile, projects, runs, opendart, insights
 WS 스트리밍 — RunEvent → WebSocket (/ws/runs/:runId)
 RunSessionManager 이식 — 개입 인터럽트 구조

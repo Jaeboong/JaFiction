@@ -17,7 +17,7 @@ import {
 } from "./fakes";
 import type { UserRow } from "../auth/session";
 import { SESSION_COOKIE } from "../auth/session";
-import type { RpcResponse, RpcRequest } from "@jafiction/shared";
+import type { RpcResponse, RpcRequest } from "@jasojeon/shared";
 import type { DeviceHub } from "../ws/deviceHub";
 
 // ---------------------------------------------------------------------------

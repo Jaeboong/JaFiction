@@ -1,6 +1,6 @@
 import type { IncomingHttpHeaders } from "node:http";
 
-export const runnerSessionCookieName = "jafiction_runner_session";
+export const runnerSessionCookieName = "jasojeon_runner_session";
 
 const defaultDevWebPort = 4124;
 const sessionCookieMaxAgeSeconds = 60 * 60 * 8;
@@ -47,7 +47,7 @@ export function createSessionAuth(config: SessionAuthConfig): SessionAuth {
         ok: false,
         status: 403,
         error: "forbidden_origin",
-        message: "Runner requests must originate from an approved local JaFiction UI."
+        message: "Runner requests must originate from an approved local Jasojeon UI."
       };
     }
 
@@ -59,7 +59,7 @@ export function createSessionAuth(config: SessionAuthConfig): SessionAuth {
       ok: false,
       status: 403,
       error: "forbidden_origin",
-      message: "Runner requests must originate from an approved local JaFiction UI."
+      message: "Runner requests must originate from an approved local Jasojeon UI."
     };
   };
 
@@ -111,7 +111,7 @@ export function serializeSessionCookie(sessionToken: string): string {
 }
 
 function resolveDevWebPort(): number {
-  const candidate = Number(process.env.JAFICTION_WEB_PORT ?? defaultDevWebPort);
+  const candidate = Number(process.env.JASOJEON_WEB_PORT ?? defaultDevWebPort);
   return Number.isInteger(candidate) && candidate > 0 ? candidate : defaultDevWebPort;
 }
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { fetchAndExtractJobPosting } from "@jafiction/shared";
+import { fetchAndExtractJobPosting } from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
 const upload = multer({ storage: multer.memoryStorage() });

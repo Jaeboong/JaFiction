@@ -108,7 +108,7 @@ test("selects the candidate provided first (caller is responsible for ordering b
   assert.equal(runtime.binDir, path.dirname(newerNode));
 });
 
-test("throws with candidate list and JAFICTION_NODE_BIN hint when all candidates fail", () => {
+test("throws with candidate list and JASOJEON_NODE_BIN hint when all candidates fail", () => {
   resetNodeRuntimeCacheForTests();
 
   const provider = makeProvider(["/fake/node/bin/node", "/another/fake/bin/node"]);
@@ -121,7 +121,7 @@ test("throws with candidate list and JAFICTION_NODE_BIN hint when all candidates
       assert.ok(error instanceof Error);
       assert.ok(error.message.includes("/fake/node/bin/node"), "should list checked candidates");
       assert.ok(error.message.includes("/another/fake/bin/node"), "should list all candidates");
-      assert.ok(error.message.includes("JAFICTION_NODE_BIN"), "should mention override env var");
+      assert.ok(error.message.includes("JASOJEON_NODE_BIN"), "should mention override env var");
       return true;
     }
   );

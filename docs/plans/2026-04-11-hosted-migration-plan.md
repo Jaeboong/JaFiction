@@ -7,8 +7,8 @@
 ## 1. Overview
 
 ### 목표
-- JaFiction 을 "호스티드 Web + 호스티드 Backend + 로컬 Runner" 하이브리드로 이전한다.
-- 사용자는 브라우저로 호스티드 UI 에 Google 로그인하고, 자신의 로컬 머신에서 Runner 를 실행해 CLI 구독(`claude` / `codex` / `gemini`) 과 `~/.jafiction` 원고를 그대로 사용한다.
+- Jasojeon 을 "호스티드 Web + 호스티드 Backend + 로컬 Runner" 하이브리드로 이전한다.
+- 사용자는 브라우저로 호스티드 UI 에 Google 로그인하고, 자신의 로컬 머신에서 Runner 를 실행해 CLI 구독(`claude` / `codex` / `gemini`) 과 `~/.jasojeon` 원고를 그대로 사용한다.
 - 최종 상태: 웹 UI 는 로컬 러너 주소를 몰라도 되며, 백엔드가 `device_id` 기준으로 WS 릴레이를 수행한다.
 
 ### 비목표
@@ -35,7 +35,7 @@ Browser ──HTTPS──▶ Backend(Fastify) ──▶ Postgres (metadata only)
    └────────────── WS relay ◀──WSS outbound── Runner (hosted mode)
                                                 │
                                                 ├─ child_process: claude/codex/gemini
-                                                └─ ForJobStorage (~/.jafiction)
+                                                └─ ForJobStorage (~/.jasojeon)
 ```
 
 - 브라우저는 백엔드 단 하나의 origin 만 안다.
@@ -71,7 +71,7 @@ Browser ──HTTPS──▶ Backend(Fastify) ──▶ Postgres (metadata only)
 
 ### 2.4 로컬 모드와의 공존
 
-- `packages/runner` 에 `JAFICTION_MODE=local|hosted` 환경 변수 추가.
+- `packages/runner` 에 `JASOJEON_MODE=local|hosted` 환경 변수 추가.
 - `local` 은 현행 유지(Express + 인바운드 WS + 쿠키 auth).
 - `hosted` 는 인바운드 HTTP/WS 를 띄우지 않고 outbound WS 만 연결, 동일 `RunnerContext` 재사용.
 
@@ -236,7 +236,7 @@ runs_meta (
 - **Risks / rollback**: 스키마 확장 시 리펙터 비용 → 버저닝 필드 `v: 1` 포함.
 
 ### Phase 2 — 러너 hosted-mode outbound WS 클라이언트
-- **Objective**: `JAFICTION_MODE=hosted` 시 러너가 인바운드 서버를 띄우지 않고 백엔드 URL 로 WSS 를 연결, 디바이스 토큰으로 핸드셰이크.
+- **Objective**: `JASOJEON_MODE=hosted` 시 러너가 인바운드 서버를 띄우지 않고 백엔드 URL 로 WSS 를 연결, 디바이스 토큰으로 핸드셰이크.
 - **Touched files**: `packages/runner/src/index.ts`, `packages/runner/src/hosted/outboundClient.ts`(신규), `packages/runner/src/secretStore.ts`(token 네임스페이스 추가).
 - **Acceptance**: 모의 WS 서버 상대로 연결/재연결/핑퐁/토큰 거절 케이스 테스트 통과. 로컬 모드 회귀 없음(`./scripts/apply-dev-stack.sh`).
 - **Risks / rollback**: 재연결 백오프 버그 → 지수 백오프 + jitter, 상한 60s.

@@ -1,4 +1,4 @@
-# JaFiction — Claude Code Instructions
+# Jasojeon — Claude Code Instructions
 
 > Claude Code reads this file automatically. For other agents, see `AGENTS.md`.
 > On conflict: `CLAUDE.md` > `AGENTS.md` > `docs/development/ARCHITECTURE.md` > `docs/development/OPERATING_RULES.md`
@@ -7,7 +7,7 @@
 
 ## Project Overview
 
-JaFiction is a web UI + local runner rewrite of the original `forJob` VS Code extension.
+Jasojeon is a web UI + local runner rewrite of the original `forJob` VS Code extension.
 
 - `packages/shared/` — orchestration, storage, schemas, shared workflow logic
 - `packages/runner/` — localhost HTTP/WebSocket runner

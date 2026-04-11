@@ -1,4 +1,4 @@
-# JaFiction Development Harness Operating Rules
+# Jasojeon Development Harness Operating Rules
 
 ## Deterministic Checks vs Live Dev Apply
 

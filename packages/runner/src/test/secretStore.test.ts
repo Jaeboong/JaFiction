@@ -6,7 +6,7 @@ import test from "node:test";
 import { FileSecretStore } from "../secretStore";
 
 test("file secret store initializes a machine-local key file with strict permissions", async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-secret-store-"));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-secret-store-"));
   const filePath = path.join(tempDir, "secrets.enc");
   const keyFilePath = path.join(tempDir, "secret.key");
 
@@ -29,7 +29,7 @@ test("file secret store initializes a machine-local key file with strict permiss
 });
 
 test("file secret store reuses the same machine-local key across restarts", async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-secret-store-"));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-secret-store-"));
   const filePath = path.join(tempDir, "secrets.enc");
   const keyFilePath = path.join(tempDir, "secret.key");
 
@@ -51,14 +51,14 @@ test("file secret store reuses the same machine-local key across restarts", asyn
 });
 
 test("file secret store migrates legacy predictable-seed secrets into a hardened machine key", async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-secret-store-"));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-secret-store-"));
   const filePath = path.join(tempDir, "secrets.enc");
   const keyFilePath = path.join(tempDir, "secret.key");
-  const legacySeed = "legacy-user:/legacy/home:jafiction-local";
+  const legacySeed = "legacy-user:/legacy/home:jasojeon-local";
 
   try {
     const legacyStore = new FileSecretStore(filePath, {
-      env: { JAFICTION_SECRET_PASSPHRASE: legacySeed },
+      env: { JASOJEON_SECRET_PASSPHRASE: legacySeed },
       keyFilePath,
       legacySeed
     });
@@ -90,8 +90,8 @@ test("file secret store migrates legacy predictable-seed secrets into a hardened
 });
 
 test("file secret store fails closed when the encrypted blob is copied without its machine key", async () => {
-  const sourceDir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-secret-source-"));
-  const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-secret-target-"));
+  const sourceDir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-secret-source-"));
+  const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-secret-target-"));
 
   try {
     const sourceFilePath = path.join(sourceDir, "secrets.enc");

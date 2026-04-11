@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { ProviderId, ProviderRuntimeState, providerIds } from "@jafiction/shared";
+import { ProviderId, ProviderRuntimeState, providerIds } from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
 export function createProvidersRouter(ctx: RunnerContext): Router {

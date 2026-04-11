@@ -1,6 +1,6 @@
-# JaFiction
+# Jasojeon
 
-JaFiction is a web UI plus local runner rewrite of the original `forJob` VS Code extension.
+Jasojeon is a web UI plus local runner rewrite of the original `forJob` VS Code extension.
 
 ## Workspace
 
@@ -38,8 +38,8 @@ See:
 ## Local Security Model
 
 - `GET /api/session` bootstraps the local runner by setting an `HttpOnly` session cookie and returning bootstrap state. The browser client uses `credentials: "include"` for HTTP and the same cookie for WebSocket upgrades. Bearer tokens and `?token=` WebSocket URLs are no longer part of the local flow.
-- Browser requests are accepted only from trusted local origins: the runner's own origin and the official dev-web origin on `http://127.0.0.1:${JAFICTION_WEB_PORT:-4124}`. If you override the runner base URL in the UI, keep it on one of those trusted local origins.
-- Runner secrets in `~/.jafiction/secrets.enc` are encrypted with `JAFICTION_SECRET_PASSPHRASE` when that env var is set. Otherwise the runner mints and reuses a machine-local key file at `~/.jafiction/secret.key`.
+- Browser requests are accepted only from trusted local origins: the runner's own origin and the official dev-web origin on `http://127.0.0.1:${JASOJEON_WEB_PORT:-4124}`. If you override the runner base URL in the UI, keep it on one of those trusted local origins.
+- Runner secrets in `~/.jasojeon/secrets.enc` are encrypted with `JASOJEON_SECRET_PASSPHRASE` when that env var is set. Otherwise the runner mints and reuses a machine-local key file at `~/.jasojeon/secret.key`.
 - Older `secrets.enc` files that were encrypted with the legacy predictable seed migrate automatically on the next successful runner boot. If you intentionally move secrets between machines, move both `secrets.enc` and `secret.key` together or re-enter the API keys.
 
 ## Package Aliases

@@ -1,4 +1,4 @@
-import { RunEvent } from "@jafiction/shared";
+import { RunEvent } from "@jasojeon/shared";
 import { WebSocket } from "ws";
 
 export class RunHub {

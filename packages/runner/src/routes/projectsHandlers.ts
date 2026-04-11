@@ -9,7 +9,7 @@ import {
   UploadDocumentResult,
   DeleteDocumentPayload,
   DeleteDocumentResult
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
 export async function listProjects(

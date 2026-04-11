@@ -1,4 +1,4 @@
-import type { AgentDefaultConfig, AgentDefaults, EssayRoleId, ProviderId, RoleAssignment } from "@jafiction/shared";
+import type { AgentDefaultConfig, AgentDefaults, EssayRoleId, ProviderId, RoleAssignment } from "@jasojeon/shared";
 
 export const essayRoleIds: EssayRoleId[] = [
   "context_researcher",

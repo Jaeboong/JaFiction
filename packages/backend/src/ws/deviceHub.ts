@@ -12,8 +12,8 @@
 
 import * as crypto from "node:crypto";
 import type WebSocket from "ws";
-import { RpcResponseSchema, EventEnvelopeSchema } from "@jafiction/shared";
-import type { RpcRequest, RpcResponse, EventEnvelope } from "@jafiction/shared";
+import { RpcResponseSchema, EventEnvelopeSchema } from "@jasojeon/shared";
+import type { RpcRequest, RpcResponse, EventEnvelope } from "@jasojeon/shared";
 
 // ---------------------------------------------------------------------------
 // Logger interface

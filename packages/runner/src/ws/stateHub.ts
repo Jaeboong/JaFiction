@@ -1,4 +1,4 @@
-import { SidebarState } from "@jafiction/shared";
+import { SidebarState } from "@jasojeon/shared";
 import { WebSocket } from "ws";
 
 export class StateHub {

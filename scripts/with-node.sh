@@ -3,8 +3,8 @@ set -euo pipefail
 
 declare -a candidates=()
 
-if [ -n "${JAFICTION_NODE_BIN:-}" ]; then
-  candidates+=("${JAFICTION_NODE_BIN}")
+if [ -n "${JASOJEON_NODE_BIN:-}" ]; then
+  candidates+=("${JASOJEON_NODE_BIN}")
 fi
 
 for candidate in \

@@ -34,8 +34,8 @@ web_pid="$(cat "${WEB_PID_FILE}")"
 
 if ! wait_for_http "$(web_base_url)" 30; then
   print_log_tail "web" "${WEB_LOG_FILE}"
-  echo "[jafiction] Web dev server did not become ready." >&2
+  echo "[jasojeon] Web dev server did not become ready." >&2
   exit 1
 fi
 
-echo "[jafiction] Web dev server is ready at $(web_base_url) (pid ${web_pid})."
+echo "[jasojeon] Web dev server is ready at $(web_base_url) (pid ${web_pid})."

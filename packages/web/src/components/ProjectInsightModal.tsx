@@ -1,7 +1,7 @@
 import type {
   ProjectInsightDocumentKey,
   ProjectInsightWorkspaceState
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { Fragment, type ReactNode, useEffect } from "react";
 import { formatDate, formatRelative } from "../formatters";
 import "../styles/insight-modal.css";

@@ -11,7 +11,7 @@ import {
   NotionDisconnectResult,
   ProviderId,
   providerIds
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
 function requireProviderId(value: string): ProviderId {

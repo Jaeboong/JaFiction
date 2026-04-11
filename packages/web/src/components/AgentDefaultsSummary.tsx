@@ -1,4 +1,4 @@
-import type { AgentDefaults, ProviderId, ProviderRuntimeState } from "@jafiction/shared";
+import type { AgentDefaults, ProviderId, ProviderRuntimeState } from "@jasojeon/shared";
 import { essayRoleIds, essayRoleLabels, materializeAgentDefaults } from "../agentDefaults";
 import { providerName } from "../formatters";
 

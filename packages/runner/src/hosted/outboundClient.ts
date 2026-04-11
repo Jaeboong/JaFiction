@@ -1,7 +1,7 @@
 /**
  * Outbound WebSocket client for hosted mode.
  *
- * When JAFICTION_MODE=hosted the runner does NOT open an inbound HTTP/WS server.
+ * When JASOJEON_MODE=hosted the runner does NOT open an inbound HTTP/WS server.
  * Instead this module opens a single outbound WSS connection to the backend,
  * authenticates with a device token, and multiplexes RPC responses + event
  * pushes over that single channel.
@@ -32,7 +32,7 @@ import {
   RpcRequest,
   RpcRequestSchema,
   RpcResponse
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import type { RunnerContext } from "../runnerContext";
 
 // ---------------------------------------------------------------------------

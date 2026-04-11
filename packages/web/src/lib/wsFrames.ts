@@ -1,4 +1,4 @@
-import type { RunEvent, SidebarState } from "@jafiction/shared";
+import type { RunEvent, SidebarState } from "@jasojeon/shared";
 
 /**
  * Frame decoders that accept either the local WebSocket payload shape or the

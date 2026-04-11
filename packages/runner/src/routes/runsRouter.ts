@@ -7,7 +7,7 @@ import {
   resolveRoleAssignments,
   RunEvent,
   RunRequest
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
 export function createRunsRouter(ctx: RunnerContext): Router {

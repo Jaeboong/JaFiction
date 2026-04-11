@@ -262,9 +262,9 @@ export class ProviderRegistry {
 
   async saveNotionToken(token: string): Promise<void> {
     if (token === "") {
-      await this.secrets.delete("jafiction.notionToken");
+      await this.secrets.delete("jasojeon.notionToken");
     } else {
-      await this.secrets.store("jafiction.notionToken", token);
+      await this.secrets.store("jasojeon.notionToken", token);
     }
     this.runtimeStateCache.delete("claude");
   }
@@ -385,7 +385,7 @@ export class ProviderRegistry {
   }
 
   private async getNotionToken(): Promise<string | undefined> {
-    return this.secrets.get("jafiction.notionToken");
+    return this.secrets.get("jasojeon.notionToken");
   }
 
   private async buildRuntimeState(providerId: ProviderId, saved?: ProviderStatus): Promise<ProviderRuntimeState> {
@@ -445,7 +445,7 @@ export class ProviderRegistry {
 }
 
 function secretKey(providerId: ProviderId): string {
-  return `jafiction.apiKey.${providerId}`;
+  return `jasojeon.apiKey.${providerId}`;
 }
 
 function cloneRuntimeState(state: ProviderRuntimeState): ProviderRuntimeState {

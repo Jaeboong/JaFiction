@@ -6,7 +6,7 @@
 
 **Architecture:** Keep `RunsPage` as the state boundary for selected project, selected run, and live session state. Let `RunComposerPanel` own editable composer state with a local per-question draft cache, while `RunControlPanel` becomes responsible for rendering the header action affordance using props derived by the page. Persist saved drafts through a small `projectsRouter` endpoint that reuses `saveCompletedEssayAnswer`, then thread the matching client and `App` callback into the page.
 
-**Tech Stack:** React, TypeScript, Express, shared JaFiction view models, plain CSS in `packages/web/src/styles/runs.css`
+**Tech Stack:** React, TypeScript, Express, shared Jasojeon view models, plain CSS in `packages/web/src/styles/runs.css`
 
 ---
 

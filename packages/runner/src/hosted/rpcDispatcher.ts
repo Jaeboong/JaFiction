@@ -3,7 +3,7 @@ import {
   RpcResponse,
   RpcRequestSchema,
   assertNever
-} from "@jafiction/shared";
+} from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
 import { getState } from "../routes/stateHandlers";

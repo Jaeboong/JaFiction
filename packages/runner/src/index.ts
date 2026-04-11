@@ -4,7 +4,7 @@ import http from "node:http";
 import cors from "cors";
 import express from "express";
 import { WebSocketServer } from "ws";
-import { resolveNodeRuntime, redactSecrets } from "@jafiction/shared";
+import { resolveNodeRuntime, redactSecrets } from "@jasojeon/shared";
 import { createRunnerContext, type RunnerContext } from "./runnerContext";
 import { createInsightsRouter } from "./routes/insightsRouter";
 import { createConfigRouter } from "./routes/configRouter";
@@ -96,7 +96,7 @@ export async function createRunnerServer(ctx: RunnerContext): Promise<{
     if (!authResult.ok) {
       response.status(authResult.status ?? 403).json({
         error: authResult.error ?? "forbidden_origin",
-        message: authResult.message ?? "Runner requests must originate from an approved local JaFiction UI."
+        message: authResult.message ?? "Runner requests must originate from an approved local Jasojeon UI."
       });
       return;
     }
@@ -203,7 +203,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const mode = process.env["JAFICTION_MODE"] ?? "local";
+  const mode = process.env["JASOJEON_MODE"] ?? "local";
 
   if (mode === "pair") {
     await mainPair();
@@ -218,25 +218,25 @@ async function mainLocal(): Promise<void> {
   const ctx = await createRunnerContext();
   const { server, port } = await createRunnerServer(ctx);
   server.listen(port, () => {
-    console.log(`JaFiction runner listening on http://localhost:${port}`);
+    console.log(`Jasojeon runner listening on http://localhost:${port}`);
   });
 }
 
 async function mainPair(): Promise<void> {
-  const backendUrl = process.env["JAFICTION_BACKEND_URL"];
-  const pairingCode = process.env["JAFICTION_PAIRING_CODE"];
+  const backendUrl = process.env["JASOJEON_BACKEND_URL"];
+  const pairingCode = process.env["JASOJEON_PAIRING_CODE"];
 
   if (!backendUrl || !pairingCode) {
     process.stderr.write(
       [
         "[runner] Pairing mode requires both environment variables to be set:",
-        "  JAFICTION_BACKEND_URL  — e.g. https://yourbackend.example.com",
-        "  JAFICTION_PAIRING_CODE — the 8-character code shown in the web UI",
+        "  JASOJEON_BACKEND_URL  — e.g. https://yourbackend.example.com",
+        "  JASOJEON_PAIRING_CODE — the 8-character code shown in the web UI",
         "",
         "Example:",
-        "  JAFICTION_MODE=pair \\",
-        "  JAFICTION_BACKEND_URL=https://yourbackend.example.com \\",
-        "  JAFICTION_PAIRING_CODE=ABCD1234 \\",
+        "  JASOJEON_MODE=pair \\",
+        "  JASOJEON_BACKEND_URL=https://yourbackend.example.com \\",
+        "  JASOJEON_PAIRING_CODE=ABCD1234 \\",
         "  ./scripts/with-npm.sh run -w packages/runner start",
       ].join("\n") + "\n"
     );
@@ -257,14 +257,14 @@ async function mainPair(): Promise<void> {
   console.log(`[runner] Device paired successfully!`);
   console.log(`[runner]   Device ID : ${result.deviceId}`);
   console.log(`[runner]   User ID   : ${result.userId}`);
-  console.log(`[runner] Token saved. You can now run the runner with JAFICTION_MODE=hosted.`);
+  console.log(`[runner] Token saved. You can now run the runner with JASOJEON_MODE=hosted.`);
 }
 
 async function mainHosted(): Promise<void> {
-  const backendUrl = process.env["JAFICTION_BACKEND_URL"];
+  const backendUrl = process.env["JASOJEON_BACKEND_URL"];
   if (!backendUrl) {
     process.stderr.write(
-      "[runner] JAFICTION_BACKEND_URL is not set. Set it to the backend WSS base URL and try again.\n"
+      "[runner] JASOJEON_BACKEND_URL is not set. Set it to the backend WSS base URL and try again.\n"
     );
     process.exit(1);
   }

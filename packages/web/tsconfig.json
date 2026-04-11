@@ -7,10 +7,10 @@
     "jsx": "react-jsx",
     "noEmit": true,
     "paths": {
-      "@jafiction/shared": [
+      "@jasojeon/shared": [
         "../shared/dist/index.d.ts"
       ],
-      "@jafiction/shared/reviewerCard": [
+      "@jasojeon/shared/reviewerCard": [
         "../shared/src/core/reviewerCard.ts"
       ]
     },

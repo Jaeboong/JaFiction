@@ -1,4 +1,4 @@
-import type { AgentDefaults, ProviderId, ProviderRuntimeState } from "@jafiction/shared";
+import type { AgentDefaults, ProviderId, ProviderRuntimeState } from "@jasojeon/shared";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CustomSelect } from "../components/CustomSelect";
 import { AgentDefaultsSummary } from "../components/AgentDefaultsSummary";

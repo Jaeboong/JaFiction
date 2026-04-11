@@ -28,7 +28,7 @@ import {
 } from "./fakes";
 import type { UserRow } from "../auth/session";
 import { SESSION_COOKIE } from "../auth/session";
-import type { RpcResponse, EventEnvelope } from "@jafiction/shared";
+import type { RpcResponse, EventEnvelope } from "@jasojeon/shared";
 
 function makeUser(id: string): UserRow {
   return { id, email: `${id}@test.com`, google_sub: `sub-${id}` };

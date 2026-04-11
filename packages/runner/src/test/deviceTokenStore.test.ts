@@ -22,7 +22,7 @@ async function makeStoreInTemp(dir: string): Promise<FileSecretStore> {
 }
 
 test("deviceTokenStore: save and load round-trip", async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-dts-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-dts-"));
   try {
     const store = await makeStoreInTemp(dir);
     assert.equal(await store.get(DEVICE_TOKEN_KEY), undefined);
@@ -35,7 +35,7 @@ test("deviceTokenStore: save and load round-trip", async () => {
 });
 
 test("deviceTokenStore: persists across store re-instantiation", async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-dts-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-dts-"));
   const filePath = path.join(dir, "secrets.enc");
   const keyFilePath = path.join(dir, "secret.key");
   try {
@@ -53,7 +53,7 @@ test("deviceTokenStore: persists across store re-instantiation", async () => {
 });
 
 test("deviceTokenStore: clear removes the token", async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-dts-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-dts-"));
   try {
     const store = await makeStoreInTemp(dir);
     await store.store(DEVICE_TOKEN_KEY, "to-be-deleted");
@@ -65,7 +65,7 @@ test("deviceTokenStore: clear removes the token", async () => {
 });
 
 test("deviceTokenStore: other keys are unaffected by token operations", async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jafiction-dts-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-dts-"));
   try {
     const store = await makeStoreInTemp(dir);
     await store.store("some.other.key", "unrelated-value");
