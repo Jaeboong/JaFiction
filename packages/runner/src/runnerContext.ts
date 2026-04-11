@@ -1,4 +1,3 @@
-import * as crypto from "node:crypto";
 import * as os from "node:os";
 import * as path from "node:path";
 import {
@@ -24,7 +23,6 @@ export interface RunnerContext {
   readonly storageRoot: string;
   readonly stateStore: SidebarStateStore;
   readonly runSessions: RunSessionManager;
-  readonly sessionToken: string;
   /** Exposed for hosted event forwarding — subscribe with onSnapshot/onEvent. */
   readonly stateHub: StateHub;
   /** Exposed for hosted event forwarding — subscribe with onEvent. */
@@ -73,7 +71,6 @@ export async function createRunnerContext(): Promise<RunnerContext> {
     runSessions,
     stateHub,
     runHub,
-    sessionToken: crypto.randomBytes(48).toString("hex"),
     storage: () => storage,
     registry: () => registry,
     orchestrator: () => orchestrator,
@@ -107,13 +104,5 @@ export async function createRunnerContext(): Promise<RunnerContext> {
     }
   };
 
-  Object.assign(ctx, {
-    addStateSocket: (socket: import("ws").WebSocket) => stateHub.addClient(socket),
-    addRunSocket: (runId: string, socket: import("ws").WebSocket) => runHub.addClient(runId, socket)
-  });
-
-  return ctx as RunnerContext & {
-    addStateSocket(socket: import("ws").WebSocket): void;
-    addRunSocket(runId: string, socket: import("ws").WebSocket): void;
-  };
+  return ctx;
 }

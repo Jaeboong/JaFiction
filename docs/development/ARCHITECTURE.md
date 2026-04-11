@@ -13,17 +13,17 @@ This repository has two different planes.
 The product plane is the software users actually run.
 
 - `packages/shared/**` contains orchestration, storage, schemas, and shared view models
-- `packages/runner/**` contains the localhost HTTP/WebSocket runner
+- `packages/runner/**` contains the hosted-mode outbound runner (connects to the backend via an outbound WebSocket and dispatches RPC; no inbound HTTP server)
 - `packages/web/**` contains the React + Vite browser UI
 
 Changes in this plane affect runtime behavior and need stronger review plus local smoke validation.
 
-### Local Runner Trust Boundary
+### Hosted Runner Trust Boundary
 
-The localhost runner now treats browser access as a narrow trusted boundary rather than an open loopback port.
+Local mode was retired in Stage 11.7. The runner no longer exposes an inbound HTTP or WebSocket server. Its only network surface is an outbound WebSocket to the configured backend, authenticated with a persisted device token produced by the pairing flow.
 
-- `GET /api/session` is the only bootstrap endpoint. It sets or refreshes an `HttpOnly` session cookie and returns bootstrap state only.
-- Browser HTTP and WebSocket requests are trusted only when they arrive from approved local origins: the runner origin itself or the official dev-web origin on `127.0.0.1:${JASOJEON_WEB_PORT:-4124}`.
+- The runner boots in one of two modes: `JASOJEON_MODE=pair` (one-shot pairing) or `JASOJEON_MODE=hosted` (default; outbound RPC dispatch).
+- All browser-originated RPC flows through the backend at `/api/rpc`, protected by the normal backend session cookie.
 - Runner secret storage is hardened with either `JASOJEON_SECRET_PASSPHRASE` or a machine-local key file under `~/.jasojeon/secret.key`, with legacy predictable-seed blobs migrated forward on read.
 
 ### 2. Development-Harness Plane
@@ -46,7 +46,8 @@ The official entrypoints for this repository are the shell scripts under `script
 Important examples:
 
 - `./scripts/check.sh`
-- `./scripts/apply-dev-stack.sh`
+- `./scripts/dev-stack.sh` — canonical hosted-mode local dev entrypoint (runner outbound + web)
+- `./scripts/apply-dev-stack.sh` — web-only dev apply (assumes backend + runner are already running)
 - `./scripts/status-dev-stack.sh`
 - `./scripts/stop-dev-stack.sh`
 - `./scripts/with-node.sh`
@@ -67,17 +68,18 @@ This keeps dev workflows stable even when the shell PATH contains a broken `npm`
 
 ## Dev Apply Flow
 
-Jasojeon does not need a VSIX or extension reinstall harness anymore.
+Local dev = docker compose backend + local runner in hosted mode + web vite.
 
-The new apply flow is:
+The canonical flow is:
 
 ```text
-deterministic check -> runner dev restart -> web dev restart -> endpoint verification
+docker compose up backend postgres redis       # user runs separately
+./scripts/dev-stack.sh                          # runner (hosted) + web + status
 ```
 
 The dev harness persists runtime metadata under `.harness/`:
 
-- `.harness/pids/runner.pid`
+- `.harness/pids/runner.pid` (written by dev-stack.sh when it launches the runner)
 - `.harness/pids/web.pid`
 - `.harness/logs/runner.log`
 - `.harness/logs/web.log`
@@ -90,7 +92,8 @@ The dev harness persists runtime metadata under `.harness/`:
 - `packages/shared/src/core/providers.ts`
 - `packages/runner/src/index.ts`
 - `packages/runner/src/runnerContext.ts`
-- `packages/runner/src/routes/**`
+- `packages/runner/src/hosted/**`
+- `packages/runner/src/routes/**` (hosted handler surface only; `*Router.ts` retired in Stage 11.7)
 - `packages/web/src/App.tsx`
 - `packages/web/src/api/client.ts`
 
@@ -109,5 +112,5 @@ The dev harness persists runtime metadata under `.harness/`:
 2. Update or add a dated design/plan document under `docs/plans/`.
 3. Make minimal coherent changes.
 4. Run `./scripts/check.sh`.
-5. If runtime entrypoints changed, run `./scripts/apply-dev-stack.sh`.
+5. If runtime entrypoints changed, run `./scripts/dev-stack.sh` (or `./scripts/apply-dev-stack.sh` when only the web needs a restart).
 6. Summarize what changed, what was validated, and what still needs human review.

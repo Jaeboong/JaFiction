@@ -43,7 +43,7 @@ describe("RunnerClient.bootstrap hosted error classification", () => {
     const fetchMock: Mock = vi.fn(async () => new Response("unauthorized", { status: 401 }));
     globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
     await assert.rejects(
-      () => RunnerClient.bootstrap("http://hosted.test", "hosted"),
+      () => RunnerClient.bootstrap("http://hosted.test"),
       (error: unknown) =>
         error instanceof RunnerBootstrapError && error.reason === "auth_required"
     );
@@ -64,7 +64,7 @@ describe("RunnerClient.bootstrap hosted error classification", () => {
     );
     globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
     await assert.rejects(
-      () => RunnerClient.bootstrap("http://hosted.test", "hosted"),
+      () => RunnerClient.bootstrap("http://hosted.test"),
       (error: unknown) =>
         error instanceof RunnerBootstrapError && error.reason === "device_offline"
     );
@@ -76,7 +76,7 @@ describe("RunnerClient.bootstrap hosted error classification", () => {
     });
     globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
     await assert.rejects(
-      () => RunnerClient.bootstrap("http://hosted.test", "hosted"),
+      () => RunnerClient.bootstrap("http://hosted.test"),
       (error: unknown) =>
         error instanceof RunnerBootstrapError && error.reason === "network_error"
     );
@@ -97,35 +97,9 @@ describe("RunnerClient.bootstrap hosted error classification", () => {
     );
     globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
     await assert.rejects(
-      () => RunnerClient.bootstrap("http://hosted.test", "hosted"),
+      () => RunnerClient.bootstrap("http://hosted.test"),
       (error: unknown) =>
         error instanceof RunnerBootstrapError && error.reason === "unknown"
-    );
-  });
-
-  it("local mode still hits /api/session and returns a SessionPayload", async () => {
-    const fetchMock: Mock = vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({ state: { workspaceOpened: true, projects: [] }, storageRoot: "/tmp" }),
-          { status: 200 }
-        )
-    );
-    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
-    const session = await RunnerClient.bootstrap("http://local.test", "local");
-    assert.equal(session.storageRoot, "/tmp");
-    assert.ok(session.state);
-    const url = String(fetchMock.mock.calls[0]![0]);
-    assert.match(url, /\/api\/session$/);
-  });
-
-  it("local mode maps a 401 to reason 'auth_required'", async () => {
-    const fetchMock: Mock = vi.fn(async () => new Response("nope", { status: 401 }));
-    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
-    await assert.rejects(
-      () => RunnerClient.bootstrap("http://local.test", "local"),
-      (error: unknown) =>
-        error instanceof RunnerBootstrapError && error.reason === "auth_required"
     );
   });
 
@@ -143,8 +117,10 @@ describe("RunnerClient.bootstrap hosted error classification", () => {
         )
     );
     globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
-    const session = await RunnerClient.bootstrap("http://hosted.test", "hosted");
+    const session = await RunnerClient.bootstrap("http://hosted.test");
     assert.equal(session.storageRoot, "");
     assert.ok(session.state);
+    const url = String(fetchMock.mock.calls[0]![0]);
+    assert.match(url, /\/api\/rpc$/);
   });
 });

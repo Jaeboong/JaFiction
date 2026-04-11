@@ -4,33 +4,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HARNESS_DIR="${ROOT_DIR}/.harness"
 PID_DIR="${HARNESS_DIR}/pids"
 LOG_DIR="${HARNESS_DIR}/logs"
-RUNNER_PID_FILE="${PID_DIR}/runner.pid"
 WEB_PID_FILE="${PID_DIR}/web.pid"
-RUNNER_LOG_FILE="${LOG_DIR}/runner.log"
 WEB_LOG_FILE="${LOG_DIR}/web.log"
 WEB_PORT="${JASOJEON_WEB_PORT:-4124}"
 
 ensure_harness_dirs() {
   mkdir -p "${PID_DIR}" "${LOG_DIR}"
-}
-
-runner_port() {
-  "${ROOT_DIR}/scripts/with-node.sh" -e '
-    const fs = require("node:fs");
-    const configPath = process.argv[1];
-    let port = 4123;
-    try {
-      const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      if (Number.isInteger(raw.port) && raw.port > 0) {
-        port = raw.port;
-      }
-    } catch {}
-    process.stdout.write(String(port));
-  ' "${HOME}/.jasojeon/runner.json"
-}
-
-runner_base_url() {
-  printf 'http://127.0.0.1:%s' "$(runner_port)"
 }
 
 web_base_url() {

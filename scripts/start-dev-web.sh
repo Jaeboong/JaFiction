@@ -4,12 +4,10 @@ set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/harness-common.sh"
 
 ensure_harness_dirs
-runner_port_value="$(runner_port)"
 
 if [ "${1:-}" = "--foreground" ]; then
   cd "${ROOT_DIR}/packages/web"
-  exec env VITE_RUNNER_PORT="${runner_port_value}" \
-    "${ROOT_DIR}/scripts/with-node.sh" "${ROOT_DIR}/node_modules/vite/bin/vite.js" \
+  exec "${ROOT_DIR}/scripts/with-node.sh" "${ROOT_DIR}/node_modules/vite/bin/vite.js" \
     --host 127.0.0.1 --port "${WEB_PORT}" --strictPort
 fi
 
@@ -19,11 +17,9 @@ kill_port_listeners "web" "${WEB_PORT}"
 : > "${WEB_LOG_FILE}"
 setsid bash -lc '
   cd "$1"
-  export VITE_RUNNER_PORT="$2"
-  exec "$3" "$4" --host 127.0.0.1 --port "$5" --strictPort
+  exec "$2" "$3" --host 127.0.0.1 --port "$4" --strictPort
 ' _ \
   "${ROOT_DIR}/packages/web" \
-  "${runner_port_value}" \
   "${ROOT_DIR}/scripts/with-node.sh" \
   "${ROOT_DIR}/node_modules/vite/bin/vite.js" \
   "${WEB_PORT}" \

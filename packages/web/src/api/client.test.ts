@@ -68,7 +68,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   };
 
   it("saveProviderApiKey returns a ProviderRuntimeState, not {ok:true}", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     try {
       const result = await client.saveProviderApiKey("claude", "sk-test-123");
       assert.equal(result.providerId, "claude");
@@ -86,7 +86,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("testProvider returns a ProviderRuntimeState extracted from get_state", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     try {
       const result = await client.testProvider("claude");
       assert.equal(result.providerId, "claude");
@@ -97,7 +97,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("checkNotion returns a ProviderRuntimeState", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     try {
       const result = await client.checkNotion("claude");
       assert.equal(result.providerId, "claude");
@@ -107,7 +107,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("connectNotion rejects when hosted and no token supplied", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     try {
       await assert.rejects(() => client.connectNotion("claude"), /Notion 토큰/);
     } finally {
@@ -116,7 +116,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("connectNotion hosted path sends token in notion_connect payload", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     try {
       const result = await client.connectNotion("claude", { token: "secret_abc1234567", dbId: "db-1" });
       assert.equal(result.providerId, "claude");
@@ -130,7 +130,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("clearProviderApiKey hosted path resolves without returning a body", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     try {
       const result = await client.clearProviderApiKey("claude");
       assert.equal(result, undefined);
@@ -142,7 +142,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("saveAgentDefaults hosted path dispatches save_agent_defaults", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     try {
       await client.saveAgentDefaults({});
       const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
@@ -156,7 +156,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   // Stage 11.4 — run lifecycle parity (hosted branch + expanded result shapes)
   // ---------------------------------------------------------------------------
   it("deleteRun hosted path dispatches delete_run with slug+runId", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     try {
       const result = await client.deleteRun("alpha", "run-42");
       assert.equal(result, undefined);
@@ -170,7 +170,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("resumeRun hosted path returns expanded {runId, resumedFromRunId}", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     // Override: the handler returns the new 11.4 shape.
     fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
       const req = JSON.parse(String(init.body));
@@ -198,7 +198,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("resumeRun hosted path omits message when empty", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
       const req = JSON.parse(String(init.body));
       return new Response(
@@ -222,7 +222,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("submitIntervention hosted path returns expanded {outcome, runId, nextRunId?}", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
       const req = JSON.parse(String(init.body));
       return new Response(
@@ -250,7 +250,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("submitIntervention hosted path handles {outcome, runId} without nextRunId", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
       const req = JSON.parse(String(init.body));
       return new Response(
@@ -273,7 +273,7 @@ describe("RunnerClient shape-wrap (hosted)", () => {
   });
 
   it("testOpenDartConnection maps hosted {ok,sample} to {ok,message}", async () => {
-    const client = new RunnerClient("http://hosted.test", "hosted");
+    const client = new RunnerClient("http://hosted.test");
     // Override mock to return a sample string.
     fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
       const req = JSON.parse(String(init.body));

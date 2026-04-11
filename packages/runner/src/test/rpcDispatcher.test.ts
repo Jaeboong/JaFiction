@@ -117,7 +117,6 @@ async function makeHarness(opts: HarnessOpts = {}): Promise<Harness> {
     storageRoot,
     stateStore,
     runSessions,
-    sessionToken: "test-token",
     storage: () => storage,
     registry: () => fakeRegistry,
     orchestrator: () => {

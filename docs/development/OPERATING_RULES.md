@@ -28,12 +28,16 @@ This command covers:
 
 Live dev apply means bringing the local web + runner stack into a usable state for manual verification.
 
-Use:
+Since Stage 11.7 (hosted-mode retirement of local mode) the runner no longer
+runs an inbound HTTP server. The canonical entrypoint is:
 
 ```bash
-./scripts/apply-dev-stack.sh
+./scripts/dev-stack.sh        # runner in hosted outbound mode + web vite
 ./scripts/status-dev-stack.sh
 ```
+
+`./scripts/apply-dev-stack.sh` remains as a web-only restart helper; it
+assumes the backend and runner are already running.
 
 Do not treat live dev apply as a deterministic CI gate.
 
@@ -71,7 +75,7 @@ Run this after every non-trivial change:
 Run this when runner/web entrypoints, routing, sockets, or dev boot flow changed:
 
 ```bash
-./scripts/apply-dev-stack.sh
+./scripts/dev-stack.sh
 ```
 
 Run this to inspect current local status:
@@ -91,6 +95,7 @@ Run this to cleanly stop the local stack:
 - `packages/shared/src/core/orchestrator.ts` changes
 - provider execution/auth behavior changes
 - `packages/runner/src/index.ts` changes
+- `packages/runner/src/hosted/**` changes
 - WebSocket or runner session/auth boundary changes
 - `scripts/**` changes execution semantics
 - `package.json` changes validation or workflow entrypoints
@@ -100,6 +105,6 @@ Run this to cleanly stop the local stack:
 - Did the change stay in the intended plane?
 - Are deterministic checks sufficient for the change?
 - Was live dev apply run when runtime entrypoints changed?
-- Did trusted local origin bootstrap still work from both the runner-served UI and the official dev web origin?
+- Did the hosted outbound runner reconnect cleanly after a backend restart?
 - Did the change make WSL execution safer or more fragile?
 - Were README and harness docs updated when entrypoints changed?

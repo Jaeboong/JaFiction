@@ -18,16 +18,11 @@ import { DevicesPage } from "./pages/DevicesPage";
 import { NotionConnectModal } from "./components/settings/NotionConnectModal";
 
 const hostedApiBase = import.meta.env.VITE_HOSTED_API_BASE ?? "";
-const isHostedMode = hostedApiBase.length > 0;
-
-const defaultRunnerBaseUrl = isHostedMode
-  ? hostedApiBase
-  : (import.meta.env.VITE_RUNNER_BASE_URL
-      || `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_RUNNER_PORT || "4123"}`);
-
-const backendBaseUrl = isHostedMode
-  ? hostedApiBase
-  : (import.meta.env.VITE_BACKEND_BASE_URL ?? window.location.origin);
+// Hosted mode is the only supported runtime. When VITE_HOSTED_API_BASE is
+// unset we fall back to window.location.origin so local dev against a local
+// backend (e.g. docker compose on 4000) still works by setting the env var.
+const defaultRunnerBaseUrl = hostedApiBase || window.location.origin;
+const backendBaseUrl = hostedApiBase || window.location.origin;
 const backendClient = new BackendClient(backendBaseUrl);
 
 type AppTab = "overview" | "providers" | "projects" | "runs" | "devices" | "settings";
@@ -144,13 +139,13 @@ export function App() {
     setErrorMessage(undefined);
     setBootstrapErrorReason(undefined);
 
-    void RunnerClient.bootstrap(runnerBaseUrl, isHostedMode ? "hosted" : "local")
+    void RunnerClient.bootstrap(runnerBaseUrl)
       .then((session) => {
         if (disposed) {
           return;
         }
 
-        const nextClient = new RunnerClient(runnerBaseUrl, isHostedMode ? "hosted" : "local");
+        const nextClient = new RunnerClient(runnerBaseUrl);
         setClient(nextClient);
         setStorageRoot(session.storageRoot);
         setLastUpdatedAt(Date.now());
@@ -598,17 +593,9 @@ export function App() {
                 }, () => client.checkNotion(providerId));
               }}
               onConnectNotion={async (providerId) => {
-                if (isHostedMode) {
-                  // Hosted mode needs the token over the RPC itself; pop the
-                  // modal and let the submit handler run the action.
-                  setNotionConnectTarget(providerId);
-                  return;
-                }
-                await runProviderAction(providerId, "notion-connect", {
-                  pending: { tone: "pending", message: "Notion MCP를 연결중입니다..." },
-                  success: (result) => buildNotionConnectNotice(result),
-                  failure: (error) => ({ tone: "error", message: "Notion MCP 연결에 실패했습니다.", detail: getErrorMessage(error) })
-                }, () => client.connectNotion(providerId));
+                // Hosted mode needs the token over the RPC itself; pop the
+                // modal and let the submit handler run the action.
+                setNotionConnectTarget(providerId);
               }}
               onDisconnectNotion={async (providerId) => {
                 await runProviderAction(providerId, "notion-disconnect", {

@@ -10,7 +10,7 @@
 Jasojeon is a web UI + local runner rewrite of the original `forJob` VS Code extension.
 
 - `packages/shared/` — orchestration, storage, schemas, shared workflow logic
-- `packages/runner/` — localhost HTTP/WebSocket runner
+- `packages/runner/` — hosted-mode outbound runner (WS to backend, no inbound server)
 - `packages/web/` — React + Vite UI
 - `scripts/` — canonical local execution entrypoints (prefer over raw `npm`)
 - `tools/` — deterministic validators
@@ -31,7 +31,8 @@ Jasojeon is a web UI + local runner rewrite of the original `forJob` VS Code ext
 
 ```
 ./scripts/check.sh
-./scripts/apply-dev-stack.sh
+./scripts/dev-stack.sh            # canonical: runner (hosted) + web
+./scripts/apply-dev-stack.sh      # web-only restart helper
 ./scripts/status-dev-stack.sh
 ./scripts/stop-dev-stack.sh
 ./scripts/with-node.sh <command>
@@ -58,7 +59,7 @@ Do not embed harness fixes inside product runtime code, and vice versa.
 | When | Run |
 |------|-----|
 | After any non-trivial change | `./scripts/check.sh` |
-| After touching runner/web/websocket/boot | `./scripts/apply-dev-stack.sh` |
+| After touching runner/web/websocket/boot | `./scripts/dev-stack.sh` |
 | To inspect current state | `./scripts/status-dev-stack.sh` |
 
 ---
@@ -67,6 +68,7 @@ Do not embed harness fixes inside product runtime code, and vice versa.
 
 - `packages/shared/src/core/**`
 - `packages/runner/src/index.ts`
+- `packages/runner/src/hosted/**`
 - `packages/runner/src/routes/**`
 - `packages/runner/src/ws/**`
 - `packages/web/src/**`

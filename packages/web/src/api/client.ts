@@ -34,8 +34,6 @@ export interface SessionPayload {
   storageRoot: string;
 }
 
-export type RunnerClientMode = "local" | "hosted";
-
 /**
  * Discriminated bootstrap error. The bootstrap path maps each failure mode
  * onto one of four reasons so App.tsx can render a targeted gate (login CTA,
@@ -88,58 +86,21 @@ function generateRpcId(): string {
 }
 
 export class RunnerClient {
-  readonly mode: RunnerClientMode;
+  constructor(readonly baseUrl: string) {}
 
-  constructor(readonly baseUrl: string, mode: RunnerClientMode = "local") {
-    this.mode = mode;
-  }
-
-  static async bootstrap(baseUrl: string, mode: RunnerClientMode = "local"): Promise<SessionPayload> {
-    if (mode === "hosted") {
-      // Hosted mode has no /api/session endpoint; derive the initial state
-      // via a direct POST to /api/rpc so we can inspect the HTTP status and
-      // the RPC envelope `error.code` to map onto RunnerBootstrapErrorReason.
-      const id = generateRpcId();
-      let response: Response;
-      try {
-        response = await fetch(`${baseUrl}/api/rpc`, {
-          credentials: "include",
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ v: 1, id, op: "get_state", payload: {} })
-        });
-      } catch (error) {
-        throw new RunnerBootstrapError(
-          "network_error",
-          `Runner bootstrap network error: ${error instanceof Error ? error.message : String(error)}`,
-          { cause: error }
-        );
-      }
-      if (response.status === 401) {
-        throw new RunnerBootstrapError("auth_required", "Hosted session not authenticated.");
-      }
-      if (!response.ok) {
-        throw new RunnerBootstrapError(
-          "unknown",
-          `Hosted bootstrap failed (${response.status}).`
-        );
-      }
-      const envelope = await response.json().catch(() => undefined) as RpcResponseShape | undefined;
-      if (!envelope) {
-        throw new RunnerBootstrapError("unknown", "Hosted bootstrap returned an invalid envelope.");
-      }
-      if (envelope.ok === false) {
-        if (envelope.error.code === "device_offline") {
-          throw new RunnerBootstrapError("device_offline", envelope.error.message);
-        }
-        throw new RunnerBootstrapError("unknown", envelope.error.message || "Hosted bootstrap failed.");
-      }
-      return { state: envelope.result as SidebarState, storageRoot: "" };
-    }
-
+  static async bootstrap(baseUrl: string): Promise<SessionPayload> {
+    // Hosted mode derives the initial state via a direct POST to /api/rpc so
+    // we can inspect the HTTP status and the RPC envelope `error.code` to map
+    // onto RunnerBootstrapErrorReason.
+    const id = generateRpcId();
     let response: Response;
     try {
-      response = await fetch(`${baseUrl}/api/session`, { credentials: "include" });
+      response = await fetch(`${baseUrl}/api/rpc`, {
+        credentials: "include",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ v: 1, id, op: "get_state", payload: {} })
+      });
     } catch (error) {
       throw new RunnerBootstrapError(
         "network_error",
@@ -148,242 +109,163 @@ export class RunnerClient {
       );
     }
     if (response.status === 401) {
-      throw new RunnerBootstrapError("auth_required", "Runner session not authenticated.");
+      throw new RunnerBootstrapError("auth_required", "Hosted session not authenticated.");
     }
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const message = typeof payload.message === "string"
-        ? payload.message
-        : `Runner session bootstrap failed (${response.status}).`;
-      throw new RunnerBootstrapError("unknown", message);
+      throw new RunnerBootstrapError(
+        "unknown",
+        `Hosted bootstrap failed (${response.status}).`
+      );
     }
-    return response.json() as Promise<SessionPayload>;
+    const envelope = await response.json().catch(() => undefined) as RpcResponseShape | undefined;
+    if (!envelope) {
+      throw new RunnerBootstrapError("unknown", "Hosted bootstrap returned an invalid envelope.");
+    }
+    if (envelope.ok === false) {
+      if (envelope.error.code === "device_offline") {
+        throw new RunnerBootstrapError("device_offline", envelope.error.message);
+      }
+      throw new RunnerBootstrapError("unknown", envelope.error.message || "Hosted bootstrap failed.");
+    }
+    return { state: envelope.result as SidebarState, storageRoot: "" };
   }
 
   async fetchState(): Promise<SidebarState> {
-    if (this.mode === "hosted") {
-      return this.rpcCall<SidebarState>("get_state", {});
-    }
-    return this.request<SidebarState>("/api/state");
+    return this.rpcCall<SidebarState>("get_state", {});
   }
 
   async getAgentDefaults(): Promise<AgentDefaults> {
-    if (this.mode === "hosted") {
-      const result = await this.rpcCall<GetAgentDefaultsResult>("get_agent_defaults", {});
-      return result.agentDefaults;
-    }
-    const payload = await this.request<{ agentDefaults: AgentDefaults }>("/api/config/agent-defaults");
-    return payload.agentDefaults;
+    const result = await this.rpcCall<GetAgentDefaultsResult>("get_agent_defaults", {});
+    return result.agentDefaults;
   }
 
   async saveAgentDefaults(agentDefaults: AgentDefaults): Promise<void> {
-    if (this.mode === "hosted") {
-      await this.rpcCall("save_agent_defaults", { agentDefaults });
-      return;
-    }
-    await this.request("/api/config/agent-defaults", {
-      method: "PUT",
-      body: { agentDefaults }
-    });
+    await this.rpcCall("save_agent_defaults", { agentDefaults });
   }
 
   createStateSocket(): WebSocket {
-    if (this.mode === "hosted") {
-      return new WebSocket(toWsUrl(this.baseUrl, "/ws/events"));
-    }
-    return new WebSocket(toWsUrl(this.baseUrl, "/ws/state"));
+    return new WebSocket(toWsUrl(this.baseUrl, "/ws/events"));
   }
 
-  createRunSocket(runId: string): WebSocket {
-    if (this.mode === "hosted") {
-      // Hosted mode multiplexes all events (state, run, intervention, finished)
-      // through a single /ws/events endpoint scoped to the session cookie.
-      // Callers filter frames by envelope.event on the client side.
-      void runId;
-      return new WebSocket(toWsUrl(this.baseUrl, "/ws/events"));
-    }
-    return new WebSocket(toWsUrl(this.baseUrl, `/ws/runs/${runId}`));
+  createRunSocket(_runId: string): WebSocket {
+    // Hosted mode multiplexes all events (state, run, intervention, finished)
+    // through a single /ws/events endpoint scoped to the session cookie.
+    // Callers filter frames by envelope.event on the client side.
+    return new WebSocket(toWsUrl(this.baseUrl, "/ws/events"));
   }
 
   async listProjects(): Promise<ListProjectsResult> {
-    if (this.mode === "hosted") {
-      return this.rpcCall<ListProjectsResult>("list_projects", {});
-    }
-    return this.request<ListProjectsResult>("/api/projects");
+    return this.rpcCall<ListProjectsResult>("list_projects", {});
   }
 
   async createProject(payload: Record<string, unknown>): Promise<ProjectRecord> {
-    if (this.mode === "hosted") {
-      const result = await this.rpcCall<CreateProjectResult>("create_project", payload);
-      return result as ProjectRecord;
-    }
-    return this.request<ProjectRecord>("/api/projects", { method: "POST", body: payload });
+    const result = await this.rpcCall<CreateProjectResult>("create_project", payload);
+    return result as ProjectRecord;
   }
 
   async deleteProject(projectSlug: string): Promise<void> {
-    if (this.mode === "hosted") {
-      await this.rpcCall<DeleteProjectResult>("delete_project", { slug: projectSlug });
-      return;
-    }
-    return this.request(`/api/projects/${projectSlug}`, { method: "DELETE" });
+    await this.rpcCall<DeleteProjectResult>("delete_project", { slug: projectSlug });
   }
 
   async saveProjectDocument(projectSlug: string, payload: Record<string, unknown>): Promise<void> {
-    if (this.mode === "hosted") {
-      await this.rpcCall<SaveDocumentResult>("save_document", {
-        slug: projectSlug,
-        title: String(payload.title ?? ""),
-        content: typeof payload.content === "string" ? payload.content : "",
-        note: typeof payload.note === "string" ? payload.note : undefined,
-        pinnedByDefault: typeof payload.pinnedByDefault === "boolean" ? payload.pinnedByDefault : undefined
-      });
-      return;
-    }
-    await this.request(`/api/projects/${projectSlug}/documents`, { method: "POST", body: payload });
+    await this.rpcCall<SaveDocumentResult>("save_document", {
+      slug: projectSlug,
+      title: String(payload.title ?? ""),
+      content: typeof payload.content === "string" ? payload.content : "",
+      note: typeof payload.note === "string" ? payload.note : undefined,
+      pinnedByDefault: typeof payload.pinnedByDefault === "boolean" ? payload.pinnedByDefault : undefined
+    });
   }
 
   async saveEssayDraft(projectSlug: string, questionIndex: number, draft: string): Promise<{ questionIndex: number }> {
-    if (this.mode === "hosted") {
-      const result = await this.rpcCall<SaveEssayDraftResult>("save_essay_draft", {
-        slug: projectSlug,
-        questionIndex,
-        draft
-      });
-      return result;
-    }
-    return this.request(`/api/projects/${projectSlug}/essay-draft/${questionIndex}`, {
-      method: "PUT",
-      body: { draft }
+    return this.rpcCall<SaveEssayDraftResult>("save_essay_draft", {
+      slug: projectSlug,
+      questionIndex,
+      draft
     });
   }
 
   async uploadProjectDocuments(projectSlug: string, files: File[]): Promise<void> {
-    if (this.mode === "hosted") {
-      // Dynamic import avoids pulling the chunked uploader into bundles that
-      // don't touch hosted mode.
-      const { uploadFileInChunks } = await import("./hostedUpload");
-      for (const file of files) {
-        await uploadFileInChunks({
-          client: this,
-          slug: projectSlug,
-          file
-        });
-      }
-      return;
-    }
-    const body = new FormData();
+    // Dynamic import avoids pulling the chunked uploader into bundles that
+    // don't touch the uploader path.
+    const { uploadFileInChunks } = await import("./hostedUpload");
     for (const file of files) {
-      body.append("files", file);
+      await uploadFileInChunks({
+        client: this,
+        slug: projectSlug,
+        file
+      });
     }
-    return this.requestFormData(`/api/projects/${projectSlug}/documents/upload`, body);
   }
 
   async updateProject(projectSlug: string, payload: Record<string, unknown>): Promise<SaveProjectResult | unknown> {
-    if (this.mode === "hosted") {
-      return this.rpcCall<SaveProjectResult>("save_project", { slug: projectSlug, patch: payload });
-    }
-    return this.request(`/api/projects/${projectSlug}`, { method: "PUT", body: payload });
+    return this.rpcCall<SaveProjectResult>("save_project", { slug: projectSlug, patch: payload });
   }
 
   async deleteProjectDocument(projectSlug: string, documentId: string): Promise<void> {
-    if (this.mode === "hosted") {
-      await this.rpcCall<DeleteDocumentResult>("delete_document", { slug: projectSlug, docId: documentId });
-      return;
-    }
-    return this.request(`/api/projects/${projectSlug}/documents/${documentId}`, { method: "DELETE" });
+    await this.rpcCall<DeleteDocumentResult>("delete_document", { slug: projectSlug, docId: documentId });
   }
 
   async getProjectInsights(projectSlug: string): Promise<ProjectInsightWorkspaceState> {
-    if (this.mode === "hosted") {
-      const result = await this.rpcCall<GetProjectInsightsResult>("get_project_insights", { slug: projectSlug });
-      return result as ProjectInsightWorkspaceState;
-    }
-    return this.request<ProjectInsightWorkspaceState>(`/api/projects/${projectSlug}/insights`);
+    const result = await this.rpcCall<GetProjectInsightsResult>("get_project_insights", { slug: projectSlug });
+    return result as ProjectInsightWorkspaceState;
   }
 
   async analyzeProjectPosting(payload: Record<string, unknown>): Promise<JobPostingExtractionResult> {
-    if (this.mode === "hosted") {
-      const result = await this.rpcCall<AnalyzePostingResult>("analyze_posting", {
-        jobPostingUrl: typeof payload.jobPostingUrl === "string" ? payload.jobPostingUrl : undefined,
-        jobPostingText: typeof payload.jobPostingText === "string" ? payload.jobPostingText : undefined,
-        companyName: typeof payload.companyName === "string" ? payload.companyName : undefined,
-        roleName: typeof payload.roleName === "string" ? payload.roleName : undefined
-      });
-      return result as unknown as JobPostingExtractionResult;
-    }
-    return this.request<JobPostingExtractionResult>("/api/projects/analyze-posting", { method: "POST", body: payload });
+    const result = await this.rpcCall<AnalyzePostingResult>("analyze_posting", {
+      jobPostingUrl: typeof payload.jobPostingUrl === "string" ? payload.jobPostingUrl : undefined,
+      jobPostingText: typeof payload.jobPostingText === "string" ? payload.jobPostingText : undefined,
+      companyName: typeof payload.companyName === "string" ? payload.companyName : undefined,
+      roleName: typeof payload.roleName === "string" ? payload.roleName : undefined
+    });
+    return result as unknown as JobPostingExtractionResult;
   }
 
   async testProvider(providerId: ProviderId): Promise<ProviderRuntimeState> {
-    if (this.mode === "hosted") {
-      await this.rpcCall("call_provider_test", { provider: providerId });
-      return this.refetchProviderRuntimeState(providerId);
-    }
-    return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/test`, { method: "POST" });
+    await this.rpcCall("call_provider_test", { provider: providerId });
+    return this.refetchProviderRuntimeState(providerId);
   }
 
   async updateProviderConfig(providerId: ProviderId, payload: Record<string, unknown>): Promise<ProviderRuntimeState> {
-    if (this.mode === "hosted") {
-      const config = {
-        authMode: typeof payload.authMode === "string" ? payload.authMode as "cli" | "apiKey" : undefined,
-        model: typeof payload.model === "string" ? payload.model : undefined,
-        effort: typeof payload.effort === "string" ? payload.effort : undefined,
-        command: typeof payload.command === "string" ? payload.command : undefined
-      };
-      await this.rpcCall("save_provider_config", { provider: providerId, config });
-      return this.refetchProviderRuntimeState(providerId);
-    }
-    return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/config`, { method: "PUT", body: payload });
+    const config = {
+      authMode: typeof payload.authMode === "string" ? payload.authMode as "cli" | "apiKey" : undefined,
+      model: typeof payload.model === "string" ? payload.model : undefined,
+      effort: typeof payload.effort === "string" ? payload.effort : undefined,
+      command: typeof payload.command === "string" ? payload.command : undefined
+    };
+    await this.rpcCall("save_provider_config", { provider: providerId, config });
+    return this.refetchProviderRuntimeState(providerId);
   }
 
   async saveProviderApiKey(providerId: ProviderId, apiKey: string): Promise<ProviderRuntimeState> {
-    if (this.mode === "hosted") {
-      await this.rpcCall("save_provider_api_key", { provider: providerId, key: apiKey });
-      return this.refetchProviderRuntimeState(providerId);
-    }
-    return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/apikey`, {
-      method: "POST",
-      body: { apiKey }
-    });
+    await this.rpcCall("save_provider_api_key", { provider: providerId, key: apiKey });
+    return this.refetchProviderRuntimeState(providerId);
   }
 
   async clearProviderApiKey(providerId: ProviderId): Promise<void> {
-    if (this.mode === "hosted") {
-      await this.rpcCall("clear_provider_api_key", { provider: providerId });
-      return;
-    }
-    await this.request(`/api/providers/${providerId}/apikey`, { method: "DELETE" });
+    await this.rpcCall("clear_provider_api_key", { provider: providerId });
   }
 
   async checkNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
-    if (this.mode === "hosted") {
-      await this.rpcCall("notion_check", { provider: providerId });
-      return this.refetchProviderRuntimeState(providerId);
-    }
-    return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/notion`);
+    await this.rpcCall("notion_check", { provider: providerId });
+    return this.refetchProviderRuntimeState(providerId);
   }
 
   async connectNotion(providerId: ProviderId, hostedOpts?: { token: string; dbId?: string }): Promise<ProviderRuntimeState> {
-    if (this.mode === "hosted") {
-      if (!hostedOpts || !hostedOpts.token) {
-        throw new Error("Notion 토큰이 필요합니다.");
-      }
-      const payload: { token: string; dbId?: string } = { token: hostedOpts.token };
-      if (hostedOpts.dbId) {
-        payload.dbId = hostedOpts.dbId;
-      }
-      await this.rpcCall("notion_connect", payload);
-      return this.refetchProviderRuntimeState(providerId);
+    if (!hostedOpts || !hostedOpts.token) {
+      throw new Error("Notion 토큰이 필요합니다.");
     }
-    return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/notion/connect`, { method: "POST" });
+    const payload: { token: string; dbId?: string } = { token: hostedOpts.token };
+    if (hostedOpts.dbId) {
+      payload.dbId = hostedOpts.dbId;
+    }
+    await this.rpcCall("notion_connect", payload);
+    return this.refetchProviderRuntimeState(providerId);
   }
 
   async disconnectNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
-    if (this.mode === "hosted") {
-      await this.rpcCall("notion_disconnect", {});
-      return this.refetchProviderRuntimeState(providerId);
-    }
-    return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/notion/disconnect`, { method: "POST" });
+    await this.rpcCall("notion_disconnect", {});
+    return this.refetchProviderRuntimeState(providerId);
   }
 
   /**
@@ -393,7 +275,6 @@ export class RunnerClient {
    * sidebar state via `get_state` and extract the provider slice, preserving
    * the pre-hosted interface. The subsequent `state_snapshot` WS event still
    * wins if the runner pushes a newer state — that's the authoritative path.
-   * See plan Decisions #1.
    */
   private async refetchProviderRuntimeState(providerId: ProviderId): Promise<ProviderRuntimeState> {
     const state = await this.rpcCall<SidebarState>("get_state", {});
@@ -405,141 +286,89 @@ export class RunnerClient {
   }
 
   async startRun(projectSlug: string, payload: Record<string, unknown>): Promise<StartRunResult> {
-    if (this.mode === "hosted") {
-      return this.rpcCall<StartRunResult>("start_run", { slug: projectSlug, ...payload });
-    }
-    return this.request<StartRunResult>(`/api/projects/${projectSlug}/runs`, { method: "POST", body: payload });
+    return this.rpcCall<StartRunResult>("start_run", { slug: projectSlug, ...payload });
   }
 
-  async deleteRun(projectSlug: string, runId: string): Promise<void> {
-    if (this.mode === "hosted") {
-      await this.rpcCall<DeleteRunResult>("delete_run", { slug: projectSlug, runId });
-      return;
-    }
-    return this.request(`/api/projects/${projectSlug}/runs/${runId}`, { method: "DELETE" });
+  async deleteRun(_projectSlug: string, runId: string): Promise<void> {
+    await this.rpcCall<DeleteRunResult>("delete_run", { slug: _projectSlug, runId });
   }
 
-  async getRunMessages(projectSlug: string, runId: string): Promise<GetRunMessagesResult> {
-    if (this.mode === "hosted") {
-      return this.rpcCall<GetRunMessagesResult>("get_run_messages", { runId });
-    }
-    return this.request<GetRunMessagesResult>(
-      `/api/projects/${projectSlug}/runs/${runId}/messages`
-    );
+  async getRunMessages(_projectSlug: string, runId: string): Promise<GetRunMessagesResult> {
+    return this.rpcCall<GetRunMessagesResult>("get_run_messages", { runId });
   }
 
   async saveOpenDartApiKey(apiKey: string): Promise<void> {
-    if (this.mode === "hosted") {
-      await this.rpcCall<OpendartSaveKeyResult>("opendart_save_key", { key: apiKey });
-      return;
-    }
-    return this.request("/api/opendart/apikey", { method: "POST", body: { apiKey } });
+    await this.rpcCall<OpendartSaveKeyResult>("opendart_save_key", { key: apiKey });
   }
 
   async deleteOpenDartApiKey(): Promise<void> {
-    if (this.mode === "hosted") {
-      await this.rpcCall("opendart_delete_key", {});
-      return;
-    }
-    await this.request("/api/opendart/apikey", { method: "DELETE" });
+    await this.rpcCall("opendart_delete_key", {});
   }
 
   async testOpenDartConnection(): Promise<{ ok: boolean; message: string }> {
-    if (this.mode === "hosted") {
-      const result = await this.rpcCall<{ ok: boolean; sample?: string }>("opendart_test", {});
-      // Shape-wrap: hosted result is {ok, sample?}, but the UI contract is
-      // {ok, message}. On success surface the sample (first 500 chars of a
-      // resolved company payload) as the message; on failure leave blank.
-      return { ok: result.ok, message: result.sample ?? "" };
-    }
-    return this.request<{ ok: boolean; message: string }>("/api/opendart/test", { method: "POST" });
+    const result = await this.rpcCall<{ ok: boolean; sample?: string }>("opendart_test", {});
+    // Shape-wrap: hosted result is {ok, sample?}, but the UI contract is
+    // {ok, message}. On success surface the sample (first 500 chars of a
+    // resolved company payload) as the message; on failure leave blank.
+    return { ok: result.ok, message: result.sample ?? "" };
   }
 
   async submitIntervention(
     runId: string,
     message: string
   ): Promise<SubmitInterventionResult> {
-    if (this.mode === "hosted") {
-      return this.rpcCall<SubmitInterventionResult>("submit_intervention", {
-        runId,
-        text: message
-      });
-    }
-    return this.request<SubmitInterventionResult>(`/api/runs/${runId}/intervention`, {
-      method: "POST",
-      body: { message }
+    return this.rpcCall<SubmitInterventionResult>("submit_intervention", {
+      runId,
+      text: message
     });
   }
 
   async abortRun(runId: string): Promise<AbortRunResult | unknown> {
-    if (this.mode === "hosted") {
-      return this.rpcCall<AbortRunResult>("abort_run", { runId });
-    }
-    return this.request(`/api/runs/${runId}/abort`, {
-      method: "POST"
-    });
+    return this.rpcCall<AbortRunResult>("abort_run", { runId });
   }
 
-  async completeRun(projectSlug: string, runId: string): Promise<CompleteRunResult | unknown> {
-    if (this.mode === "hosted") {
-      return this.rpcCall<CompleteRunResult>("complete_run", { runId });
-    }
-    return this.request(`/api/projects/${projectSlug}/runs/${runId}/complete`, {
-      method: "POST"
-    });
+  async completeRun(_projectSlug: string, runId: string): Promise<CompleteRunResult | unknown> {
+    return this.rpcCall<CompleteRunResult>("complete_run", { runId });
   }
 
   async resumeRun(
-    projectSlug: string,
+    _projectSlug: string,
     runId: string,
     message = ""
   ): Promise<ResumeRunResult> {
-    if (this.mode === "hosted") {
-      const payload: { runId: string; message?: string } = { runId };
-      if (message) {
-        payload.message = message;
-      }
-      return this.rpcCall<ResumeRunResult>("resume_run", payload);
+    const payload: { runId: string; message?: string } = { runId };
+    if (message) {
+      payload.message = message;
     }
-    return this.request<ResumeRunResult>(`/api/projects/${projectSlug}/runs/${runId}/resume`, {
-      method: "POST",
-      body: { message }
-    });
+    return this.rpcCall<ResumeRunResult>("resume_run", payload);
   }
 
   async analyzeInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectRecord | undefined> {
-    if (this.mode === "hosted") {
-      // Kickoff pattern: op returns {jobId} immediately. The final state
-      // arrives via a subsequent state_snapshot event that overwrites the
-      // sidebar. Return undefined — callers should not rely on a synchronous
-      // ProjectRecord from hosted analyze_insights.
-      await this.rpcCall<AnalyzeInsightsResult>("analyze_insights", {
-        slug: projectSlug,
-        patch: Object.keys(payload).length > 0 ? payload : undefined
-      });
-      return undefined;
-    }
-    return this.request<ProjectRecord>(`/api/projects/${projectSlug}/insights/analyze`, { method: "POST", body: payload });
+    // Kickoff pattern: op returns {jobId} immediately. The final state
+    // arrives via a subsequent state_snapshot event that overwrites the
+    // sidebar. Return undefined — callers should not rely on a synchronous
+    // ProjectRecord from analyze_insights.
+    await this.rpcCall<AnalyzeInsightsResult>("analyze_insights", {
+      slug: projectSlug,
+      patch: Object.keys(payload).length > 0 ? payload : undefined
+    });
+    return undefined;
   }
 
   async generateInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectInsightWorkspaceState> {
-    if (this.mode === "hosted") {
-      // Kickoff pattern: op returns {jobId}. We immediately return the
-      // *current* insights workspace so the UI can swap to a pending badge.
-      // A follow-up state_snapshot triggers the UI to refetch when ready.
-      await this.rpcCall<GenerateInsightsResult>("generate_insights", {
-        slug: projectSlug,
-        patch: Object.keys(payload).length > 0 ? payload : undefined
-      });
-      return this.getProjectInsights(projectSlug);
-    }
-    return this.request<ProjectInsightWorkspaceState>(`/api/projects/${projectSlug}/insights/generate`, { method: "POST", body: payload });
+    // Kickoff pattern: op returns {jobId}. We immediately return the
+    // *current* insights workspace so the UI can swap to a pending badge.
+    // A follow-up state_snapshot triggers the UI to refetch when ready.
+    await this.rpcCall<GenerateInsightsResult>("generate_insights", {
+      slug: projectSlug,
+      patch: Object.keys(payload).length > 0 ? payload : undefined
+    });
+    return this.getProjectInsights(projectSlug);
   }
 
   /**
-   * Hosted-mode RPC dispatcher. Sends a single envelope to POST /api/rpc and
-   * returns the unwrapped `result`. Safe to call in both modes; callers should
-   * gate by `this.mode` when the local REST path differs.
+   * Sends a single RPC envelope to POST /api/rpc and returns the unwrapped
+   * `result`.
    */
   async rpcCall<TResult = unknown>(op: OpName, payload: unknown): Promise<TResult> {
     const id = generateRpcId();
@@ -565,51 +394,6 @@ export class RunnerClient {
     return envelope.result as TResult;
   }
 
-  private async request<T = unknown>(
-    pathname: string,
-    init: { method?: string; body?: unknown } = {}
-  ): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${pathname}`, {
-      credentials: "include",
-      method: init.method ?? "GET",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: init.body !== undefined ? JSON.stringify(init.body) : undefined
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const message = typeof payload.message === "string" ? payload.message : `Request failed (${response.status})`;
-      throw new Error(message);
-    }
-
-    if (response.status === 204) {
-      return undefined as T;
-    }
-
-    return response.json() as Promise<T>;
-  }
-
-  private async requestFormData<T = unknown>(pathname: string, body: FormData, method = "POST"): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${pathname}`, {
-      credentials: "include",
-      method,
-      body
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const message = typeof payload.message === "string" ? payload.message : `Request failed (${response.status})`;
-      throw new Error(message);
-    }
-
-    if (response.status === 204) {
-      return undefined as T;
-    }
-
-    return response.json() as Promise<T>;
-  }
 }
 
 function toWsUrl(baseUrl: string, pathname: string): string {
