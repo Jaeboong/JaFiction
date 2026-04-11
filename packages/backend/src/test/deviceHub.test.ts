@@ -1,7 +1,7 @@
 /**
  * deviceHub.test.ts
  */
-import { describe, it, before } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createDeviceHub } from "../ws/deviceHub";
 import { makeFakePubSubRedis, makeWsPair } from "./fakes";
@@ -21,7 +21,7 @@ describe("DeviceHub", () => {
   it("reports connected after attach", () => {
     const { hub } = makeHub();
     const { server } = makeWsPair();
-    hub.attach("dev-1", "user-1", server as unknown as import("ws").WebSocket);
+    hub.attach("dev-1", ["user-1"], server as unknown as import("ws").WebSocket);
     assert.ok(hub.isConnected("dev-1"));
     assert.ok(!hub.isConnected("dev-2"));
   });
@@ -29,7 +29,7 @@ describe("DeviceHub", () => {
   it("reports disconnected after detach", () => {
     const { hub } = makeHub();
     const { server } = makeWsPair();
-    hub.attach("dev-1", "user-1", server as unknown as import("ws").WebSocket);
+    hub.attach("dev-1", ["user-1"], server as unknown as import("ws").WebSocket);
     hub.detach("dev-1");
     assert.ok(!hub.isConnected("dev-1"));
   });
@@ -37,21 +37,21 @@ describe("DeviceHub", () => {
   it("reports disconnected when ws closes", () => {
     const { hub } = makeHub();
     const { client, server } = makeWsPair();
-    hub.attach("dev-1", "user-1", server as unknown as import("ws").WebSocket);
+    hub.attach("dev-1", ["user-1"], server as unknown as import("ws").WebSocket);
     client.close(); // triggers peer's close event
     assert.ok(!hub.isConnected("dev-1"));
   });
 
-  it("getUserIdForDevice returns undefined when not connected", () => {
+  it("getUserIdsForDevice returns undefined when not connected", () => {
     const { hub } = makeHub();
-    assert.strictEqual(hub.getUserIdForDevice("dev-999"), undefined);
+    assert.strictEqual(hub.getUserIdsForDevice("dev-999"), undefined);
   });
 
-  it("getUserIdForDevice returns userId when connected", () => {
+  it("getUserIdsForDevice returns user ids when connected", () => {
     const { hub } = makeHub();
     const { server } = makeWsPair();
-    hub.attach("dev-1", "user-42", server as unknown as import("ws").WebSocket);
-    assert.strictEqual(hub.getUserIdForDevice("dev-1"), "user-42");
+    hub.attach("dev-1", ["user-42", "user-99"], server as unknown as import("ws").WebSocket);
+    assert.deepStrictEqual(hub.getUserIdsForDevice("dev-1"), ["user-42", "user-99"]);
   });
 
   // -------------------------------------------------------------------------
@@ -60,7 +60,7 @@ describe("DeviceHub", () => {
   it("sendRpc resolves when runner sends matching response", async () => {
     const { hub } = makeHub();
     const { client, server } = makeWsPair();
-    hub.attach("dev-1", "user-1", server as unknown as import("ws").WebSocket);
+    hub.attach("dev-1", ["user-1"], server as unknown as import("ws").WebSocket);
 
     const req = { v: 1 as const, id: "req-1", op: "get_state" as const, payload: {} };
     const rpcPromise = hub.sendRpc("dev-1", req, { timeoutMs: 2000 });
@@ -83,7 +83,7 @@ describe("DeviceHub", () => {
   it("sendRpc correlates by id — two concurrent requests in reverse order", async () => {
     const { hub } = makeHub();
     const { client, server } = makeWsPair();
-    hub.attach("dev-1", "user-1", server as unknown as import("ws").WebSocket);
+    hub.attach("dev-1", ["user-1"], server as unknown as import("ws").WebSocket);
 
     const req1 = { v: 1 as const, id: "req-A", op: "get_state" as const, payload: {} };
     const req2 = { v: 1 as const, id: "req-B", op: "get_state" as const, payload: {} };
@@ -107,7 +107,7 @@ describe("DeviceHub", () => {
   it("sendRpc rejects pending when runner disconnects", async () => {
     const { hub } = makeHub();
     const { client, server } = makeWsPair();
-    hub.attach("dev-1", "user-1", server as unknown as import("ws").WebSocket);
+    hub.attach("dev-1", ["user-1"], server as unknown as import("ws").WebSocket);
 
     const req = { v: 1 as const, id: "req-X", op: "get_state" as const, payload: {} };
     const rpcPromise = hub.sendRpc("dev-1", req, { timeoutMs: 5000 });
@@ -127,7 +127,7 @@ describe("DeviceHub", () => {
   it("sendRpc resolves with timeout error after timeoutMs", async () => {
     const { hub } = makeHub();
     const { server } = makeWsPair();
-    hub.attach("dev-1", "user-1", server as unknown as import("ws").WebSocket);
+    hub.attach("dev-1", ["user-1"], server as unknown as import("ws").WebSocket);
 
     const req = { v: 1 as const, id: "req-T", op: "get_state" as const, payload: {} };
     // Very short timeout.
@@ -148,12 +148,14 @@ describe("DeviceHub", () => {
   // -------------------------------------------------------------------------
   // handleRunnerEvent → Redis publish
   // -------------------------------------------------------------------------
-  it("handleRunnerEvent publishes to Redis channel", async () => {
+  it("handleRunnerEvent publishes to each authorized user channel", async () => {
     const redis = makeFakePubSubRedis();
     const hub = createDeviceHub({ redis });
 
-    const received: string[] = [];
-    await redis.subscribe("user:user-1:events", (msg) => received.push(msg));
+    const receivedA: string[] = [];
+    const receivedB: string[] = [];
+    await redis.subscribe("user:user-1:events", (msg) => receivedA.push(msg));
+    await redis.subscribe("user:user-2:events", (msg) => receivedB.push(msg));
 
     // handleRunnerEvent does not validate the envelope — it just publishes JSON.
     // The envelope was already validated by deviceHub.onMessage before arriving here.
@@ -162,21 +164,25 @@ describe("DeviceHub", () => {
       event: "run_finished",
       payload: { runId: "run-99", status: "completed" }
     };
-    hub.handleRunnerEvent("user-1", envelope as unknown as EventEnvelope);
+    hub.handleRunnerEvent(["user-1", "user-2"], envelope as unknown as EventEnvelope);
 
     // publish is synchronous in fake (delivers in same tick).
-    assert.strictEqual(received.length, 1);
-    assert.deepStrictEqual(JSON.parse(received[0]), envelope);
+    assert.strictEqual(receivedA.length, 1);
+    assert.strictEqual(receivedB.length, 1);
+    assert.deepStrictEqual(JSON.parse(receivedA[0]), envelope);
+    assert.deepStrictEqual(JSON.parse(receivedB[0]), envelope);
   });
 
   it("event frame from runner triggers handleRunnerEvent → Redis publish", async () => {
     const redis = makeFakePubSubRedis();
     const hub = createDeviceHub({ redis });
     const { client, server } = makeWsPair();
-    hub.attach("dev-1", "user-1", server as unknown as import("ws").WebSocket);
+    hub.attach("dev-1", ["user-1", "user-2"], server as unknown as import("ws").WebSocket);
 
-    const received: string[] = [];
-    await redis.subscribe("user:user-1:events", (msg) => received.push(msg));
+    const receivedA: string[] = [];
+    const receivedB: string[] = [];
+    await redis.subscribe("user:user-1:events", (msg) => receivedA.push(msg));
+    await redis.subscribe("user:user-2:events", (msg) => receivedB.push(msg));
 
     // Use a valid EventEnvelope that passes schema validation.
     const validRunEvent = {
@@ -190,8 +196,9 @@ describe("DeviceHub", () => {
     };
     client.send(JSON.stringify(wrapEvent(envelope)));
 
-    assert.strictEqual(received.length, 1);
-    const parsed = JSON.parse(received[0]);
+    assert.strictEqual(receivedA.length, 1);
+    assert.strictEqual(receivedB.length, 1);
+    const parsed = JSON.parse(receivedA[0]);
     assert.strictEqual(parsed.event, "run_event");
     assert.strictEqual(parsed.payload.runId, "run-1");
   });

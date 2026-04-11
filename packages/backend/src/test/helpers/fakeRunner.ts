@@ -48,7 +48,7 @@ export interface FakeRunnerHandle {
 export interface AttachFakeRunnerOptions {
   readonly hub: DeviceHub;
   readonly deviceId: string;
-  readonly userId: string;
+  readonly userIds: readonly string[];
   /**
    * If provided, every valid `rpc_request` frame is passed to this handler
    * and its return value is wrapped and sent back. If omitted, requests are
@@ -59,7 +59,7 @@ export interface AttachFakeRunnerOptions {
 
 export function attachFakeRunner(opts: AttachFakeRunnerOptions): FakeRunnerHandle {
   const { client, server } = makeWsPair();
-  opts.hub.attach(opts.deviceId, opts.userId, server as unknown as WebSocket);
+  opts.hub.attach(opts.deviceId, opts.userIds, server as unknown as WebSocket);
 
   client.on("message", (data: Buffer) => {
     let frame: Record<string, unknown>;

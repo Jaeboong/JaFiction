@@ -14,10 +14,10 @@
 
 import * as crypto from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "../db/client";
-import { devices } from "../db/schema";
+import { device_users, devices } from "../db/schema";
 import type { SessionStore } from "../auth/session";
 import { makeRequireSession } from "../auth/session";
 import type { AuthenticatedRequest } from "../auth/session";
@@ -59,8 +59,10 @@ export interface DeviceStore {
     workspaceRoot?: string;
     tokenHash: string;
   }): Promise<void>;
+  authorizeExistingDevice(deviceId: string, userId: string): Promise<boolean>;
+  findDeviceIdByTokenHash(tokenHash: string): Promise<string | undefined>;
   listDevices(userId: string): Promise<readonly DeviceRecord[]>;
-  revokeDevice(id: string, userId: string): Promise<boolean>;
+  revokeDevice(id: string, userId: string): Promise<"revoked" | "forbidden">;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,16 +71,47 @@ export interface DeviceStore {
 export function createDrizzleDeviceStore(db: Db): DeviceStore {
   return {
     async insertDevice({ id, userId, label, hostname, os, runnerVersion, workspaceRoot, tokenHash }) {
-      await db.insert(devices).values({
-        id,
-        user_id: userId,
-        label,
-        hostname: hostname ?? null,
-        os: os ?? null,
-        runner_version: runnerVersion ?? null,
-        workspace_root: workspaceRoot ?? null,
-        token_hash: tokenHash,
+      await db.transaction(async (tx) => {
+        await tx.insert(devices).values({
+          id,
+          label,
+          hostname: hostname ?? null,
+          os: os ?? null,
+          runner_version: runnerVersion ?? null,
+          workspace_root: workspaceRoot ?? null,
+          token_hash: tokenHash,
+        });
+        await tx.insert(device_users).values({
+          device_id: id,
+          user_id: userId,
+        });
       });
+    },
+
+    async authorizeExistingDevice(deviceId, userId) {
+      const rows = await db
+        .select({ id: devices.id })
+        .from(devices)
+        .where(and(eq(devices.id, deviceId), isNull(devices.revoked_at)))
+        .limit(1);
+      if (rows.length === 0) return false;
+      await db
+        .insert(device_users)
+        .values({
+          device_id: deviceId,
+          user_id: userId,
+        })
+        .onConflictDoNothing();
+      return true;
+    },
+
+    async findDeviceIdByTokenHash(tokenHash) {
+      const rows = await db
+        .select({ id: devices.id })
+        .from(devices)
+        .where(and(eq(devices.token_hash, tokenHash), isNull(devices.revoked_at)))
+        .limit(1);
+      return rows[0]?.id;
     },
 
     async listDevices(userId: string) {
@@ -93,7 +126,8 @@ export function createDrizzleDeviceStore(db: Db): DeviceStore {
           revoked_at: devices.revoked_at,
         })
         .from(devices)
-        .where(eq(devices.user_id, userId));
+        .innerJoin(device_users, eq(device_users.device_id, devices.id))
+        .where(and(eq(device_users.user_id, userId), isNull(devices.revoked_at)));
 
       return rows.map((r) => ({
         id: r.id,
@@ -107,12 +141,21 @@ export function createDrizzleDeviceStore(db: Db): DeviceStore {
     },
 
     async revokeDevice(id: string, userId: string) {
-      const result = await db
+      const membership = await db
+        .select({ deviceId: device_users.device_id })
+        .from(device_users)
+        .where(and(eq(device_users.device_id, id), eq(device_users.user_id, userId)))
+        .limit(1);
+
+      if (membership.length === 0) {
+        return "forbidden";
+      }
+
+      await db
         .update(devices)
         .set({ revoked_at: new Date() })
-        .where(and(eq(devices.id, id), eq(devices.user_id, userId)));
-      const rowCount = (result as unknown as { rowCount?: number }).rowCount ?? 0;
-      return rowCount > 0;
+        .where(eq(devices.id, id));
+      return "revoked";
     },
   };
 }
@@ -141,7 +184,7 @@ interface ClaimEntry {
   readonly ip: string;
   readonly pollToken: string;
   readonly registeredAt: number; // epoch ms
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "authorized" | "rejected";
   token?: string;
   deviceId?: string;
   userId?: string;
@@ -156,10 +199,15 @@ const RegisterClaimBodySchema = z.object({
   os: z.string().min(1).max(200),
   runnerVersion: z.string().min(1).max(100),
   workspaceRoot: z.string().max(500).optional(),
+  deviceId: z.string().uuid().optional(),
 });
 
 const ApproveClaimBodySchema = z.object({
   claimId: z.string().min(1).optional(),
+});
+
+const ResolveDeviceBodySchema = z.object({
+  deviceToken: z.string().min(1),
 });
 
 // ---------------------------------------------------------------------------
@@ -233,6 +281,7 @@ export async function registerPairing(
       os: parsed.data.os,
       runnerVersion: parsed.data.runnerVersion,
       workspaceRoot: parsed.data.workspaceRoot,
+      deviceId: parsed.data.deviceId,
       ip,
       pollToken,
       registeredAt: Date.now(),
@@ -277,6 +326,15 @@ export async function registerPairing(
         return reply.code(200).send({
           status: "approved",
           token: entry.token,
+          deviceId: entry.deviceId,
+          userId: entry.userId,
+        });
+      }
+
+      if (entry.status === "authorized") {
+        await deps.redis.del(claimKey(claimId));
+        return reply.code(200).send({
+          status: "authorized",
           deviceId: entry.deviceId,
           userId: entry.userId,
         });
@@ -369,6 +427,29 @@ export async function registerPairing(
         entry: ClaimEntry,
         userId: string
       ) {
+        if (entry.deviceId) {
+          try {
+            const authorized = await deps.deviceStore.authorizeExistingDevice(entry.deviceId, userId);
+            if (!authorized) {
+              request.log.error({ claimId: id, deviceId: entry.deviceId }, "existing device authorization failed");
+              return reply.code(500).send({ error: "internal_error" });
+            }
+          } catch (err) {
+            request.log.error({ err }, "device membership insert failed during auto-claim approval");
+            return reply.code(500).send({ error: "internal_error" });
+          }
+
+          const updated: ClaimEntry = {
+            ...entry,
+            status: "authorized",
+            deviceId: entry.deviceId,
+            userId,
+          };
+          await deps.redis.set(claimKey(id), JSON.stringify(updated), "EX", CLAIM_TTL_SECONDS);
+
+          return reply.code(200).send({ status: "authorized", deviceId: entry.deviceId });
+        }
+
         const token = generateToken();
         const tokenHash = hashToken(token);
         const deviceId = crypto.randomUUID();
@@ -399,6 +480,23 @@ export async function registerPairing(
       }
     }
   );
+
+  app.post("/auth/device/resolve", async (request, reply) => {
+    const parsed = ResolveDeviceBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_body", details: parsed.error.flatten() });
+    }
+
+    const deviceId = await deps.deviceStore.findDeviceIdByTokenHash(
+      hashToken(parsed.data.deviceToken)
+    );
+
+    if (!deviceId) {
+      return reply.code(404).send({ error: "not_found" });
+    }
+
+    return reply.code(200).send({ deviceId });
+  });
 
   // -------------------------------------------------------------------------
   // GET /api/devices
@@ -435,10 +533,10 @@ export async function registerPairing(
       const { user } = (request as AuthenticatedRequest).sessionData;
       const { id } = request.params as { id: string };
 
-      const ok = await deps.deviceStore.revokeDevice(id, user.id);
+      const result = await deps.deviceStore.revokeDevice(id, user.id);
 
-      if (!ok) {
-        return reply.code(404).send({ error: "not_found" });
+      if (result === "forbidden") {
+        return reply.code(403).send({ error: "forbidden" });
       }
 
       return reply.code(200).send({ ok: true });

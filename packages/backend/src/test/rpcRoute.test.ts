@@ -120,7 +120,7 @@ describe("POST /api/rpc", () => {
     const runner = attachFakeRunner({
       hub,
       deviceId: "dev-1",
-      userId,
+      userIds: [userId],
       handler: (req) => ({ v: 1, id: req.id, ok: true, result: { status: "idle" } })
     });
 
@@ -152,7 +152,7 @@ describe("POST /api/rpc", () => {
     const runner = attachFakeRunner({
       hub,
       deviceId: "dev-1",
-      userId,
+      userIds: [userId],
       handler: (req) => ({
         v: 1,
         id: req.id,
@@ -200,7 +200,7 @@ describe("deviceHub wrapper contract", () => {
     const runner = attachFakeRunner({
       hub,
       deviceId: "dev-wrap-ok",
-      userId: "user-wrap",
+      userIds: ["user-wrap"],
       handler: (req) => ({ v: 1, id: req.id, ok: true, result: { hello: "world" } })
     });
 
@@ -227,7 +227,7 @@ describe("deviceHub wrapper contract", () => {
     const runner = attachFakeRunner({
       hub,
       deviceId: "dev-wrap-bad",
-      userId: "user-wrap"
+      userIds: ["user-wrap"]
     });
 
     try {

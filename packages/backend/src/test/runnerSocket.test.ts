@@ -23,7 +23,7 @@ function hashToken(token: string): string {
 
 interface DeviceEntry {
   id: string;
-  userId: string;
+  userIds: readonly string[];
   tokenHash: string;
   revoked: boolean;
   lastSeen: Date | null;
@@ -31,7 +31,7 @@ interface DeviceEntry {
 
 function makeInMemoryRunnerSocketStore(): RunnerSocketDeviceStore & {
   devices: Map<string, DeviceEntry>;
-  insertDevice(id: string, userId: string, token: string): void;
+  insertDevice(id: string, userIds: readonly string[], token: string): void;
   revokeDevice(id: string): void;
 } {
   const devices = new Map<string, DeviceEntry>();
@@ -39,8 +39,8 @@ function makeInMemoryRunnerSocketStore(): RunnerSocketDeviceStore & {
   return {
     devices,
 
-    insertDevice(id: string, userId: string, token: string) {
-      devices.set(id, { id, userId, tokenHash: hashToken(token), revoked: false, lastSeen: null });
+    insertDevice(id: string, userIds: readonly string[], token: string) {
+      devices.set(id, { id, userIds, tokenHash: hashToken(token), revoked: false, lastSeen: null });
     },
 
     revokeDevice(id: string) {
@@ -51,7 +51,7 @@ function makeInMemoryRunnerSocketStore(): RunnerSocketDeviceStore & {
     async findByTokenHash(tokenHash: string) {
       for (const d of devices.values()) {
         if (d.tokenHash === tokenHash && !d.revoked) {
-          return { id: d.id, userId: d.userId };
+          return { id: d.id, userIds: d.userIds };
         }
       }
       return undefined;
@@ -134,7 +134,7 @@ describe("runnerSocket — /runner/ws auth handshake", () => {
 
   it("revoked device → auth_err", async () => {
     const store = makeInMemoryRunnerSocketStore();
-    store.insertDevice("dev-1", "user-1", "good-token");
+    store.insertDevice("dev-1", ["user-1"], "good-token");
     store.revokeDevice("dev-1");
     const { app, port } = await buildTestApp(store);
     try {
@@ -156,7 +156,7 @@ describe("runnerSocket — /runner/ws auth handshake", () => {
 
   it("good auth → auth_ok + device attached to hub", async () => {
     const store = makeInMemoryRunnerSocketStore();
-    store.insertDevice("dev-1", "user-1", "valid-token");
+    store.insertDevice("dev-1", ["user-1", "user-2"], "valid-token");
     const { app, hub, port } = await buildTestApp(store);
     try {
       const { WebSocket } = await import("ws");
@@ -170,6 +170,7 @@ describe("runnerSocket — /runner/ws auth handshake", () => {
       const msg = JSON.parse(await nextMessage(ws));
       assert.strictEqual(msg.type, "auth_ok");
       assert.ok(hub.isConnected("dev-1"), "device should be in hub after auth");
+      assert.deepStrictEqual(hub.getUserIdsForDevice("dev-1"), ["user-1", "user-2"]);
 
       ws.close();
       // Wait for the close to propagate.
@@ -182,7 +183,7 @@ describe("runnerSocket — /runner/ws auth handshake", () => {
 
   it("good auth → last_seen_at updated (best-effort)", async () => {
     const store = makeInMemoryRunnerSocketStore();
-    store.insertDevice("dev-1", "user-1", "valid-token");
+    store.insertDevice("dev-1", ["user-1"], "valid-token");
     assert.strictEqual(store.devices.get("dev-1")?.lastSeen, null);
     const { app, port } = await buildTestApp(store);
     try {

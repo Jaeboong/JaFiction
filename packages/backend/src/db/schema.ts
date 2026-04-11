@@ -1,5 +1,6 @@
 import {
   pgTable,
+  primaryKey,
   uuid,
   text,
   timestamp,
@@ -36,9 +37,6 @@ export const sessions = pgTable("sessions", {
 // ---------------------------------------------------------------------------
 export const devices = pgTable("devices", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  user_id: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
   label: text("label").notNull(),
   hostname: text("hostname"),
   os: text("os"),
@@ -49,6 +47,22 @@ export const devices = pgTable("devices", {
   created_at: timestamp("created_at").notNull().default(sql`now()`),
   last_seen_at: timestamp("last_seen_at"),
 });
+
+export const device_users = pgTable(
+  "device_users",
+  {
+    device_id: uuid("device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    created_at: timestamp("created_at").notNull().default(sql`now()`),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.device_id, t.user_id] }),
+  })
+);
 
 // ---------------------------------------------------------------------------
 // projects_meta  (Phase 6)

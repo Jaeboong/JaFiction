@@ -69,8 +69,8 @@ describe("session routing regression — user → device → ws", () => {
     // Attach both fake runners to the hub.
     const pairA = makeWsPair();
     const pairB = makeWsPair();
-    hub.attach("dev-A", userAId, pairA.server as unknown as import("ws").WebSocket);
-    hub.attach("dev-B", userBId, pairB.server as unknown as import("ws").WebSocket);
+    hub.attach("dev-A", [userAId], pairA.server as unknown as import("ws").WebSocket);
+    hub.attach("dev-B", [userBId], pairB.server as unknown as import("ws").WebSocket);
 
     // Record which device(s) actually received an rpc_request frame.
     const receivedAt: string[] = [];
@@ -204,8 +204,8 @@ describe("session routing regression — user → device → ws", () => {
 
       const pairA = makeWsPair();
       const pairB = makeWsPair();
-      hub.attach(`dev-A-${op}`, userAId, pairA.server as unknown as import("ws").WebSocket);
-      hub.attach(`dev-B-${op}`, userBId, pairB.server as unknown as import("ws").WebSocket);
+      hub.attach(`dev-A-${op}`, [userAId], pairA.server as unknown as import("ws").WebSocket);
+      hub.attach(`dev-B-${op}`, [userBId], pairB.server as unknown as import("ws").WebSocket);
 
       const receivedAt: string[] = [];
       const onMessage = (deviceLabel: string, pair: ReturnType<typeof makeWsPair>) => (data: Buffer) => {
@@ -297,8 +297,8 @@ describe("session routing regression — user → device → ws", () => {
 
       const pairA = makeWsPair();
       const pairB = makeWsPair();
-      hub.attach(`dev-A-${op}`, userAId, pairA.server as unknown as import("ws").WebSocket);
-      hub.attach(`dev-B-${op}`, userBId, pairB.server as unknown as import("ws").WebSocket);
+      hub.attach(`dev-A-${op}`, [userAId], pairA.server as unknown as import("ws").WebSocket);
+      hub.attach(`dev-B-${op}`, [userBId], pairB.server as unknown as import("ws").WebSocket);
 
       const receivedAt: string[] = [];
       const onMessage = (deviceLabel: string, pair: ReturnType<typeof makeWsPair>) => (data: Buffer) => {

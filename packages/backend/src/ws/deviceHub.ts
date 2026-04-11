@@ -2,7 +2,7 @@
  * deviceHub.ts
  *
  * Tracks live outbound WebSocket connections from runners.
- * Keyed by deviceId → { ws, userId, pending RPC map }.
+ * Keyed by deviceId → { ws, userIds, pending RPC map }.
  *
  * Responsibilities:
  *  - attach / detach runner connections
@@ -51,7 +51,7 @@ interface PendingRpc {
 // ---------------------------------------------------------------------------
 interface DeviceEntry {
   readonly ws: WebSocket;
-  readonly userId: string;
+  readonly userIds: readonly string[];
   readonly pending: Map<string, PendingRpc>;
 }
 
@@ -59,12 +59,12 @@ interface DeviceEntry {
 // DeviceHub public interface
 // ---------------------------------------------------------------------------
 export interface DeviceHub {
-  attach(deviceId: string, userId: string, ws: WebSocket): void;
+  attach(deviceId: string, userIds: readonly string[], ws: WebSocket): void;
   detach(deviceId: string): void;
   isConnected(deviceId: string): boolean;
-  getUserIdForDevice(deviceId: string): string | undefined;
+  getUserIdsForDevice(deviceId: string): readonly string[] | undefined;
   sendRpc(deviceId: string, req: RpcRequest, opts?: { timeoutMs?: number }): Promise<RpcResponse>;
-  handleRunnerEvent(userId: string, envelope: EventEnvelope): void;
+  handleRunnerEvent(userIds: readonly string[], envelope: EventEnvelope): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,7 +125,7 @@ export function createDeviceHub(deps: {
       const { type: _t, ...rest } = typed as Record<string, unknown>;
       const evResult = EventEnvelopeSchema.safeParse(rest);
       if (evResult.success) {
-        hub.handleRunnerEvent(entry.userId, evResult.data);
+        hub.handleRunnerEvent(entry.userIds, evResult.data);
         return;
       }
       log.warn("[deviceHub] event failed schema validation", { deviceId });
@@ -136,7 +136,7 @@ export function createDeviceHub(deps: {
   }
 
   const hub: DeviceHub = {
-    attach(deviceId: string, userId: string, ws: WebSocket): void {
+    attach(deviceId: string, userIds: readonly string[], ws: WebSocket): void {
       // Detach any stale connection under this deviceId.
       if (devices.has(deviceId)) {
         hub.detach(deviceId);
@@ -144,7 +144,7 @@ export function createDeviceHub(deps: {
 
       const entry: DeviceEntry = {
         ws,
-        userId,
+        userIds: [...new Set(userIds)],
         pending: new Map()
       };
       devices.set(deviceId, entry);
@@ -165,7 +165,7 @@ export function createDeviceHub(deps: {
         log.error("[deviceHub] runner ws error", { deviceId, message: err.message });
       });
 
-      log.info("[deviceHub] runner attached", { deviceId, userId });
+      log.info("[deviceHub] runner attached", { deviceId, userIds: entry.userIds });
     },
 
     detach(deviceId: string): void {
@@ -180,8 +180,8 @@ export function createDeviceHub(deps: {
       return devices.has(deviceId);
     },
 
-    getUserIdForDevice(deviceId: string): string | undefined {
-      return devices.get(deviceId)?.userId;
+    getUserIdsForDevice(deviceId: string): readonly string[] | undefined {
+      return devices.get(deviceId)?.userIds;
     },
 
     async sendRpc(
@@ -215,14 +215,16 @@ export function createDeviceHub(deps: {
       });
     },
 
-    handleRunnerEvent(userId: string, envelope: EventEnvelope): void {
-      const channel = `user:${userId}:events`;
+    handleRunnerEvent(userIds: readonly string[], envelope: EventEnvelope): void {
       const message = JSON.stringify(envelope);
-      // Best-effort publish — do not block; log failures.
-      deps.redis.publish(channel, message).catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        log.error("[deviceHub] redis publish failed", { channel, message: msg });
-      });
+      for (const userId of new Set(userIds)) {
+        const channel = `user:${userId}:events`;
+        // Best-effort publish — do not block; log failures.
+        deps.redis.publish(channel, message).catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          log.error("[deviceHub] redis publish failed", { channel, message: msg });
+        });
+      }
     }
   };
 

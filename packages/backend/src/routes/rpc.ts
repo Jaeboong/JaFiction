@@ -18,7 +18,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import { RpcRequestSchema } from "@jasojeon/shared";
 import type { RpcResponse } from "@jasojeon/shared";
 import type { Db } from "../db/client";
-import { devices } from "../db/schema";
+import { device_users, devices } from "../db/schema";
 import type { SessionStore } from "../auth/session";
 import { makeRequireSession } from "../auth/session";
 import type { AuthenticatedRequest } from "../auth/session";
@@ -38,7 +38,8 @@ export function createDrizzleRpcDeviceStore(db: Db): RpcDeviceStore {
       const rows = await db
         .select({ id: devices.id })
         .from(devices)
-        .where(and(eq(devices.user_id, userId), isNull(devices.revoked_at)));
+        .innerJoin(device_users, eq(device_users.device_id, devices.id))
+        .where(and(eq(device_users.user_id, userId), isNull(devices.revoked_at)));
       return rows.map((r) => r.id);
     }
   };

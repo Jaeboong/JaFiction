@@ -18,7 +18,7 @@ import type { FastifyInstance } from "fastify";
 import type { SocketStream } from "@fastify/websocket";
 import { eq, and, isNull } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { devices } from "../db/schema";
+import { device_users, devices } from "../db/schema";
 import type { DeviceHub } from "./deviceHub";
 
 // ---------------------------------------------------------------------------
@@ -26,7 +26,7 @@ import type { DeviceHub } from "./deviceHub";
 // ---------------------------------------------------------------------------
 export interface RunnerSocketDeviceStore {
   /** Look up a non-revoked device by token hash. Returns undefined if not found. */
-  findByTokenHash(tokenHash: string): Promise<{ id: string; userId: string } | undefined>;
+  findByTokenHash(tokenHash: string): Promise<{ id: string; userIds: readonly string[] } | undefined>;
   /** Best-effort update — do not await in critical path. */
   touchLastSeen(deviceId: string): Promise<void>;
 }
@@ -38,12 +38,16 @@ export function createDrizzleRunnerSocketDeviceStore(db: Db): RunnerSocketDevice
   return {
     async findByTokenHash(tokenHash: string) {
       const rows = await db
-        .select({ id: devices.id, userId: devices.user_id })
+        .select({ id: devices.id })
         .from(devices)
         .where(and(eq(devices.token_hash, tokenHash), isNull(devices.revoked_at)))
         .limit(1);
       if (rows.length === 0) return undefined;
-      return { id: rows[0].id, userId: rows[0].userId };
+      const userRows = await db
+        .select({ userId: device_users.user_id })
+        .from(device_users)
+        .where(eq(device_users.device_id, rows[0].id));
+      return { id: rows[0].id, userIds: userRows.map((row) => row.userId) };
     },
 
     async touchLastSeen(deviceId: string) {
@@ -131,7 +135,7 @@ export async function registerRunnerSocket(
         deps.deviceStore.touchLastSeen(device.id).catch(() => { /* ignored */ });
 
         // Attach underlying WebSocket to hub — hub takes over message handling.
-        deps.hub.attach(device.id, device.userId, ws);
+        deps.hub.attach(device.id, device.userIds, ws);
 
         send({ type: "auth_ok" });
       }).catch((err: unknown) => {

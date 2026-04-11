@@ -485,24 +485,101 @@ button:focus-visible {
   display: inline-block;
 }
 
-/* Login gate */
-.app-gate-auth {
-  width: min(340px, 100%);
-  text-align: center;
-  padding: 36px 32px;
+/* Login page — two-column layout */
+.login-page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  z-index: 100;
 }
 
-.login-gate-brand {
-  margin: 0 0 28px;
-  font-size: 32px;
+.login-brand-panel {
+  flex: 0 0 55%;
+  background: linear-gradient(140deg, #4f46e5 0%, #3730a3 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 56px;
+}
+
+.login-brand-inner {
+  max-width: 360px;
+}
+
+.login-brand-mark svg {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 24px;
+  display: block;
+}
+
+.login-brand-name {
+  margin: 0 0 16px;
+  font-size: 48px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.login-brand-tagline {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 400;
+}
+
+.login-form-panel {
+  flex: 1;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 56px;
+}
+
+.login-form-inner {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form-kicker {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: #4f46e5;
+}
+
+.login-form-heading {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.login-form-desc {
+  margin: 0 0 28px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #6b7280;
 }
 
 .login-gate-actions {
   display: flex;
-  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .login-page { flex-direction: column; }
+  .login-brand-panel { flex: 0 0 auto; padding: 40px 32px; }
+  .login-brand-name { font-size: 36px; }
+  .login-brand-tagline { font-size: 14px; }
+  .login-form-panel { padding: 40px 32px; }
 }
 
 /* Google sign-in button — follows Google brand guidelines */

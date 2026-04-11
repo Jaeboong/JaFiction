@@ -12,7 +12,6 @@ import { generateRaw, hashRaw } from "../auth/session";
 // ---------------------------------------------------------------------------
 export interface DeviceRow {
   readonly id: string;
-  readonly user_id: string;
   readonly label: string;
   readonly hostname: string | null;
   readonly os: string | null;
@@ -22,6 +21,10 @@ export interface DeviceRow {
   revoked_at: Date | null;
   readonly created_at: Date;
   last_seen_at: Date | null;
+}
+
+function membershipKey(deviceId: string, userId: string): string {
+  return `${deviceId}:${userId}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -358,16 +361,20 @@ export function makeWsPair(): { client: FakeWebSocket; server: FakeWebSocket } {
 // ---------------------------------------------------------------------------
 import type { DeviceStore } from "../routes/pairing";
 
-export function makeInMemoryDeviceStore(): DeviceStore & { rows: Map<string, DeviceRow> } {
+export function makeInMemoryDeviceStore(): DeviceStore & {
+  rows: Map<string, DeviceRow>;
+  memberships: Set<string>;
+} {
   const rows = new Map<string, DeviceRow>();
+  const memberships = new Set<string>();
 
   return {
     rows,
+    memberships,
 
     async insertDevice({ id, userId, label, hostname, os, runnerVersion, workspaceRoot, tokenHash }) {
       const row: DeviceRow = {
         id,
-        user_id: userId,
         label,
         hostname: hostname ?? null,
         os: os ?? null,
@@ -379,11 +386,28 @@ export function makeInMemoryDeviceStore(): DeviceStore & { rows: Map<string, Dev
         last_seen_at: null,
       };
       rows.set(row.id, row);
+      memberships.add(membershipKey(id, userId));
+    },
+
+    async authorizeExistingDevice(deviceId: string, userId: string) {
+      const row = rows.get(deviceId);
+      if (!row || row.revoked_at !== null) return false;
+      memberships.add(membershipKey(deviceId, userId));
+      return true;
+    },
+
+    async findDeviceIdByTokenHash(tokenHash: string) {
+      for (const row of rows.values()) {
+        if (row.token_hash === tokenHash && row.revoked_at === null) {
+          return row.id;
+        }
+      }
+      return undefined;
     },
 
     async listDevices(userId: string) {
       return [...rows.values()]
-        .filter((r) => r.user_id === userId)
+        .filter((r) => r.revoked_at === null && memberships.has(membershipKey(r.id, userId)))
         .map((r) => ({
           id: r.id,
           label: r.label,
@@ -397,9 +421,9 @@ export function makeInMemoryDeviceStore(): DeviceStore & { rows: Map<string, Dev
 
     async revokeDevice(id: string, userId: string) {
       const row = rows.get(id);
-      if (!row || row.user_id !== userId) return false;
+      if (!row || !memberships.has(membershipKey(id, userId))) return "forbidden";
       row.revoked_at = new Date();
-      return true;
+      return "revoked";
     },
   };
 }

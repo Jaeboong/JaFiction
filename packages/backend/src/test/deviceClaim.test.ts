@@ -57,7 +57,7 @@ async function login(
 
 async function registerClaim(
   app: Awaited<ReturnType<typeof buildApp>>,
-  overrides: Partial<{ hostname: string; os: string; runnerVersion: string }> = {}
+  overrides: Partial<{ hostname: string; os: string; runnerVersion: string; deviceId: string }> = {}
 ) {
   return app.inject({
     method: "POST",
@@ -66,6 +66,7 @@ async function registerClaim(
       hostname: overrides.hostname ?? "test-host",
       os: overrides.os ?? "linux",
       runnerVersion: overrides.runnerVersion ?? "0.1.0",
+      deviceId: overrides.deviceId,
     },
   });
 }
@@ -255,6 +256,104 @@ test("approve with explicit claimId works", async () => {
   await app.close();
 });
 
+test("approve existing device claim adds device_users membership without creating a new device", async () => {
+  const deps = makeTestDeps();
+  const app = await buildApp(deps);
+  const cookieA = await login(app, deps, "sub-owner", "owner@example.com");
+  const cookieB = await login(app, deps, "sub-member", "member@example.com");
+
+  await registerClaim(app, { hostname: "shared-host" });
+  const firstApprove = await app.inject({
+    method: "POST",
+    url: "/api/device-claim/approve",
+    headers: { cookie: cookieA },
+    payload: {},
+  });
+  assert.equal(firstApprove.statusCode, 200, firstApprove.body);
+  const firstBody = JSON.parse(firstApprove.body) as { deviceId: string; status: string };
+  assert.equal(firstBody.status, "approved");
+  assert.equal(deps.deviceStore.rows.size, 1);
+
+  const secondClaim = await registerClaim(app, {
+    hostname: "shared-host",
+    deviceId: firstBody.deviceId,
+  });
+  const secondClaimBody = JSON.parse(secondClaim.body) as { claimId: string; pollToken: string };
+
+  const secondApprove = await app.inject({
+    method: "POST",
+    url: "/api/device-claim/approve",
+    headers: { cookie: cookieB },
+    payload: { claimId: secondClaimBody.claimId },
+  });
+  assert.equal(secondApprove.statusCode, 200, secondApprove.body);
+  const secondBody = JSON.parse(secondApprove.body) as { status: string; deviceId: string };
+  assert.equal(secondBody.status, "authorized");
+  assert.equal(secondBody.deviceId, firstBody.deviceId);
+  assert.equal(deps.deviceStore.rows.size, 1, "existing device row should be reused");
+  assert.ok(
+    deps.deviceStore.memberships.has(`${firstBody.deviceId}:${[...deps.userMap.keys()].find((key) => deps.userMap.get(key)?.email === "member@example.com")}`),
+    "new user should be added to device_users"
+  );
+
+  const pollRes = await app.inject({
+    method: "GET",
+    url: `/auth/device-claim/${secondClaimBody.claimId}?pollToken=${secondClaimBody.pollToken}`,
+  });
+  assert.equal(pollRes.statusCode, 200);
+  const pollBody = JSON.parse(pollRes.body) as { status: string; deviceId: string };
+  assert.equal(pollBody.status, "authorized");
+  assert.equal(pollBody.deviceId, firstBody.deviceId);
+
+  const listRes = await app.inject({
+    method: "GET",
+    url: "/api/devices",
+    headers: { cookie: cookieB },
+  });
+  const { devices: list } = JSON.parse(listRes.body) as { devices: Array<{ id: string }> };
+  assert.deepEqual(list.map((device) => device.id), [firstBody.deviceId]);
+
+  await app.close();
+});
+
+test("duplicate approval for same device_id + user_id is ignored without error", async () => {
+  const deps = makeTestDeps();
+  const app = await buildApp(deps);
+  const cookie = await login(app, deps, "sub-dup", "dup@example.com");
+
+  await registerClaim(app, { hostname: "dup-host" });
+  const firstApprove = await app.inject({
+    method: "POST",
+    url: "/api/device-claim/approve",
+    headers: { cookie },
+    payload: {},
+  });
+  const firstBody = JSON.parse(firstApprove.body) as { deviceId: string };
+
+  const secondClaim = await registerClaim(app, {
+    hostname: "dup-host",
+    deviceId: firstBody.deviceId,
+  });
+  const secondClaimBody = JSON.parse(secondClaim.body) as { claimId: string };
+
+  const secondApprove = await app.inject({
+    method: "POST",
+    url: "/api/device-claim/approve",
+    headers: { cookie },
+    payload: { claimId: secondClaimBody.claimId },
+  });
+  assert.equal(secondApprove.statusCode, 200, secondApprove.body);
+  const secondBody = JSON.parse(secondApprove.body) as { status: string; deviceId: string };
+  assert.equal(secondBody.status, "authorized");
+  assert.equal(secondBody.deviceId, firstBody.deviceId);
+  assert.equal(
+    [...deps.deviceStore.memberships].filter((entry) => entry === `${firstBody.deviceId}:${[...deps.userMap.keys()][0]}`).length,
+    1
+  );
+
+  await app.close();
+});
+
 test("multiple claims from same IP returns multiple_claims", async () => {
   const deps = makeTestDeps();
   const app = await buildApp(deps);
@@ -323,9 +422,7 @@ test("revoke: authenticated user revokes device and revokedAt is set", async () 
     headers: { cookie },
   });
   const { devices: list } = JSON.parse(listRes.body) as { devices: Array<{ id: string; revokedAt: string | null }> };
-  const device = list.find((d) => d.id === deviceId);
-  assert.ok(device, "device should still be in list");
-  assert.ok(device.revokedAt, "revokedAt should be set after revoke");
+  assert.equal(list.find((d) => d.id === deviceId), undefined, "revoked device should be hidden from active list");
 
   await app.close();
 });
@@ -362,7 +459,7 @@ test("cross-user isolation: user A cannot approve user B's claim and user A cann
     url: `/api/devices/${deviceId}/revoke`,
     headers: { cookie: cookieB },
   });
-  assert.equal(revokeRes.statusCode, 404, "Cross-user revoke should return 404");
+  assert.equal(revokeRes.statusCode, 403, "Cross-user revoke should return 403");
 
   await app.close();
 });
