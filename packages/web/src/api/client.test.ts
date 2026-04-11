@@ -106,24 +106,13 @@ describe("RunnerClient shape-wrap (hosted)", () => {
     }
   });
 
-  it("connectNotion rejects when hosted and no token supplied", async () => {
+  it("connectNotion sends notion_connect with empty payload (OAuth flow on runner)", async () => {
     const client = new RunnerClient("http://hosted.test");
     try {
-      await assert.rejects(() => client.connectNotion("claude"), /Notion 토큰/);
-    } finally {
-      restore();
-    }
-  });
-
-  it("connectNotion hosted path sends token in notion_connect payload", async () => {
-    const client = new RunnerClient("http://hosted.test");
-    try {
-      const result = await client.connectNotion("claude", { token: "secret_abc1234567", dbId: "db-1" });
+      const result = await client.connectNotion("claude");
       assert.equal(result.providerId, "claude");
       const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
       assert.equal(body.op, "notion_connect");
-      assert.equal(body.payload.token, "secret_abc1234567");
-      assert.equal(body.payload.dbId, "db-1");
     } finally {
       restore();
     }

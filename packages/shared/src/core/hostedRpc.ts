@@ -316,7 +316,7 @@ export type SaveProviderApiKeyResult = z.infer<typeof SaveProviderApiKeyResultSc
 // Making dbId optional keeps the existing token-only UX working without
 // blocking future expansion.
 export const NotionConnectPayloadSchema = z.object({
-  token: z.string().min(1),
+  token: z.string().min(1).optional(),
   dbId: z.string().min(1).optional()
 }).strict();
 export const NotionConnectResultSchema = z.object({

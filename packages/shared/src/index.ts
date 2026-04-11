@@ -45,3 +45,5 @@ export {
   SidebarStateSchema,
   type SidebarState
 } from "./core/viewModels";
+
+export { performGeminiNotionOAuth } from "./core/notionOAuth";

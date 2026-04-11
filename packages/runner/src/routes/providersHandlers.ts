@@ -16,6 +16,7 @@ import {
   ProviderId,
   providerIds
 } from "@jasojeon/shared";
+import { performGeminiNotionOAuth } from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
 function requireProviderId(value: string): ProviderId {
@@ -115,7 +116,12 @@ export async function notionConnect(
   payload: NotionConnectPayload
 ): Promise<NotionConnectResult> {
   await ctx.runBusy("Notion MCP를 연결하는 중...", async () => {
-    await ctx.registry().saveNotionToken(payload.token);
+    if (payload.token) {
+      await ctx.registry().saveNotionToken(payload.token);
+    } else {
+      // token 없으면 OAuth 브라우저 플로우 실행 (로컬 러너에서 브라우저 열림)
+      await performGeminiNotionOAuth("notion");
+    }
     await ctx.registry().connectNotionMcp(NOTION_PROVIDER);
     await ctx.stateStore.refreshProvider(NOTION_PROVIDER);
   });

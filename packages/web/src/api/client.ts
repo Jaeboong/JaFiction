@@ -307,15 +307,8 @@ export class RunnerClient {
     return this.refetchProviderRuntimeState(providerId);
   }
 
-  async connectNotion(providerId: ProviderId, hostedOpts?: { token: string; dbId?: string }): Promise<ProviderRuntimeState> {
-    if (!hostedOpts || !hostedOpts.token) {
-      throw new Error("Notion 토큰이 필요합니다.");
-    }
-    const payload: { token: string; dbId?: string } = { token: hostedOpts.token };
-    if (hostedOpts.dbId) {
-      payload.dbId = hostedOpts.dbId;
-    }
-    await this.rpcCall("notion_connect", payload);
+  async connectNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
+    await this.rpcCall("notion_connect", {});
     return this.refetchProviderRuntimeState(providerId);
   }
 

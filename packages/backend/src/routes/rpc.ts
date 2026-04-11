@@ -90,8 +90,12 @@ export async function registerRpc(
         return reply.code(200).send(response);
       }
 
+      // notion_connect triggers a local browser OAuth flow on the runner —
+      // allow up to 5 minutes for the user to authorize in the browser.
+      const timeoutMs = req.op === "notion_connect" ? 5 * 60 * 1_000 : undefined;
+
       // Forward to runner and pipe back the response envelope.
-      const response = await deps.hub.sendRpc(deviceId, req);
+      const response = await deps.hub.sendRpc(deviceId, req, { timeoutMs });
       return reply.code(200).send(response);
     }
   );
