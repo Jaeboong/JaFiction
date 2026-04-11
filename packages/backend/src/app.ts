@@ -31,9 +31,46 @@ export interface AppDeps {
   readonly deviceHub?: DeviceHub;
 }
 
+/**
+ * Pino redaction paths for the backend logger. Every field here is masked
+ * wherever it appears in an object that the logger serializes, so leaks
+ * from accidental `log.info({ body: req.body })` or from future ad-hoc
+ * diagnostic logging cannot surface the raw secret.
+ *
+ * Keep in sync with runner-side `redactForLog` in
+ * `packages/runner/src/hosted/rpcDispatcher.ts` — both ends of the RPC
+ * boundary must redact the same shapes.
+ */
+export const BACKEND_LOG_REDACT_PATHS: readonly string[] = [
+  // save_provider_api_key payload
+  "payload.key",
+  "req.body.payload.key",
+  "body.payload.key",
+  // notion_connect payload
+  "payload.token",
+  "req.body.payload.token",
+  "body.payload.token",
+  // opendart_save_key payload
+  "payload.apiKey",
+  "req.body.payload.apiKey",
+  "body.payload.apiKey",
+  // Session cookie echoed into logs
+  "req.headers.cookie",
+  "headers.cookie"
+];
+
+function defaultLoggerConfig(): object {
+  return {
+    redact: {
+      paths: [...BACKEND_LOG_REDACT_PATHS],
+      censor: "[REDACTED]"
+    }
+  };
+}
+
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: deps.logger ?? (deps.env.NODE_ENV !== "test"),
+    logger: deps.logger ?? (deps.env.NODE_ENV !== "test" ? defaultLoggerConfig() : false),
   });
 
   // Plugins

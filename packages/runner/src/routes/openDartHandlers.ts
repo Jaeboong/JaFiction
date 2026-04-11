@@ -3,6 +3,8 @@ import {
   OpendartSaveKeyResult,
   OpendartTestPayload,
   OpendartTestResult,
+  OpendartDeleteKeyPayload,
+  OpendartDeleteKeyResult,
   OpenDartClient
 } from "@jasojeon/shared";
 import { openDartSecretKey, RunnerContext } from "../runnerContext";
@@ -17,6 +19,17 @@ export async function opendartSaveKey(
   }
   await ctx.runBusy("OpenDART API 키를 저장하는 중...", async () => {
     await ctx.secrets().store(openDartSecretKey, apiKey);
+    await ctx.stateStore.refreshOpenDartConfigured();
+  });
+  return { ok: true };
+}
+
+export async function opendartDeleteKey(
+  ctx: RunnerContext,
+  _payload: OpendartDeleteKeyPayload
+): Promise<OpendartDeleteKeyResult> {
+  await ctx.runBusy("OpenDART API 키를 삭제하는 중...", async () => {
+    await ctx.secrets().delete(openDartSecretKey);
     await ctx.stateStore.refreshOpenDartConfigured();
   });
   return { ok: true };

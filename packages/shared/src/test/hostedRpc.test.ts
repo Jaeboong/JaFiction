@@ -57,6 +57,14 @@ import {
   UploadDocumentChunkPayloadSchema,
   UploadDocumentChunkResultSchema,
   UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES,
+  ClearProviderApiKeyPayloadSchema,
+  ClearProviderApiKeyResultSchema,
+  NotionCheckPayloadSchema,
+  NotionCheckResultSchema,
+  OpendartDeleteKeyPayloadSchema,
+  OpendartDeleteKeyResultSchema,
+  SaveAgentDefaultsPayloadSchema,
+  SaveAgentDefaultsResultSchema,
   StateSnapshotEventPayloadSchema,
   RunEventPayloadSchema,
   InterventionRequestPayloadSchema,
@@ -419,16 +427,16 @@ test("save_provider_api_key: requires provider and non-empty key", () => {
   assert.equal(missingProvider.success, false);
 });
 
-test("notion_connect: requires token and dbId", () => {
+test("notion_connect: requires token; dbId optional", () => {
   const ok = RpcRequestSchema.safeParse({
     v: 1, id: "r17", op: "notion_connect",
     payload: { token: "secret_token", dbId: "db-uuid" }
   });
   assert.equal(ok.success, true);
-  const emptyToken = NotionConnectPayloadSchema.safeParse({ token: "", dbId: "db-uuid" });
+  const tokenOnly = NotionConnectPayloadSchema.safeParse({ token: "secret_token" });
+  assert.equal(tokenOnly.success, true);
+  const emptyToken = NotionConnectPayloadSchema.safeParse({ token: "" });
   assert.equal(emptyToken.success, false);
-  const missingDb = NotionConnectPayloadSchema.safeParse({ token: "tok" });
-  assert.equal(missingDb.success, false);
 });
 
 test("notion_disconnect: empty payload accepted", () => {
@@ -690,6 +698,58 @@ test("UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES equals 100MB", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Stage 11.3 — provider / settings parity new-op round-trips
+// ---------------------------------------------------------------------------
+
+test("clear_provider_api_key: requires provider; result is {ok:true}", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-clear-key", op: "clear_provider_api_key",
+    payload: { provider: "claude" }
+  });
+  assert.equal(ok.success, true);
+  const badProvider = ClearProviderApiKeyPayloadSchema.safeParse({ provider: "unknown-llm" });
+  assert.equal(badProvider.success, false);
+  const result = ClearProviderApiKeyResultSchema.parse({ ok: true });
+  assert.equal(result.ok, true);
+});
+
+test("notion_check: requires provider; result is {ok:true}", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-notion-check", op: "notion_check",
+    payload: { provider: "claude" }
+  });
+  assert.equal(ok.success, true);
+  const missing = NotionCheckPayloadSchema.safeParse({});
+  assert.equal(missing.success, false);
+  const result = NotionCheckResultSchema.parse({ ok: true });
+  assert.equal(result.ok, true);
+});
+
+test("opendart_delete_key: empty payload accepted; extra field rejected", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-opendart-del", op: "opendart_delete_key",
+    payload: {}
+  });
+  assert.equal(ok.success, true);
+  const fail = OpendartDeleteKeyPayloadSchema.safeParse({ extra: true });
+  assert.equal(fail.success, false);
+  const result = OpendartDeleteKeyResultSchema.parse({ ok: true });
+  assert.equal(result.ok, true);
+});
+
+test("save_agent_defaults: requires agentDefaults object; result is {ok:true}", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-save-defaults", op: "save_agent_defaults",
+    payload: { agentDefaults: {} }
+  });
+  assert.equal(ok.success, true);
+  const missing = SaveAgentDefaultsPayloadSchema.safeParse({});
+  assert.equal(missing.success, false);
+  const result = SaveAgentDefaultsResultSchema.parse({ ok: true });
+  assert.equal(result.ok, true);
+});
+
+// ---------------------------------------------------------------------------
 // Event envelope round-trips
 // ---------------------------------------------------------------------------
 
@@ -823,12 +883,16 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "analyze_insights": return acc + 1;
       case "generate_insights": return acc + 1;
       case "upload_document_chunk": return acc + 1;
+      case "clear_provider_api_key": return acc + 1;
+      case "notion_check": return acc + 1;
+      case "opendart_delete_key": return acc + 1;
+      case "save_agent_defaults": return acc + 1;
       default: return assertNever(op);
     }
   }, 0);
 
-  assert.equal(count, 33);
-  assert.equal(OP_NAMES.length, 33);
+  assert.equal(count, 37);
+  assert.equal(OP_NAMES.length, 37);
 });
 
 test("EVENT_NAMES exhaustiveness via switch", () => {

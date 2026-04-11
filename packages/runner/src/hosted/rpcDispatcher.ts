@@ -6,7 +6,7 @@ import {
 } from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
-import { getState, getAgentDefaults } from "../routes/stateHandlers";
+import { getState, getAgentDefaults, saveAgentDefaults } from "../routes/stateHandlers";
 import {
   listProjects,
   getProject,
@@ -28,10 +28,12 @@ import {
   callProviderTest,
   saveProviderConfig,
   saveProviderApiKey,
+  clearProviderApiKey,
   notionConnect,
-  notionDisconnect
+  notionDisconnect,
+  notionCheck
 } from "../routes/providersHandlers";
-import { opendartSaveKey, opendartTest } from "../routes/openDartHandlers";
+import { opendartSaveKey, opendartTest, opendartDeleteKey } from "../routes/openDartHandlers";
 import { readFile, writeFile, listWorkspaceFiles } from "../routes/fileHandlers";
 
 // ---------------------------------------------------------------------------
@@ -269,6 +271,18 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
 
     case "upload_document_chunk":
       return uploadDocumentChunk(ctx, req.payload);
+
+    case "clear_provider_api_key":
+      return clearProviderApiKey(ctx, req.payload);
+
+    case "notion_check":
+      return notionCheck(ctx, req.payload);
+
+    case "opendart_delete_key":
+      return opendartDeleteKey(ctx, req.payload);
+
+    case "save_agent_defaults":
+      return saveAgentDefaults(ctx, req.payload);
 
     default:
       // Compile-time exhaustiveness guard + runtime defense

@@ -294,11 +294,14 @@ export type SaveProviderApiKeyPayload = z.infer<typeof SaveProviderApiKeyPayload
 export type SaveProviderApiKeyResult = z.infer<typeof SaveProviderApiKeyResultSchema>;
 
 // notion_connect — mirrors providersRouter POST /:providerId/notion/connect
-// The plan says { token, dbId } but the existing route takes a providerId;
-// token and dbId are the new hosted-mode inputs the runner will need to connect Notion.
+// Hosted-mode inputs: token is the Notion integration secret, dbId is
+// reserved for future per-database scoping and is optional today (the
+// runner ignores dbId for now and always connects the claude MCP surface).
+// Making dbId optional keeps the existing token-only UX working without
+// blocking future expansion.
 export const NotionConnectPayloadSchema = z.object({
   token: z.string().min(1),
-  dbId: z.string().min(1)
+  dbId: z.string().min(1).optional()
 }).strict();
 export const NotionConnectResultSchema = z.object({
   ok: z.literal(true)
@@ -558,6 +561,49 @@ export const GetAgentDefaultsResultSchema = z.object({
 export type GetAgentDefaultsPayload = z.infer<typeof GetAgentDefaultsPayloadSchema>;
 export type GetAgentDefaultsResult = z.infer<typeof GetAgentDefaultsResultSchema>;
 
+// ---------------------------------------------------------------------------
+// Stage 11.3 ops — provider / settings parity
+// ---------------------------------------------------------------------------
+
+// clear_provider_api_key — mirrors providersRouter DELETE /:providerId/apikey
+export const ClearProviderApiKeyPayloadSchema = z.object({
+  provider: ProviderIdSchema
+}).strict();
+export const ClearProviderApiKeyResultSchema = z.object({
+  ok: z.literal(true)
+}).strict();
+export type ClearProviderApiKeyPayload = z.infer<typeof ClearProviderApiKeyPayloadSchema>;
+export type ClearProviderApiKeyResult = z.infer<typeof ClearProviderApiKeyResultSchema>;
+
+// notion_check — mirrors providersRouter GET /:providerId/notion
+export const NotionCheckPayloadSchema = z.object({
+  provider: ProviderIdSchema
+}).strict();
+export const NotionCheckResultSchema = z.object({
+  ok: z.literal(true)
+}).strict();
+export type NotionCheckPayload = z.infer<typeof NotionCheckPayloadSchema>;
+export type NotionCheckResult = z.infer<typeof NotionCheckResultSchema>;
+
+// opendart_delete_key — mirrors openDartRouter DELETE /apikey
+export const OpendartDeleteKeyPayloadSchema = z.object({}).strict();
+export const OpendartDeleteKeyResultSchema = z.object({
+  ok: z.literal(true)
+}).strict();
+export type OpendartDeleteKeyPayload = z.infer<typeof OpendartDeleteKeyPayloadSchema>;
+export type OpendartDeleteKeyResult = z.infer<typeof OpendartDeleteKeyResultSchema>;
+
+// save_agent_defaults — mirrors configRouter PUT /agent-defaults
+// Deferred from Stage 11.1 — lives here because 11.3 owns the Settings plane.
+export const SaveAgentDefaultsPayloadSchema = z.object({
+  agentDefaults: AgentDefaultsSchema
+}).strict();
+export const SaveAgentDefaultsResultSchema = z.object({
+  ok: z.literal(true)
+}).strict();
+export type SaveAgentDefaultsPayload = z.infer<typeof SaveAgentDefaultsPayloadSchema>;
+export type SaveAgentDefaultsResult = z.infer<typeof SaveAgentDefaultsResultSchema>;
+
 // list_workspace_files — new file RPC (root-jail enforced in Phase 8)
 export const ListWorkspaceFilesPayloadSchema = z.object({
   subdir: z.string().optional()
@@ -604,7 +650,11 @@ export const OP_NAMES = [
   "get_project_insights",
   "analyze_insights",
   "generate_insights",
-  "upload_document_chunk"
+  "upload_document_chunk",
+  "clear_provider_api_key",
+  "notion_check",
+  "opendart_delete_key",
+  "save_agent_defaults"
 ] as const satisfies readonly [string, ...string[]];
 
 // Hard cap for chunked upload assembly (server-enforced in handler).
@@ -655,7 +705,11 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("get_project_insights"), payload: GetProjectInsightsPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("analyze_insights"), payload: AnalyzeInsightsPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("generate_insights"), payload: GenerateInsightsPayloadSchema }).strict(),
-  RpcRequestBaseSchema.extend({ op: z.literal("upload_document_chunk"), payload: UploadDocumentChunkPayloadSchema }).strict()
+  RpcRequestBaseSchema.extend({ op: z.literal("upload_document_chunk"), payload: UploadDocumentChunkPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("clear_provider_api_key"), payload: ClearProviderApiKeyPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("notion_check"), payload: NotionCheckPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("opendart_delete_key"), payload: OpendartDeleteKeyPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("save_agent_defaults"), payload: SaveAgentDefaultsPayloadSchema }).strict()
 ]);
 
 export type RpcRequest = z.infer<typeof RpcRequestSchema>;

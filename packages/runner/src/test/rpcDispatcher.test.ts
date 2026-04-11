@@ -76,6 +76,7 @@ async function makeHarness(opts: HarnessOpts = {}): Promise<Harness> {
     refreshPreferences: async () => undefined,
     refreshProvider: async () => undefined,
     refreshOpenDartConfigured: async () => undefined,
+    refreshAgentDefaults: async () => undefined,
     setOpenDartConnectionState: () => undefined
   } as unknown as RunnerContext["stateStore"];
 
@@ -107,7 +108,8 @@ async function makeHarness(opts: HarnessOpts = {}): Promise<Harness> {
   // Fake config
   const fakeConfig = {
     set: async () => undefined,
-    getAgentDefaults: async () => ({})
+    getAgentDefaults: async () => ({}),
+    setAgentDefaults: async () => undefined
   } as unknown as ReturnType<RunnerContext["config"]>;
 
   const ctx: RunnerContext = {
@@ -994,8 +996,8 @@ test("B3: rpc:save_project — accepts supported field (companyName) and persist
 // ---------------------------------------------------------------------------
 // OP_NAMES count sanity
 // ---------------------------------------------------------------------------
-test("OP_NAMES contains exactly 33 ops", () => {
-  assert.equal(OP_NAMES.length, 33);
+test("OP_NAMES contains exactly 37 ops", () => {
+  assert.equal(OP_NAMES.length, 37);
 });
 
 // ---------------------------------------------------------------------------
@@ -1349,4 +1351,76 @@ test("rpc:call_provider_test — accepts all providerIds", async () => {
   } finally {
     await h.cleanup();
   }
+});
+
+// ---------------------------------------------------------------------------
+// Stage 11.3 — provider / settings parity dispatcher wiring
+// ---------------------------------------------------------------------------
+test("rpc:clear_provider_api_key — returns {ok:true}", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("clear_provider_api_key", { provider: "claude" }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.ok, true);
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:notion_check — returns {ok:true}", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("notion_check", { provider: "claude" }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.ok, true);
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:opendart_delete_key — returns {ok:true} even when no key is stored", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("opendart_delete_key", {}));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.ok, true);
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:save_agent_defaults — persists defaults and returns {ok:true}", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("save_agent_defaults", {
+      agentDefaults: {}
+    }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.ok, true);
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Shape-wrap logging — new ops must never leak secrets in logs
+// ---------------------------------------------------------------------------
+test("redactForLog — save_provider_api_key still masks key (regression)", () => {
+  const result = redactForLog("save_provider_api_key", { provider: "claude", key: "sk-REAL" });
+  assert.equal(result.key, "***");
+  assert.notEqual(result.key, "sk-REAL");
+});
+
+test("redactForLog — notion_connect still masks token (regression)", () => {
+  const result = redactForLog("notion_connect", { token: "secret_REAL", dbId: "db-1" });
+  assert.equal(result.token, "***");
+  assert.equal(result.dbId, "db-1");
 });

@@ -5,10 +5,14 @@ import {
   SaveProviderConfigResult,
   SaveProviderApiKeyPayload,
   SaveProviderApiKeyResult,
+  ClearProviderApiKeyPayload,
+  ClearProviderApiKeyResult,
   NotionConnectPayload,
   NotionConnectResult,
   NotionDisconnectPayload,
   NotionDisconnectResult,
+  NotionCheckPayload,
+  NotionCheckResult,
   ProviderId,
   providerIds
 } from "@jasojeon/shared";
@@ -79,8 +83,32 @@ export async function saveProviderApiKey(
   return { ok: true };
 }
 
+export async function clearProviderApiKey(
+  ctx: RunnerContext,
+  payload: ClearProviderApiKeyPayload
+): Promise<ClearProviderApiKeyResult> {
+  const providerId = requireProviderId(payload.provider);
+  await ctx.runBusy("API 키를 삭제하는 중...", async () => {
+    await ctx.registry().clearApiKey(providerId);
+    await ctx.stateStore.refreshProvider(providerId);
+  });
+  return { ok: true };
+}
+
 // notion_connect: save token then connect MCP (claude provider is canonical for Notion)
 const NOTION_PROVIDER: ProviderId = "claude";
+
+export async function notionCheck(
+  ctx: RunnerContext,
+  payload: NotionCheckPayload
+): Promise<NotionCheckResult> {
+  const providerId = requireProviderId(payload.provider);
+  await ctx.runBusy("Notion MCP 상태를 확인하는 중...", async () => {
+    await ctx.registry().checkNotionMcp(providerId);
+    await ctx.stateStore.refreshProvider(providerId);
+  });
+  return { ok: true };
+}
 
 export async function notionConnect(
   ctx: RunnerContext,
