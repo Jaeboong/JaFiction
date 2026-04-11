@@ -94,7 +94,44 @@ export function createDeviceHub(deps: {
       return;
     }
 
-    // Try RpcResponse first
+    // Runners wrap outgoing frames with a `type` discriminator
+    // ({type: "rpc_response", ...} or {type: "event", ...}). Dispatch by type
+    // first, then validate the inner body against the strict schema.
+    const typed = frame as { type?: unknown };
+    const frameType = typeof typed.type === "string" ? typed.type : undefined;
+
+    if (frameType === "rpc_response") {
+      const { type: _t, ...rest } = typed as Record<string, unknown>;
+      const rpcResult = RpcResponseSchema.safeParse(rest);
+      if (rpcResult.success) {
+        const response = rpcResult.data;
+        const pending = entry.pending.get(response.id);
+        if (pending) {
+          clearTimeout(pending.timer);
+          entry.pending.delete(response.id);
+          pending.resolve(response);
+        } else {
+          log.warn("[deviceHub] received rpc_response for unknown id", { id: response.id, deviceId });
+        }
+        return;
+      }
+      log.warn("[deviceHub] rpc_response failed schema validation", { deviceId });
+      return;
+    }
+
+    if (frameType === "event") {
+      const { type: _t, ...rest } = typed as Record<string, unknown>;
+      const evResult = EventEnvelopeSchema.safeParse(rest);
+      if (evResult.success) {
+        hub.handleRunnerEvent(entry.userId, evResult.data);
+        return;
+      }
+      log.warn("[deviceHub] event failed schema validation", { deviceId });
+      return;
+    }
+
+    // Legacy / untyped frames — fall back to schema-based detection so older
+    // runners (and the existing test fakes) keep working.
     const rpcResult = RpcResponseSchema.safeParse(frame);
     if (rpcResult.success) {
       const response = rpcResult.data;
@@ -109,7 +146,6 @@ export function createDeviceHub(deps: {
       return;
     }
 
-    // Try EventEnvelope
     const evResult = EventEnvelopeSchema.safeParse(frame);
     if (evResult.success) {
       hub.handleRunnerEvent(entry.userId, evResult.data);
