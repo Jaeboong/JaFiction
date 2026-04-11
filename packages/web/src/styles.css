@@ -240,9 +240,9 @@ button:focus-visible {
 .app-loading-card {
   width: min(520px, 100%);
   border: 1px solid #e5e7eb;
-  border-radius: 0;
+  border-radius: 12px;
   background: #ffffff;
-  padding: 24px;
+  padding: 28px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
@@ -272,9 +272,9 @@ button:focus-visible {
 .app-gate {
   width: min(520px, 100%);
   border: 1px solid #e5e7eb;
-  border-radius: 0;
+  border-radius: 12px;
   background: #ffffff;
-  padding: 24px;
+  padding: 28px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
@@ -351,7 +351,9 @@ button:focus-visible {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  border-radius: 0;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .app-gate-cta:hover:not(:disabled) {

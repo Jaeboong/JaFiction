@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { BackendClient, ApproveDeviceClaimResult } from "../../api/client";
-import type { RunnerClient } from "../../api/client";
+import { RunnerClient } from "../../api/client";
 
 export interface ConnectConsentModalProps {
   readonly backendClient: BackendClient;
@@ -61,14 +61,11 @@ export function ConnectConsentModal({ backendClient, runnerClient }: ConnectCons
     while (Date.now() < deadline) {
       await new Promise<void>((resolve) => setTimeout(resolve, POLL_STATE_INTERVAL_MS));
       try {
-        const state = await runnerClient.fetchState();
-        const attached = (state as unknown as { deviceAttached?: boolean }).deviceAttached;
-        if (attached) {
-          window.location.reload();
-          return;
-        }
+        await RunnerClient.bootstrap(runnerClient.baseUrl);
+        window.location.reload();
+        return;
       } catch {
-        // transient polling errors are ignored
+        // device still not attached — keep polling
       }
     }
 
