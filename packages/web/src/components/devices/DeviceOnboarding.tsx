@@ -11,11 +11,9 @@ import { ConnectConsentModal } from "./ConnectConsentModal";
 export interface DeviceOnboardingProps {
   readonly client: BackendClient;
   readonly runnerClient?: RunnerClient;
+  readonly onConnected: () => void;
 }
 
-// Minimal stub so ConnectConsentModal gets a RunnerClient even in contexts where
-// no live runner exists yet (the post-approval poll will fail gracefully and the
-// fallback window.location.reload() handles the transition).
 function makeStubRunnerClient(baseUrl: string): RunnerClient {
   return {
     baseUrl,
@@ -23,7 +21,7 @@ function makeStubRunnerClient(baseUrl: string): RunnerClient {
   } as unknown as RunnerClient;
 }
 
-export function DeviceOnboarding({ client, runnerClient }: DeviceOnboardingProps) {
+export function DeviceOnboarding({ client, runnerClient, onConnected }: DeviceOnboardingProps) {
   const rc = runnerClient ?? makeStubRunnerClient(client.baseUrl);
-  return <ConnectConsentModal backendClient={client} runnerClient={rc} />;
+  return <ConnectConsentModal backendClient={client} runnerClient={rc} onConnected={onConnected} />;
 }

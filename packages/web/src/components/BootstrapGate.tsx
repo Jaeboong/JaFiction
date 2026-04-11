@@ -30,7 +30,7 @@ export function BootstrapGate({
     return <LoginGate />;
   }
   if (reason === "device_offline") {
-    return <DeviceOnboarding client={backendClient} />;
+    return <DeviceOnboarding client={backendClient} onConnected={onRetry} />;
   }
   if (reason === "network_error") {
     return (

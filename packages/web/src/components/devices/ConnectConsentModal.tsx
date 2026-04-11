@@ -5,6 +5,7 @@ import { RunnerClient } from "../../api/client";
 export interface ConnectConsentModalProps {
   readonly backendClient: BackendClient;
   readonly runnerClient: RunnerClient;
+  readonly onConnected: () => void;
 }
 
 type ModalState =
@@ -25,7 +26,7 @@ type ModalState =
 const POLL_STATE_INTERVAL_MS = 500;
 const POLL_STATE_TIMEOUT_MS = 10_000;
 
-export function ConnectConsentModal({ backendClient, runnerClient }: ConnectConsentModalProps) {
+export function ConnectConsentModal({ backendClient, runnerClient, onConnected }: ConnectConsentModalProps) {
   const [consented, setConsented] = useState(false);
   const [modalState, setModalState] = useState<ModalState>({ phase: "consent" });
 
@@ -70,7 +71,7 @@ export function ConnectConsentModal({ backendClient, runnerClient }: ConnectCons
       await new Promise<void>((resolve) => setTimeout(resolve, POLL_STATE_INTERVAL_MS));
       try {
         await RunnerClient.bootstrap(runnerClient.baseUrl);
-        window.location.reload();
+        onConnected();
         return;
       } catch {
         // device still not attached — keep polling

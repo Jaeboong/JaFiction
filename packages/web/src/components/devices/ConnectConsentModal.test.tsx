@@ -27,7 +27,7 @@ const runnerStub = {
 describe("ConnectConsentModal", () => {
   it("renders with consent checkbox and disabled Connect button in initial state", () => {
     const html = renderToStaticMarkup(
-      <ConnectConsentModal backendClient={backendStub} runnerClient={runnerStub} />
+      <ConnectConsentModal backendClient={backendStub} runnerClient={runnerStub} onConnected={() => undefined} />
     );
     assert.match(html, /data-testid="device-onboarding-body"/);
     assert.match(html, /data-testid="consent-checkbox"/);
@@ -38,7 +38,7 @@ describe("ConnectConsentModal", () => {
 
   it("renders the consent copy explaining what the runner does", () => {
     const html = renderToStaticMarkup(
-      <ConnectConsentModal backendClient={backendStub} runnerClient={runnerStub} />
+      <ConnectConsentModal backendClient={backendStub} runnerClient={runnerStub} onConnected={() => undefined} />
     );
     assert.match(html, /로컬 환경에 연결/);
     assert.match(html, /로컬 CLI 러너/);
@@ -47,7 +47,7 @@ describe("ConnectConsentModal", () => {
 
   it("renders the Connect button", () => {
     const html = renderToStaticMarkup(
-      <ConnectConsentModal backendClient={backendStub} runnerClient={runnerStub} />
+      <ConnectConsentModal backendClient={backendStub} runnerClient={runnerStub} onConnected={() => undefined} />
     );
     assert.match(html, /data-testid="connect-button"/);
   });
