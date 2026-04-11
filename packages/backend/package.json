@@ -1,0 +1,11 @@
+{
+  "name": "@jafiction/backend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js -p tsconfig.json",
+    "typecheck": "../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js --noEmit -p tsconfig.json"
+  }
+}
