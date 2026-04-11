@@ -152,6 +152,126 @@ describe("RunnerClient shape-wrap (hosted)", () => {
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // Stage 11.4 — run lifecycle parity (hosted branch + expanded result shapes)
+  // ---------------------------------------------------------------------------
+  it("deleteRun hosted path dispatches delete_run with slug+runId", async () => {
+    const client = new RunnerClient("http://hosted.test", "hosted");
+    try {
+      const result = await client.deleteRun("alpha", "run-42");
+      assert.equal(result, undefined);
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
+      assert.equal(body.op, "delete_run");
+      assert.equal(body.payload.slug, "alpha");
+      assert.equal(body.payload.runId, "run-42");
+    } finally {
+      restore();
+    }
+  });
+
+  it("resumeRun hosted path returns expanded {runId, resumedFromRunId}", async () => {
+    const client = new RunnerClient("http://hosted.test", "hosted");
+    // Override: the handler returns the new 11.4 shape.
+    fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
+      const req = JSON.parse(String(init.body));
+      return new Response(
+        JSON.stringify({
+          v: 1,
+          id: req.id,
+          ok: true,
+          result: { runId: "run-42", resumedFromRunId: "run-42" }
+        }),
+        { status: 200 }
+      );
+    });
+    try {
+      const result = await client.resumeRun("alpha", "run-42", "다시 시작");
+      assert.equal(result.runId, "run-42");
+      assert.equal(result.resumedFromRunId, "run-42");
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
+      assert.equal(body.op, "resume_run");
+      assert.equal(body.payload.runId, "run-42");
+      assert.equal(body.payload.message, "다시 시작");
+    } finally {
+      restore();
+    }
+  });
+
+  it("resumeRun hosted path omits message when empty", async () => {
+    const client = new RunnerClient("http://hosted.test", "hosted");
+    fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
+      const req = JSON.parse(String(init.body));
+      return new Response(
+        JSON.stringify({
+          v: 1,
+          id: req.id,
+          ok: true,
+          result: { runId: "run-1", resumedFromRunId: "run-1" }
+        }),
+        { status: 200 }
+      );
+    });
+    try {
+      await client.resumeRun("alpha", "run-1");
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
+      assert.equal(body.payload.runId, "run-1");
+      assert.equal(body.payload.message, undefined);
+    } finally {
+      restore();
+    }
+  });
+
+  it("submitIntervention hosted path returns expanded {outcome, runId, nextRunId?}", async () => {
+    const client = new RunnerClient("http://hosted.test", "hosted");
+    fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
+      const req = JSON.parse(String(init.body));
+      return new Response(
+        JSON.stringify({
+          v: 1,
+          id: req.id,
+          ok: true,
+          result: { outcome: "continuation", runId: "run-1", nextRunId: "run-2" }
+        }),
+        { status: 200 }
+      );
+    });
+    try {
+      const result = await client.submitIntervention("run-1", "계속 진행해주세요");
+      assert.equal(result.outcome, "continuation");
+      assert.equal(result.runId, "run-1");
+      assert.equal(result.nextRunId, "run-2");
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
+      assert.equal(body.op, "submit_intervention");
+      assert.equal(body.payload.runId, "run-1");
+      assert.equal(body.payload.text, "계속 진행해주세요");
+    } finally {
+      restore();
+    }
+  });
+
+  it("submitIntervention hosted path handles {outcome, runId} without nextRunId", async () => {
+    const client = new RunnerClient("http://hosted.test", "hosted");
+    fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
+      const req = JSON.parse(String(init.body));
+      return new Response(
+        JSON.stringify({
+          v: 1,
+          id: req.id,
+          ok: true,
+          result: { outcome: "queued", runId: "run-1" }
+        }),
+        { status: 200 }
+      );
+    });
+    try {
+      const result = await client.submitIntervention("run-1", "wait");
+      assert.equal(result.outcome, "queued");
+      assert.equal(result.nextRunId, undefined);
+    } finally {
+      restore();
+    }
+  });
+
   it("testOpenDartConnection maps hosted {ok,sample} to {ok,message}", async () => {
     const client = new RunnerClient("http://hosted.test", "hosted");
     // Override mock to return a sample string.

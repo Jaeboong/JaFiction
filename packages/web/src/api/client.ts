@@ -7,6 +7,7 @@ import type {
   CreateProjectResult,
   DeleteDocumentResult,
   DeleteProjectResult,
+  DeleteRunResult,
   GenerateInsightsResult,
   GetAgentDefaultsResult,
   GetProjectInsightsResult,
@@ -19,11 +20,13 @@ import type {
   ProjectRecord,
   ProviderId,
   ProviderRuntimeState,
+  ResumeRunResult,
   SaveDocumentResult,
   SaveEssayDraftResult,
   SaveProjectResult,
   SidebarState,
-  StartRunResult
+  StartRunResult,
+  SubmitInterventionResult
 } from "@jasojeon/shared";
 
 export interface SessionPayload {
@@ -336,8 +339,11 @@ export class RunnerClient {
     return this.request<StartRunResult>(`/api/projects/${projectSlug}/runs`, { method: "POST", body: payload });
   }
 
-  // LOCAL-ONLY: no hosted op yet
-  deleteRun(projectSlug: string, runId: string): Promise<void> {
+  async deleteRun(projectSlug: string, runId: string): Promise<void> {
+    if (this.mode === "hosted") {
+      await this.rpcCall<DeleteRunResult>("delete_run", { slug: projectSlug, runId });
+      return;
+    }
     return this.request(`/api/projects/${projectSlug}/runs/${runId}`, { method: "DELETE" });
   }
 
@@ -377,9 +383,17 @@ export class RunnerClient {
     return this.request<{ ok: boolean; message: string }>("/api/opendart/test", { method: "POST" });
   }
 
-  // LOCAL-ONLY: hosted submit_intervention returns {ok: true}; method contract is {outcome, runId, nextRunId?}
-  submitIntervention(runId: string, message: string): Promise<{ outcome: string; runId: string; nextRunId?: string }> {
-    return this.request<{ outcome: string; runId: string; nextRunId?: string }>(`/api/runs/${runId}/intervention`, {
+  async submitIntervention(
+    runId: string,
+    message: string
+  ): Promise<SubmitInterventionResult> {
+    if (this.mode === "hosted") {
+      return this.rpcCall<SubmitInterventionResult>("submit_intervention", {
+        runId,
+        text: message
+      });
+    }
+    return this.request<SubmitInterventionResult>(`/api/runs/${runId}/intervention`, {
       method: "POST",
       body: { message }
     });
@@ -403,9 +417,19 @@ export class RunnerClient {
     });
   }
 
-  // LOCAL-ONLY: hosted resume_run returns {ok: true}; method contract is {runId, resumedFromRunId}
-  resumeRun(projectSlug: string, runId: string, message = ""): Promise<{ runId: string; resumedFromRunId: string }> {
-    return this.request<{ runId: string; resumedFromRunId: string }>(`/api/projects/${projectSlug}/runs/${runId}/resume`, {
+  async resumeRun(
+    projectSlug: string,
+    runId: string,
+    message = ""
+  ): Promise<ResumeRunResult> {
+    if (this.mode === "hosted") {
+      const payload: { runId: string; message?: string } = { runId };
+      if (message) {
+        payload.message = message;
+      }
+      return this.rpcCall<ResumeRunResult>("resume_run", payload);
+    }
+    return this.request<ResumeRunResult>(`/api/projects/${projectSlug}/runs/${runId}/resume`, {
       method: "POST",
       body: { message }
     });
