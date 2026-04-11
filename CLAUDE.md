@@ -31,10 +31,12 @@ Jasojeon is a web UI + local runner rewrite of the original `forJob` VS Code ext
 
 ```
 ./scripts/check.sh
-./scripts/dev-stack.sh            # canonical: runner (hosted) + web
-./scripts/apply-dev-stack.sh      # web-only restart helper
+./scripts/dev-stack.sh            # canonical: full dev loop (infra + backend + runner + web)
+./scripts/start-dev-backend.sh    # start postgres/redis + backend only
+./scripts/start-dev-runner.sh     # pair (first run) + start runner only
+./scripts/apply-dev-stack.sh      # legacy: web-only restart helper (backend must already be running)
 ./scripts/status-dev-stack.sh
-./scripts/stop-dev-stack.sh
+./scripts/stop-dev-stack.sh       # stop all; --all also tears down containers
 ./scripts/with-node.sh <command>
 ./scripts/with-npm.sh run <script>
 ```

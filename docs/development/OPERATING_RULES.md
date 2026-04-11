@@ -1,5 +1,27 @@
 # Jasojeon Development Harness Operating Rules
 
+## Dev Automation
+
+One command brings up the full hosted dev loop (Postgres, Redis, backend, runner, web):
+
+```bash
+./scripts/dev-stack.sh
+```
+
+One command tears it all down (add `--all` to also stop containers):
+
+```bash
+./scripts/stop-dev-stack.sh
+```
+
+**First-run pairing flow**: On a clean checkout, `dev-stack.sh` will:
+1. Create `packages/backend/.env.dev` from the template and exit — fill in `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `COOKIE_SECRET`, then re-run.
+2. On the next run, detect no device token and prompt for a pairing code. Open the backend URL, sign in, go to Settings → Devices → Add device, and paste the 8-character code. The runner pairs once and subsequent runs are non-interactive.
+
+To skip individual components: `--no-backend`, `--no-runner`, `--no-web`, `--no-infra`. To skip the type-check gate: `--skip-check`.
+
+---
+
 ## Deterministic Checks vs Live Dev Apply
 
 ### Deterministic Checks
