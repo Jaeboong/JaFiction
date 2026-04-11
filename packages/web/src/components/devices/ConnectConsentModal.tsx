@@ -78,7 +78,7 @@ export function ConnectConsentModal({ backendClient, runnerClient }: ConnectCons
   if (modalState.phase === "multiple_claims") {
     return (
       <section className="app-gate app-gate-device" aria-labelledby="consent-heading">
-        <p className="app-gate-kicker">Jasojeon</p>
+        <p className="app-gate-kicker">자소전</p>
         <h1 id="consent-heading">연결할 러너를 선택하세요</h1>
         <div className="app-gate-body">
           <p className="app-gate-description">
@@ -116,13 +116,13 @@ export function ConnectConsentModal({ backendClient, runnerClient }: ConnectCons
 
   return (
     <section className="app-gate app-gate-device" aria-labelledby="consent-heading">
-      <p className="app-gate-kicker">Jasojeon</p>
+      <p className="app-gate-kicker">자소전</p>
       <h1 id="consent-heading">로컬 환경에 연결</h1>
 
       {modalState.phase === "consent" && (
         <div className="app-gate-body" data-testid="device-onboarding-body">
           <p className="app-gate-description">
-            Jasojeon은 로컬 CLI 러너를 통해 이 컴퓨터의 프로젝트 파일을 읽고
+            자소전은 로컬 CLI 러너를 통해 이 컴퓨터의 프로젝트 파일을 읽고
             씁니다. 러너는 사용자가 승인한 암호화 연결로만 이 웹사이트와
             통신합니다.
           </p>

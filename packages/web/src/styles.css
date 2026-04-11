@@ -118,9 +118,9 @@ button:focus-visible {
 
 .app-brand-name {
   font-size: 16.1px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  color: #111827;
+  color: #4f46e5;
 }
 
 .app-tabs {
@@ -372,9 +372,9 @@ button:focus-visible {
 
 .app-loading-kicker {
   margin: 0 0 8px;
-  color: #6b7280;
+  color: #4f46e5;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -404,9 +404,9 @@ button:focus-visible {
 
 .app-gate-kicker {
   margin: 0 0 8px;
-  color: #6b7280;
+  color: #4f46e5;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -478,6 +478,55 @@ button:focus-visible {
   border-radius: 8px;
   text-decoration: none;
   display: inline-block;
+}
+
+/* Login gate — center layout */
+.app-gate-auth {
+  text-align: center;
+}
+
+.app-gate-auth .app-gate-kicker,
+.app-gate-auth h1,
+.app-gate-auth .app-gate-description {
+  text-align: center;
+}
+
+.login-gate-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* Google sign-in button — follows Google brand guidelines */
+.google-signin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 20px;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #3c4043;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: "Google Sans", "Pretendard", sans-serif;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.12);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.google-signin-btn:hover {
+  background: #f8f9fa;
+  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.2);
+}
+
+.google-signin-logo {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .app-gate-cta:hover:not(:disabled) {

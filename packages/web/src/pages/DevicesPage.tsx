@@ -62,7 +62,7 @@ export function DevicesPage({ client }: DevicesPageProps) {
         <div className="devices-empty">
           <h3>연결된 디바이스가 없습니다</h3>
           <p>
-            로컬 컴퓨터에서 Jasojeon 러너를 실행한 뒤 이 브라우저에서
+            로컬 컴퓨터에서 자소전 러너를 실행한 뒤 이 브라우저에서
             로그인하면 자동으로 연결됩니다.
           </p>
         </div>

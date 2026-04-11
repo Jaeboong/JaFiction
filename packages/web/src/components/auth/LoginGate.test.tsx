@@ -26,6 +26,6 @@ describe("LoginGate", () => {
   it("renders the Korean heading and description", () => {
     const html = renderToStaticMarkup(<LoginGate />);
     assert.match(html, /로그인/);
-    assert.match(html, /Jasojeon/);
+    assert.match(html, /자소전/);
   });
 });

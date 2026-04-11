@@ -35,7 +35,7 @@ export function BootstrapGate({
   if (reason === "network_error") {
     return (
       <section className="app-gate app-gate-network" aria-labelledby="network-gate-heading">
-        <p className="app-gate-kicker">Jasojeon</p>
+        <p className="app-gate-kicker">자소전</p>
         <h1 id="network-gate-heading">네트워크에 연결할 수 없습니다.</h1>
         <p className="app-gate-description">
           {errorMessage ?? `백엔드 ${runnerBaseUrl} 에 연결하지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.`}
@@ -49,7 +49,7 @@ export function BootstrapGate({
   if (reason === "unknown") {
     return (
       <section className="app-gate app-gate-unknown" aria-labelledby="unknown-gate-heading">
-        <p className="app-gate-kicker">Jasojeon</p>
+        <p className="app-gate-kicker">자소전</p>
         <h1 id="unknown-gate-heading">연결에 실패했습니다.</h1>
         <p className="app-gate-description">{errorMessage ?? "알 수 없는 오류가 발생했습니다."}</p>
         <button type="button" className="app-gate-cta" onClick={onRetry} data-testid="unknown-gate-retry">
@@ -60,7 +60,7 @@ export function BootstrapGate({
   }
   return (
     <section className="app-loading-card" data-testid="bootstrap-gate-pending">
-      <p className="app-loading-kicker">Jasojeon</p>
+      <p className="app-loading-kicker">자소전</p>
       <h1>러너와 연결 중입니다.</h1>
       <p>{errorMessage ?? `시도 중: ${runnerBaseUrl}`}</p>
     </section>

@@ -363,7 +363,7 @@ export function App() {
                 <rect x="3" y="14" width="7" height="7" rx="1.5" fill="#111827" fillOpacity="0.6" />
                 <path d="M14 15.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4z" stroke="#111827" strokeWidth="1.5" />
               </svg>
-              <span className="app-brand-name">Jasojeon</span>
+              <span className="app-brand-name">자소전</span>
             </div>
 
             {renderTabNav()}
@@ -404,7 +404,7 @@ export function App() {
               <rect x="3" y="14" width="7" height="7" rx="1.5" fill="#111827" fillOpacity="0.6" />
               <path d="M14 15.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4z" stroke="#111827" strokeWidth="1.5" />
             </svg>
-            <span className="app-brand-name">Jasojeon</span>
+            <span className="app-brand-name">자소전</span>
           </div>
 
           {renderTabNav()}
@@ -906,7 +906,7 @@ function getErrorMessage(error: unknown): string {
 
 function describeRunnerBootstrapError(runnerBaseUrl: string, error: unknown): string {
   const message = getErrorMessage(error);
-  if (message.includes("approved local Jasojeon UI")) {
+  if (message.includes("approved local 자소전 UI")) {
     return `선택한 러너 주소 ${runnerBaseUrl} 은(는) 현재 UI origin ${window.location.origin} 에서 허용되지 않았습니다. 공식 dev web origin 또는 runner 자체 origin에서 다시 시도해 주세요.`;
   }
 

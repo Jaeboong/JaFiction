@@ -62,7 +62,7 @@ export function OverviewPage() {
 
           <section className="overview-intro-hero">
             <div className="overview-intro-badge">AI 취업 지원 플랫폼</div>
-            <h1 className="overview-intro-title">Jasojeon</h1>
+            <h1 className="overview-intro-title">자소전</h1>
             <p className="overview-intro-tagline">
               이력서 분석부터 기업 조사까지 — AI가 취업 준비의 전 과정을 자동화합니다.
             </p>
