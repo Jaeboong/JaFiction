@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import test from "node:test";
 
+import * as crypto from "node:crypto";
 import {
   OP_NAMES,
   RpcRequest,
@@ -737,7 +738,25 @@ test("rpc:exhaustive — every OP_NAME is handled (no unknown_op response)", asy
     read_file: { path: "nonexistent-file.txt" },
     write_file: { path: "exhaust-test.txt", contentBase64: Buffer.from("x").toString("base64") },
     list_workspace_files: {},
-    get_agent_defaults: {}
+    get_agent_defaults: {},
+    create_project: { companyName: "ExhaustCo" },
+    delete_project: { slug: project.slug },
+    save_document: { slug: project.slug, title: "notes.md", content: "hi" },
+    save_essay_draft: { slug: project.slug, questionIndex: 0, draft: "x" },
+    analyze_posting: { jobPostingText: "seed" },
+    get_project_insights: { slug: project.slug },
+    analyze_insights: { slug: project.slug },
+    generate_insights: { slug: project.slug },
+    upload_document_chunk: {
+      slug: project.slug,
+      uploadId: "exhaust-upl",
+      filename: "exhaust.txt",
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalBytes: 1,
+      sha256: "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      chunkBase64: Buffer.from("x").toString("base64")
+    }
   };
 
   for (const op of OP_NAMES) {
@@ -975,8 +994,327 @@ test("B3: rpc:save_project — accepts supported field (companyName) and persist
 // ---------------------------------------------------------------------------
 // OP_NAMES count sanity
 // ---------------------------------------------------------------------------
-test("OP_NAMES contains exactly 24 ops", () => {
-  assert.equal(OP_NAMES.length, 24);
+test("OP_NAMES contains exactly 33 ops", () => {
+  assert.equal(OP_NAMES.length, 33);
+});
+
+// ---------------------------------------------------------------------------
+// Stage 11.2 — project CRUD + insights parity
+// ---------------------------------------------------------------------------
+
+test("rpc:create_project — persists and returns detail", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("create_project", { companyName: "Daum" }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.companyName, "Daum");
+      assert.ok(typeof res.result.slug === "string");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:delete_project — removes the project directory", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "DeleteMe" });
+    const res = await h.dispatch(makeEnvelope("delete_project", { slug: project.slug }));
+    assert.equal(res.ok, true);
+    const list = await h.storage.listProjects();
+    assert.ok(!list.some((p) => p.slug === project.slug));
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:save_document — creates a text document, never logs content", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "SaveDocCo" });
+    const secretBody = "TOP-SECRET-RESUME-BODY-XYZ";
+    const res = await h.dispatch(makeEnvelope("save_document", {
+      slug: project.slug,
+      title: "resume.md",
+      content: secretBody,
+      pinnedByDefault: true
+    }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.ok(typeof res.result.docId === "string");
+    }
+    const allLog = JSON.stringify(h.logs);
+    assert.ok(!allLog.includes(secretBody), "document content must not appear in logs");
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:save_essay_draft — persists and pushes state; redacts draft in logs", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({
+      companyName: "DraftCo",
+      essayQuestions: ["지원 동기"]
+    });
+    const secretDraft = "MY-CONFIDENTIAL-DRAFT-TEXT";
+    const res = await h.dispatch(makeEnvelope("save_essay_draft", {
+      slug: project.slug,
+      questionIndex: 0,
+      draft: secretDraft
+    }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.questionIndex, 0);
+    }
+    const allLog = JSON.stringify(h.logs);
+    assert.ok(!allLog.includes(secretDraft), "essay draft must not appear in logs");
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:save_essay_draft — invalid_input for missing question", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "NoQ" });
+    const res = await h.dispatch(makeEnvelope("save_essay_draft", {
+      slug: project.slug,
+      questionIndex: 5,
+      draft: "x"
+    }));
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "invalid_input");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:get_project_insights — returns workspace view", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "InsightCo" });
+    const res = await h.dispatch(makeEnvelope("get_project_insights", { slug: project.slug }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.projectSlug, project.slug);
+      assert.ok(Array.isArray(res.result.documents));
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:analyze_insights — LLM kickoff returns jobId immediately", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "KickoffCo" });
+    const start = Date.now();
+    const res = await h.dispatch(makeEnvelope("analyze_insights", { slug: project.slug }));
+    const elapsed = Date.now() - start;
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.ok(typeof res.result.jobId === "string");
+      assert.ok(res.result.jobId.startsWith("insights-analyze-"));
+    }
+    // Must not block on the background LLM work (the actual analyze would
+    // hit the network). 2000ms is a generous ceiling for dispatcher overhead.
+    assert.ok(elapsed < 2000, `kickoff took ${elapsed}ms — expected immediate return`);
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:generate_insights — LLM kickoff returns jobId immediately", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "GenCo" });
+    const res = await h.dispatch(makeEnvelope("generate_insights", { slug: project.slug }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.ok(typeof res.result.jobId === "string");
+      assert.ok((res.result.jobId as string).startsWith("insights-generate-"));
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:upload_document_chunk — single-chunk happy path", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "ChunkCo" });
+    const body = Buffer.from("single-chunk file body");
+    const hash = crypto.createHash("sha256").update(body).digest("hex");
+    const res = await h.dispatch(makeEnvelope("upload_document_chunk", {
+      slug: project.slug,
+      uploadId: "upl-single",
+      filename: "single.txt",
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalBytes: body.byteLength,
+      sha256: hash,
+      chunkBase64: body.toString("base64")
+    }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.status, "complete");
+      if (res.result.status === "complete") {
+        assert.ok(typeof res.result.docId === "string" && res.result.docId.length > 0);
+      }
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:upload_document_chunk — multi-chunk reassembly + hash verify", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "MultiChunkCo" });
+    const body = Buffer.from("chunk-zero|chunk-one|chunk-two");
+    const mid = Math.floor(body.byteLength / 2);
+    const chunks = [body.subarray(0, mid), body.subarray(mid)];
+    const hash = crypto.createHash("sha256").update(body).digest("hex");
+    const uploadId = "upl-multi";
+    const first = await h.dispatch(makeEnvelope("upload_document_chunk", {
+      slug: project.slug,
+      uploadId,
+      filename: "multi.txt",
+      chunkIndex: 0,
+      totalChunks: 2,
+      totalBytes: body.byteLength,
+      sha256: hash,
+      chunkBase64: chunks[0].toString("base64")
+    }));
+    assert.equal(first.ok, true);
+    if (first.ok) {
+      assert.equal(first.result.status, "accepted");
+    }
+    const second = await h.dispatch(makeEnvelope("upload_document_chunk", {
+      slug: project.slug,
+      uploadId,
+      filename: "multi.txt",
+      chunkIndex: 1,
+      totalChunks: 2,
+      totalBytes: body.byteLength,
+      sha256: hash,
+      chunkBase64: chunks[1].toString("base64")
+    }));
+    assert.equal(second.ok, true);
+    if (second.ok) {
+      assert.equal(second.result.status, "complete");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:upload_document_chunk — rejects out-of-order chunk", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "OOOCo" });
+    const body = Buffer.from("some content to chunk");
+    const hash = crypto.createHash("sha256").update(body).digest("hex");
+    // skip chunk 0, try to send chunk 1 first
+    const res = await h.dispatch(makeEnvelope("upload_document_chunk", {
+      slug: project.slug,
+      uploadId: "upl-ooo",
+      filename: "ooo.txt",
+      chunkIndex: 1,
+      totalChunks: 2,
+      totalBytes: body.byteLength,
+      sha256: hash,
+      chunkBase64: Buffer.from("x").toString("base64")
+    }));
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "invalid_input");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:upload_document_chunk — rejects oversized file (>100MB)", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "SizeCo" });
+    const res = await h.dispatch(makeEnvelope("upload_document_chunk", {
+      slug: project.slug,
+      uploadId: "upl-big",
+      filename: "big.bin",
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalBytes: 200 * 1024 * 1024,
+      sha256: "0".repeat(64),
+      chunkBase64: "AAAA"
+    }));
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "invalid_input");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:upload_document_chunk — rejects hash mismatch", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "HashCo" });
+    const body = Buffer.from("hash-check-body");
+    const res = await h.dispatch(makeEnvelope("upload_document_chunk", {
+      slug: project.slug,
+      uploadId: "upl-hash",
+      filename: "h.txt",
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalBytes: body.byteLength,
+      sha256: "1".repeat(64),
+      chunkBase64: body.toString("base64")
+    }));
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "invalid_input");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:analyze_posting — returns error envelope when no URL/text provided", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("analyze_posting", {}));
+    // fetchAndExtractJobPosting throws without URL or text — expect error envelope
+    assert.equal(res.ok, false);
+  } finally {
+    await h.cleanup();
+  }
+});
+
+// redactForLog tests for new ops
+test("redactForLog — save_document masks content", () => {
+  const result = redactForLog("save_document", { slug: "s", title: "t", content: "REAL-SECRET" });
+  assert.equal(result.content, "<redacted>");
+  assert.equal(result.title, "t");
+});
+
+test("redactForLog — save_essay_draft masks draft", () => {
+  const result = redactForLog("save_essay_draft", { slug: "s", questionIndex: 0, draft: "REAL-DRAFT" });
+  assert.equal(result.draft, "<redacted>");
+});
+
+test("redactForLog — upload_document_chunk masks chunkBase64", () => {
+  const result = redactForLog("upload_document_chunk", {
+    slug: "s", uploadId: "u", chunkBase64: "RAW-B64-DATA"
+  });
+  assert.equal(result.chunkBase64, "<redacted>");
+  assert.equal(result.uploadId, "u");
 });
 
 // ---------------------------------------------------------------------------

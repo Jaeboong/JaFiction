@@ -39,6 +39,24 @@ import {
   ReadFileResultSchema,
   GetAgentDefaultsPayloadSchema,
   GetAgentDefaultsResultSchema,
+  CreateProjectPayloadSchema,
+  CreateProjectResultSchema,
+  DeleteProjectPayloadSchema,
+  SaveDocumentPayloadSchema,
+  SaveDocumentResultSchema,
+  SaveEssayDraftPayloadSchema,
+  SaveEssayDraftResultSchema,
+  AnalyzePostingPayloadSchema,
+  AnalyzePostingResultSchema,
+  GetProjectInsightsPayloadSchema,
+  GetProjectInsightsResultSchema,
+  AnalyzeInsightsPayloadSchema,
+  AnalyzeInsightsResultSchema,
+  GenerateInsightsPayloadSchema,
+  GenerateInsightsResultSchema,
+  UploadDocumentChunkPayloadSchema,
+  UploadDocumentChunkResultSchema,
+  UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES,
   StateSnapshotEventPayloadSchema,
   RunEventPayloadSchema,
   InterventionRequestPayloadSchema,
@@ -494,6 +512,184 @@ test("get_agent_defaults: extra payload field rejected", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Stage 11.2 — new op round-trips
+// ---------------------------------------------------------------------------
+
+test("create_project: requires non-empty companyName", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r25", op: "create_project",
+    payload: { companyName: "Kakao" }
+  });
+  assert.equal(ok.success, true);
+  const fail = CreateProjectPayloadSchema.safeParse({ companyName: "" });
+  assert.equal(fail.success, false);
+});
+
+test("create_project: result round-trips as ProjectDetail", () => {
+  const result = CreateProjectResultSchema.parse(MINIMAL_PROJECT);
+  assert.equal(result.slug, "alpha");
+});
+
+test("create_project: extra field rejected", () => {
+  const fail = CreateProjectPayloadSchema.safeParse({ companyName: "X", hack: true });
+  assert.equal(fail.success, false);
+});
+
+test("delete_project: requires slug", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r26", op: "delete_project", payload: { slug: "alpha" }
+  });
+  assert.equal(ok.success, true);
+  const fail = DeleteProjectPayloadSchema.safeParse({});
+  assert.equal(fail.success, false);
+});
+
+test("save_document: requires slug, title, content", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r27", op: "save_document",
+    payload: { slug: "alpha", title: "notes.md", content: "hi" }
+  });
+  assert.equal(ok.success, true);
+  const missing = SaveDocumentPayloadSchema.safeParse({ slug: "alpha", title: "t" });
+  assert.equal(missing.success, false);
+  const result = SaveDocumentResultSchema.parse({ docId: "doc-1" });
+  assert.equal(result.docId, "doc-1");
+});
+
+test("save_document: empty title rejected", () => {
+  const fail = SaveDocumentPayloadSchema.safeParse({ slug: "alpha", title: "", content: "" });
+  assert.equal(fail.success, false);
+});
+
+test("save_essay_draft: requires slug, questionIndex>=0, draft", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r28", op: "save_essay_draft",
+    payload: { slug: "alpha", questionIndex: 0, draft: "hello" }
+  });
+  assert.equal(ok.success, true);
+  const negIdx = SaveEssayDraftPayloadSchema.safeParse({
+    slug: "alpha", questionIndex: -1, draft: "x"
+  });
+  assert.equal(negIdx.success, false);
+  const result = SaveEssayDraftResultSchema.parse({ questionIndex: 2 });
+  assert.equal(result.questionIndex, 2);
+});
+
+test("analyze_posting: all fields optional but strict", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r29", op: "analyze_posting",
+    payload: { jobPostingUrl: "https://example.com/jobs/1" }
+  });
+  assert.equal(ok.success, true);
+  const empty = RpcRequestSchema.safeParse({
+    v: 1, id: "r29", op: "analyze_posting", payload: {}
+  });
+  assert.equal(empty.success, true);
+  const hack = AnalyzePostingPayloadSchema.safeParse({ hack: 1 });
+  assert.equal(hack.success, false);
+});
+
+test("analyze_posting: result requires core fields", () => {
+  const result = AnalyzePostingResultSchema.parse({
+    source: "url",
+    fetchedAt: "2026-04-11T00:00:00.000Z",
+    normalizedText: "...",
+    keywords: ["a", "b"],
+    warnings: []
+  });
+  assert.equal(result.source, "url");
+});
+
+test("get_project_insights: requires slug, result shape", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r30", op: "get_project_insights",
+    payload: { slug: "alpha" }
+  });
+  assert.equal(ok.success, true);
+  const fail = GetProjectInsightsPayloadSchema.safeParse({});
+  assert.equal(fail.success, false);
+  const result = GetProjectInsightsResultSchema.parse({
+    projectSlug: "alpha",
+    companyName: "Alpha",
+    documents: []
+  });
+  assert.equal(result.projectSlug, "alpha");
+});
+
+test("analyze_insights / generate_insights: LLM kickoff returns jobId", () => {
+  const ok1 = RpcRequestSchema.safeParse({
+    v: 1, id: "r31", op: "analyze_insights", payload: { slug: "alpha" }
+  });
+  assert.equal(ok1.success, true);
+  const ok2 = RpcRequestSchema.safeParse({
+    v: 1, id: "r31b", op: "generate_insights",
+    payload: { slug: "alpha", patch: { companyName: "Beta" } }
+  });
+  assert.equal(ok2.success, true);
+  const r1 = AnalyzeInsightsResultSchema.parse({ jobId: "job-123" });
+  assert.equal(r1.jobId, "job-123");
+  const r2 = GenerateInsightsResultSchema.parse({ jobId: "job-456" });
+  assert.equal(r2.jobId, "job-456");
+  // missing slug rejected
+  const fail = AnalyzeInsightsPayloadSchema.safeParse({});
+  assert.equal(fail.success, false);
+});
+
+test("upload_document_chunk: requires full envelope + hex sha256", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r32", op: "upload_document_chunk",
+    payload: {
+      slug: "alpha",
+      uploadId: "upl-1",
+      filename: "resume.pdf",
+      chunkIndex: 0,
+      totalChunks: 2,
+      totalBytes: 2000,
+      sha256: "a".repeat(64),
+      chunkBase64: "AAAA"
+    }
+  });
+  assert.equal(ok.success, true);
+  const badHash = UploadDocumentChunkPayloadSchema.safeParse({
+    slug: "alpha",
+    uploadId: "upl-1",
+    filename: "x",
+    chunkIndex: 0,
+    totalChunks: 1,
+    totalBytes: 1,
+    sha256: "not-hex",
+    chunkBase64: "A"
+  });
+  assert.equal(badHash.success, false);
+});
+
+test("upload_document_chunk: result discriminates accepted vs complete", () => {
+  const accepted = UploadDocumentChunkResultSchema.parse({
+    status: "accepted",
+    uploadId: "upl-1",
+    nextChunkIndex: 3
+  });
+  assert.equal(accepted.status, "accepted");
+  const complete = UploadDocumentChunkResultSchema.parse({
+    status: "complete",
+    uploadId: "upl-1",
+    docId: "doc-1"
+  });
+  assert.equal(complete.status, "complete");
+  // wrong field combination rejected
+  const bad = UploadDocumentChunkResultSchema.safeParse({
+    status: "accepted",
+    uploadId: "upl-1",
+    docId: "doc-1"
+  });
+  assert.equal(bad.success, false);
+});
+
+test("UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES equals 100MB", () => {
+  assert.equal(UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES, 100 * 1024 * 1024);
+});
+
+// ---------------------------------------------------------------------------
 // Event envelope round-trips
 // ---------------------------------------------------------------------------
 
@@ -618,12 +814,21 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "write_file": return acc + 1;
       case "list_workspace_files": return acc + 1;
       case "get_agent_defaults": return acc + 1;
+      case "create_project": return acc + 1;
+      case "delete_project": return acc + 1;
+      case "save_document": return acc + 1;
+      case "save_essay_draft": return acc + 1;
+      case "analyze_posting": return acc + 1;
+      case "get_project_insights": return acc + 1;
+      case "analyze_insights": return acc + 1;
+      case "generate_insights": return acc + 1;
+      case "upload_document_chunk": return acc + 1;
       default: return assertNever(op);
     }
   }, 0);
 
-  assert.equal(count, 24);
-  assert.equal(OP_NAMES.length, 24);
+  assert.equal(count, 33);
+  assert.equal(OP_NAMES.length, 33);
 });
 
 test("EVENT_NAMES exhaustiveness via switch", () => {

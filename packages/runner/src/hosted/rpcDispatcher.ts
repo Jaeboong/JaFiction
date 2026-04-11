@@ -7,7 +7,22 @@ import {
 import { RunnerContext } from "../runnerContext";
 
 import { getState, getAgentDefaults } from "../routes/stateHandlers";
-import { listProjects, getProject, saveProject, uploadDocument, deleteDocument } from "../routes/projectsHandlers";
+import {
+  listProjects,
+  getProject,
+  saveProject,
+  uploadDocument,
+  deleteDocument,
+  createProject,
+  deleteProject,
+  saveDocument,
+  saveEssayDraft,
+  analyzePosting,
+  getProjectInsights,
+  analyzeInsights,
+  generateInsights,
+  uploadDocumentChunk
+} from "../routes/projectsHandlers";
 import { listRuns, getRunMessages, startRun, resumeRun, abortRun, completeRun, submitIntervention } from "../routes/runsHandlers";
 import {
   callProviderTest,
@@ -73,6 +88,25 @@ export function redactForLog(op: string, payload: Record<string, unknown>): Reco
   if (op === "opendart_save_key") {
     const { key: _key, ...rest } = payload as { key?: string } & Record<string, unknown>;
     return { ...rest, key: "***" };
+  }
+  if (op === "save_document") {
+    // Document body may contain PII — never log the raw content.
+    const { content: _c, note: _n, ...rest } = payload as {
+      content?: string;
+      note?: string;
+    } & Record<string, unknown>;
+    return { ...rest, content: "<redacted>", note: _n !== undefined ? "<redacted>" : undefined };
+  }
+  if (op === "save_essay_draft") {
+    const { draft: _d, ...rest } = payload as { draft?: string } & Record<string, unknown>;
+    return { ...rest, draft: "<redacted>" };
+  }
+  if (op === "upload_document" || op === "upload_document_chunk") {
+    const { contentBase64: _b, chunkBase64: _cb, ...rest } = payload as {
+      contentBase64?: string;
+      chunkBase64?: string;
+    } & Record<string, unknown>;
+    return { ...rest, contentBase64: _b !== undefined ? "<redacted>" : undefined, chunkBase64: _cb !== undefined ? "<redacted>" : undefined };
   }
   return payload;
 }
@@ -208,6 +242,33 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
 
     case "get_agent_defaults":
       return getAgentDefaults(ctx, req.payload);
+
+    case "create_project":
+      return createProject(ctx, req.payload);
+
+    case "delete_project":
+      return deleteProject(ctx, req.payload);
+
+    case "save_document":
+      return saveDocument(ctx, req.payload);
+
+    case "save_essay_draft":
+      return saveEssayDraft(ctx, req.payload);
+
+    case "analyze_posting":
+      return analyzePosting(ctx, req.payload);
+
+    case "get_project_insights":
+      return getProjectInsights(ctx, req.payload);
+
+    case "analyze_insights":
+      return analyzeInsights(ctx, req.payload);
+
+    case "generate_insights":
+      return generateInsights(ctx, req.payload);
+
+    case "upload_document_chunk":
+      return uploadDocumentChunk(ctx, req.payload);
 
     default:
       // Compile-time exhaustiveness guard + runtime defense

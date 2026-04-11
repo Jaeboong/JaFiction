@@ -358,6 +358,198 @@ export const WriteFileResultSchema = z.object({
 export type WriteFilePayload = z.infer<typeof WriteFilePayloadSchema>;
 export type WriteFileResult = z.infer<typeof WriteFileResultSchema>;
 
+// ---------------------------------------------------------------------------
+// Stage 11.2 ops — project CRUD + insights parity
+// ---------------------------------------------------------------------------
+
+// create_project — mirrors projectsRouter POST /
+// Accepts the same field set as updateProject (plus companyName is required),
+// but all fields are optional here because the storage layer derives defaults.
+// buildProjectInput-style wide-but-strict shape.
+const ProjectCreateInputSchema = z.object({
+  companyName: z.string().min(1),
+  roleName: z.string().optional(),
+  deadline: z.string().optional(),
+  overview: z.string().optional(),
+  mainResponsibilities: z.string().optional(),
+  qualifications: z.string().optional(),
+  preferredQualifications: z.string().optional(),
+  benefits: z.string().optional(),
+  hiringProcess: z.string().optional(),
+  insiderView: z.string().optional(),
+  otherInfo: z.string().optional(),
+  keywords: z.array(z.string()).optional(),
+  jobPostingUrl: z.string().optional(),
+  jobPostingText: z.string().optional(),
+  essayQuestions: z.array(z.string()).optional(),
+  openDartCorpCode: z.string().optional()
+}).strict();
+
+export const CreateProjectPayloadSchema = ProjectCreateInputSchema;
+export const CreateProjectResultSchema = ProjectDetailSchema;
+export type CreateProjectPayload = z.infer<typeof CreateProjectPayloadSchema>;
+export type CreateProjectResult = z.infer<typeof CreateProjectResultSchema>;
+
+// delete_project — mirrors projectsRouter DELETE /:projectSlug
+export const DeleteProjectPayloadSchema = z.object({
+  slug: z.string()
+}).strict();
+export const DeleteProjectResultSchema = z.object({
+  ok: z.literal(true)
+}).strict();
+export type DeleteProjectPayload = z.infer<typeof DeleteProjectPayloadSchema>;
+export type DeleteProjectResult = z.infer<typeof DeleteProjectResultSchema>;
+
+// save_document — text-content document create/update (mirrors projectsRouter
+// POST /:projectSlug/documents). Distinct from upload_document (binary) and
+// upload_document_chunk (streamed binary).
+export const SaveDocumentPayloadSchema = z.object({
+  slug: z.string(),
+  title: z.string().min(1),
+  content: z.string(),
+  note: z.string().optional(),
+  pinnedByDefault: z.boolean().optional()
+}).strict();
+export const SaveDocumentResultSchema = z.object({
+  docId: z.string()
+}).strict();
+export type SaveDocumentPayload = z.infer<typeof SaveDocumentPayloadSchema>;
+export type SaveDocumentResult = z.infer<typeof SaveDocumentResultSchema>;
+
+// save_essay_draft — mirrors PUT /:projectSlug/essay-draft/:questionIndex
+export const SaveEssayDraftPayloadSchema = z.object({
+  slug: z.string(),
+  questionIndex: z.number().int().min(0),
+  draft: z.string()
+}).strict();
+export const SaveEssayDraftResultSchema = z.object({
+  questionIndex: z.number().int().min(0)
+}).strict();
+export type SaveEssayDraftPayload = z.infer<typeof SaveEssayDraftPayloadSchema>;
+export type SaveEssayDraftResult = z.infer<typeof SaveEssayDraftResultSchema>;
+
+// analyze_posting — mirrors projectsRouter POST /analyze-posting
+// Returns immediately with the extracted fields (non-LLM; plain HTTP fetch).
+const JobPostingExtractionResultSchema = z.object({
+  source: z.enum(["url", "manual"]),
+  fetchedAt: z.string(),
+  fetchedUrl: z.string().optional(),
+  pageTitle: z.string().optional(),
+  normalizedText: z.string(),
+  companyName: z.string().optional(),
+  roleName: z.string().optional(),
+  deadline: z.string().optional(),
+  overview: z.string().optional(),
+  mainResponsibilities: z.string().optional(),
+  qualifications: z.string().optional(),
+  preferredQualifications: z.string().optional(),
+  benefits: z.string().optional(),
+  hiringProcess: z.string().optional(),
+  insiderView: z.string().optional(),
+  otherInfo: z.string().optional(),
+  keywords: z.array(z.string()),
+  warnings: z.array(z.string())
+}).strict();
+
+export const AnalyzePostingPayloadSchema = z.object({
+  jobPostingUrl: z.string().optional(),
+  jobPostingText: z.string().optional(),
+  companyName: z.string().optional(),
+  roleName: z.string().optional()
+}).strict();
+export const AnalyzePostingResultSchema = JobPostingExtractionResultSchema;
+export type AnalyzePostingPayload = z.infer<typeof AnalyzePostingPayloadSchema>;
+export type AnalyzePostingResult = z.infer<typeof AnalyzePostingResultSchema>;
+
+// get_project_insights — mirrors insightsRouter GET /
+const ProjectInsightDocumentViewSchema = z.object({
+  key: z.enum(["company", "job", "strategy", "question"]),
+  tabLabel: z.string(),
+  title: z.string(),
+  fileName: z.string(),
+  content: z.string(),
+  available: z.boolean()
+}).strict();
+
+const ProjectInsightWorkspaceStateSchema = z.object({
+  projectSlug: z.string(),
+  companyName: z.string(),
+  roleName: z.string().optional(),
+  jobPostingUrl: z.string().optional(),
+  postingAnalyzedAt: z.string().optional(),
+  insightLastGeneratedAt: z.string().optional(),
+  openDartCorpName: z.string().optional(),
+  openDartStockCode: z.string().optional(),
+  // companySourceManifest is a deeply nested runtime type — pass through as-is
+  // rather than re-declaring the entire schema here.
+  companySourceManifest: z.unknown().optional(),
+  documents: z.array(ProjectInsightDocumentViewSchema)
+}).strict();
+
+export const GetProjectInsightsPayloadSchema = z.object({
+  slug: z.string()
+}).strict();
+export const GetProjectInsightsResultSchema = ProjectInsightWorkspaceStateSchema;
+export type GetProjectInsightsPayload = z.infer<typeof GetProjectInsightsPayloadSchema>;
+export type GetProjectInsightsResult = z.infer<typeof GetProjectInsightsResultSchema>;
+
+// analyze_insights — LLM kickoff pattern.
+// Returns immediately with a jobId. The runner runs the analysis in the
+// background and broadcasts a state_snapshot event when it finishes.
+const ProjectPatchForInsightSchema = ProjectPatchSchema;
+
+export const AnalyzeInsightsPayloadSchema = z.object({
+  slug: z.string(),
+  patch: ProjectPatchForInsightSchema.optional()
+}).strict();
+export const AnalyzeInsightsResultSchema = z.object({
+  jobId: z.string()
+}).strict();
+export type AnalyzeInsightsPayload = z.infer<typeof AnalyzeInsightsPayloadSchema>;
+export type AnalyzeInsightsResult = z.infer<typeof AnalyzeInsightsResultSchema>;
+
+// generate_insights — LLM kickoff pattern. Same shape as analyze_insights.
+export const GenerateInsightsPayloadSchema = z.object({
+  slug: z.string(),
+  patch: ProjectPatchForInsightSchema.optional()
+}).strict();
+export const GenerateInsightsResultSchema = z.object({
+  jobId: z.string()
+}).strict();
+export type GenerateInsightsPayload = z.infer<typeof GenerateInsightsPayloadSchema>;
+export type GenerateInsightsResult = z.infer<typeof GenerateInsightsResultSchema>;
+
+// upload_document_chunk — streamed binary upload.
+// Client slices File into 1MB base64 chunks and sends each chunk as its own
+// RPC. The runner reassembles in memory under (uploadId) and, on the final
+// chunk, commits to storage and returns {docId}. Hash is sha256 over raw
+// bytes of the full file, hex-encoded. Out-of-order chunks are rejected
+// (chunkIndex must equal the next expected index).
+export const UploadDocumentChunkPayloadSchema = z.object({
+  slug: z.string(),
+  uploadId: z.string().min(1),
+  filename: z.string(),
+  chunkIndex: z.number().int().min(0),
+  totalChunks: z.number().int().min(1),
+  totalBytes: z.number().int().min(0),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  chunkBase64: z.string()
+}).strict();
+export const UploadDocumentChunkResultSchema = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("accepted"),
+    uploadId: z.string(),
+    nextChunkIndex: z.number().int().min(0)
+  }).strict(),
+  z.object({
+    status: z.literal("complete"),
+    uploadId: z.string(),
+    docId: z.string()
+  }).strict()
+]);
+export type UploadDocumentChunkPayload = z.infer<typeof UploadDocumentChunkPayloadSchema>;
+export type UploadDocumentChunkResult = z.infer<typeof UploadDocumentChunkResultSchema>;
+
 // get_agent_defaults — read-only mirror of configRouter GET /agent-defaults
 export const GetAgentDefaultsPayloadSchema = z.object({}).strict();
 export const GetAgentDefaultsResultSchema = z.object({
@@ -403,8 +595,22 @@ export const OP_NAMES = [
   "read_file",
   "write_file",
   "list_workspace_files",
-  "get_agent_defaults"
+  "get_agent_defaults",
+  "create_project",
+  "delete_project",
+  "save_document",
+  "save_essay_draft",
+  "analyze_posting",
+  "get_project_insights",
+  "analyze_insights",
+  "generate_insights",
+  "upload_document_chunk"
 ] as const satisfies readonly [string, ...string[]];
+
+// Hard cap for chunked upload assembly (server-enforced in handler).
+// Matches plan Decisions #3 — 100MB single-file limit.
+export const UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES = 100 * 1024 * 1024;
+export const UPLOAD_DOCUMENT_CHUNK_SIZE_BYTES = 1 * 1024 * 1024;
 
 export type OpName = (typeof OP_NAMES)[number];
 
@@ -440,7 +646,16 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("read_file"), payload: ReadFilePayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("write_file"), payload: WriteFilePayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("list_workspace_files"), payload: ListWorkspaceFilesPayloadSchema }).strict(),
-  RpcRequestBaseSchema.extend({ op: z.literal("get_agent_defaults"), payload: GetAgentDefaultsPayloadSchema }).strict()
+  RpcRequestBaseSchema.extend({ op: z.literal("get_agent_defaults"), payload: GetAgentDefaultsPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("create_project"), payload: CreateProjectPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("delete_project"), payload: DeleteProjectPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("save_document"), payload: SaveDocumentPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("save_essay_draft"), payload: SaveEssayDraftPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("analyze_posting"), payload: AnalyzePostingPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("get_project_insights"), payload: GetProjectInsightsPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("analyze_insights"), payload: AnalyzeInsightsPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("generate_insights"), payload: GenerateInsightsPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("upload_document_chunk"), payload: UploadDocumentChunkPayloadSchema }).strict()
 ]);
 
 export type RpcRequest = z.infer<typeof RpcRequestSchema>;
