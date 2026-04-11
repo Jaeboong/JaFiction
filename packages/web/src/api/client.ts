@@ -1,14 +1,20 @@
 import type {
   AgentDefaults,
+  AbortRunResult,
+  CompleteRunResult,
+  DeleteDocumentResult,
+  GetRunMessagesResult,
   JobPostingExtractionResult,
+  ListProjectsResult,
   OpName,
+  OpendartSaveKeyResult,
   ProjectInsightWorkspaceState,
   ProjectRecord,
   ProviderId,
   ProviderRuntimeState,
-  RunChatMessage,
-  RunLedgerEntry,
-  SidebarState
+  SaveProjectResult,
+  SidebarState,
+  StartRunResult
 } from "@jafiction/shared";
 
 export interface SessionPayload {
@@ -107,18 +113,24 @@ export class RunnerClient {
     return new WebSocket(toWsUrl(this.baseUrl, `/ws/runs/${runId}`));
   }
 
-  listProjects() {
-    return this.request("/api/projects");
+  async listProjects(): Promise<ListProjectsResult> {
+    if (this.mode === "hosted") {
+      return this.rpcCall<ListProjectsResult>("list_projects", {});
+    }
+    return this.request<ListProjectsResult>("/api/projects");
   }
 
+  // LOCAL-ONLY: no hosted op yet
   createProject(payload: Record<string, unknown>): Promise<ProjectRecord> {
     return this.request<ProjectRecord>("/api/projects", { method: "POST", body: payload });
   }
 
+  // LOCAL-ONLY: no hosted op yet
   saveProjectDocument(projectSlug: string, payload: Record<string, unknown>) {
     return this.request(`/api/projects/${projectSlug}/documents`, { method: "POST", body: payload });
   }
 
+  // LOCAL-ONLY: no hosted op yet
   saveEssayDraft(projectSlug: string, questionIndex: number, draft: string): Promise<{ questionIndex: number }> {
     return this.request(`/api/projects/${projectSlug}/essay-draft/${questionIndex}`, {
       method: "PUT",
@@ -126,6 +138,7 @@ export class RunnerClient {
     });
   }
 
+  // LOCAL-ONLY: no hosted op yet (upload_document exists but uses base64 payload, not multipart)
   uploadProjectDocuments(projectSlug: string, files: File[]): Promise<void> {
     const body = new FormData();
     for (const file of files) {
@@ -134,30 +147,42 @@ export class RunnerClient {
     return this.requestFormData(`/api/projects/${projectSlug}/documents/upload`, body);
   }
 
-  updateProject(projectSlug: string, payload: Record<string, unknown>) {
+  async updateProject(projectSlug: string, payload: Record<string, unknown>): Promise<SaveProjectResult | unknown> {
+    if (this.mode === "hosted") {
+      return this.rpcCall<SaveProjectResult>("save_project", { slug: projectSlug, patch: payload });
+    }
     return this.request(`/api/projects/${projectSlug}`, { method: "PUT", body: payload });
   }
 
-  deleteProjectDocument(projectSlug: string, documentId: string): Promise<void> {
+  async deleteProjectDocument(projectSlug: string, documentId: string): Promise<void> {
+    if (this.mode === "hosted") {
+      await this.rpcCall<DeleteDocumentResult>("delete_document", { slug: projectSlug, docId: documentId });
+      return;
+    }
     return this.request(`/api/projects/${projectSlug}/documents/${documentId}`, { method: "DELETE" });
   }
 
+  // LOCAL-ONLY: no hosted op yet
   getProjectInsights(projectSlug: string): Promise<ProjectInsightWorkspaceState> {
     return this.request<ProjectInsightWorkspaceState>(`/api/projects/${projectSlug}/insights`);
   }
 
+  // LOCAL-ONLY: no hosted op yet
   analyzeProjectPosting(payload: Record<string, unknown>): Promise<JobPostingExtractionResult> {
     return this.request<JobPostingExtractionResult>("/api/projects/analyze-posting", { method: "POST", body: payload });
   }
 
+  // LOCAL-ONLY: hosted call_provider_test returns {ok, stdoutExcerpt?, runtimeState?}; method contract is ProviderRuntimeState
   testProvider(providerId: ProviderId): Promise<ProviderRuntimeState> {
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/test`, { method: "POST" });
   }
 
+  // LOCAL-ONLY: hosted save_provider_config returns {ok: true}; method contract is ProviderRuntimeState
   updateProviderConfig(providerId: ProviderId, payload: Record<string, unknown>): Promise<ProviderRuntimeState> {
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/config`, { method: "PUT", body: payload });
   }
 
+  // LOCAL-ONLY: hosted save_provider_api_key returns {ok: true}; method contract is ProviderRuntimeState
   saveProviderApiKey(providerId: ProviderId, apiKey: string): Promise<ProviderRuntimeState> {
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/apikey`, {
       method: "POST",
@@ -165,48 +190,66 @@ export class RunnerClient {
     });
   }
 
+  // LOCAL-ONLY: no hosted op yet
   clearProviderApiKey(providerId: ProviderId) {
     return this.request(`/api/providers/${providerId}/apikey`, { method: "DELETE" });
   }
 
+  // LOCAL-ONLY: no hosted op yet
   checkNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/notion`);
   }
 
+  // LOCAL-ONLY: hosted notion_connect requires {token, dbId}; method signature only carries providerId
   connectNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/notion/connect`, { method: "POST" });
   }
 
+  // LOCAL-ONLY: hosted notion_disconnect returns {ok: true}; method contract is ProviderRuntimeState
   disconnectNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/notion/disconnect`, { method: "POST" });
   }
 
-  startRun(projectSlug: string, payload: Record<string, unknown>): Promise<{ runId: string }> {
-    return this.request(`/api/projects/${projectSlug}/runs`, { method: "POST", body: payload });
+  async startRun(projectSlug: string, payload: Record<string, unknown>): Promise<StartRunResult> {
+    if (this.mode === "hosted") {
+      return this.rpcCall<StartRunResult>("start_run", { slug: projectSlug, ...payload });
+    }
+    return this.request<StartRunResult>(`/api/projects/${projectSlug}/runs`, { method: "POST", body: payload });
   }
 
+  // LOCAL-ONLY: no hosted op yet
   deleteRun(projectSlug: string, runId: string): Promise<void> {
     return this.request(`/api/projects/${projectSlug}/runs/${runId}`, { method: "DELETE" });
   }
 
-  getRunMessages(projectSlug: string, runId: string): Promise<{ messages: RunChatMessage[]; ledgers: RunLedgerEntry[] }> {
-    return this.request<{ messages: RunChatMessage[]; ledgers: RunLedgerEntry[] }>(
+  async getRunMessages(projectSlug: string, runId: string): Promise<GetRunMessagesResult> {
+    if (this.mode === "hosted") {
+      return this.rpcCall<GetRunMessagesResult>("get_run_messages", { runId });
+    }
+    return this.request<GetRunMessagesResult>(
       `/api/projects/${projectSlug}/runs/${runId}/messages`
     );
   }
 
-  saveOpenDartApiKey(apiKey: string): Promise<void> {
+  async saveOpenDartApiKey(apiKey: string): Promise<void> {
+    if (this.mode === "hosted") {
+      await this.rpcCall<OpendartSaveKeyResult>("opendart_save_key", { key: apiKey });
+      return;
+    }
     return this.request("/api/opendart/apikey", { method: "POST", body: { apiKey } });
   }
 
+  // LOCAL-ONLY: no hosted op yet
   deleteOpenDartApiKey(): Promise<void> {
     return this.request("/api/opendart/apikey", { method: "DELETE" });
   }
 
+  // LOCAL-ONLY: hosted opendart_test returns {ok, sample?}; method contract exposes `message`
   testOpenDartConnection(): Promise<{ ok: boolean; message: string }> {
     return this.request<{ ok: boolean; message: string }>("/api/opendart/test", { method: "POST" });
   }
 
+  // LOCAL-ONLY: hosted submit_intervention returns {ok: true}; method contract is {outcome, runId, nextRunId?}
   submitIntervention(runId: string, message: string): Promise<{ outcome: string; runId: string; nextRunId?: string }> {
     return this.request<{ outcome: string; runId: string; nextRunId?: string }>(`/api/runs/${runId}/intervention`, {
       method: "POST",
@@ -214,18 +257,25 @@ export class RunnerClient {
     });
   }
 
-  abortRun(runId: string) {
+  async abortRun(runId: string): Promise<AbortRunResult | unknown> {
+    if (this.mode === "hosted") {
+      return this.rpcCall<AbortRunResult>("abort_run", { runId });
+    }
     return this.request(`/api/runs/${runId}/abort`, {
       method: "POST"
     });
   }
 
-  completeRun(projectSlug: string, runId: string) {
+  async completeRun(projectSlug: string, runId: string): Promise<CompleteRunResult | unknown> {
+    if (this.mode === "hosted") {
+      return this.rpcCall<CompleteRunResult>("complete_run", { runId });
+    }
     return this.request(`/api/projects/${projectSlug}/runs/${runId}/complete`, {
       method: "POST"
     });
   }
 
+  // LOCAL-ONLY: hosted resume_run returns {ok: true}; method contract is {runId, resumedFromRunId}
   resumeRun(projectSlug: string, runId: string, message = ""): Promise<{ runId: string; resumedFromRunId: string }> {
     return this.request<{ runId: string; resumedFromRunId: string }>(`/api/projects/${projectSlug}/runs/${runId}/resume`, {
       method: "POST",
