@@ -485,21 +485,24 @@ button:focus-visible {
   display: inline-block;
 }
 
-/* Login gate — center layout */
+/* Login gate */
 .app-gate-auth {
+  width: min(340px, 100%);
   text-align: center;
+  padding: 36px 32px;
 }
 
-.app-gate-auth .app-gate-kicker,
-.app-gate-auth h1,
-.app-gate-auth .app-gate-description {
-  text-align: center;
+.login-gate-brand {
+  margin: 0 0 28px;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #4f46e5;
 }
 
 .login-gate-actions {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
 }
 
 /* Google sign-in button — follows Google brand guidelines */

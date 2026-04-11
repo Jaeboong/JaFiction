@@ -5,26 +5,17 @@
  * single CTA to begin the Google OAuth flow at /auth/google. No client
  * dependency — safe to render before the RunnerClient exists.
  */
-import type { ReactNode } from "react";
 
 export interface LoginGateProps {
   readonly loginHref?: string;
-  readonly heading?: string;
-  readonly description?: ReactNode;
 }
 
 const DEFAULT_LOGIN_HREF = "/auth/google";
 
-export function LoginGate({
-  loginHref = DEFAULT_LOGIN_HREF,
-  heading = "로그인이 필요합니다.",
-  description = "자소전 hosted 서비스를 사용하려면 Google 계정으로 로그인해 주세요."
-}: LoginGateProps) {
+export function LoginGate({ loginHref = DEFAULT_LOGIN_HREF }: LoginGateProps) {
   return (
-    <section className="app-gate app-gate-auth" aria-labelledby="login-gate-heading">
-      <p className="app-gate-kicker">자소전</p>
-      <h1 id="login-gate-heading">{heading}</h1>
-      <p className="app-gate-description">{description}</p>
+    <section className="app-gate app-gate-auth" aria-label="로그인">
+      <h1 className="login-gate-brand">자소전</h1>
       <div className="login-gate-actions">
         <a className="google-signin-btn" href={loginHref} data-testid="login-gate-cta">
           <svg className="google-signin-logo" viewBox="0 0 24 24" aria-hidden="true">
