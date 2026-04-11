@@ -1,0 +1,70 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "id": "0000_initial",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "google_sub": { "name": "google_sub", "type": "text", "primaryKey": false, "notNull": true },
+        "email": { "name": "email", "type": "text", "primaryKey": false, "notNull": true },
+        "created_at": { "name": "created_at", "type": "timestamp", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_google_sub_unique": { "name": "users_google_sub_unique", "nullsNotDistinct": false, "columns": ["google_sub"] }
+      }
+    },
+    "public.sessions": {
+      "name": "sessions",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "user_id": { "name": "user_id", "type": "uuid", "primaryKey": false, "notNull": true },
+        "cookie_hash": { "name": "cookie_hash", "type": "text", "primaryKey": false, "notNull": true },
+        "expires_at": { "name": "expires_at", "type": "timestamp", "primaryKey": false, "notNull": true },
+        "created_at": { "name": "created_at", "type": "timestamp", "primaryKey": false, "notNull": true, "default": "now()" },
+        "last_seen_at": { "name": "last_seen_at", "type": "timestamp", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": { "name": "sessions_user_id_users_id_fk", "tableFrom": "sessions", "tableTo": "users", "columnsFrom": ["user_id"], "columnsTo": ["id"], "onDelete": "cascade", "onUpdate": "no action" }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.devices": {
+      "name": "devices",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "user_id": { "name": "user_id", "type": "uuid", "primaryKey": false, "notNull": true },
+        "label": { "name": "label", "type": "text", "primaryKey": false, "notNull": true },
+        "workspace_root": { "name": "workspace_root", "type": "text", "primaryKey": false, "notNull": true },
+        "token_hash": { "name": "token_hash", "type": "text", "primaryKey": false, "notNull": true },
+        "revoked_at": { "name": "revoked_at", "type": "timestamp", "primaryKey": false, "notNull": false },
+        "created_at": { "name": "created_at", "type": "timestamp", "primaryKey": false, "notNull": true, "default": "now()" },
+        "last_seen_at": { "name": "last_seen_at", "type": "timestamp", "primaryKey": false, "notNull": false }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "devices_user_id_users_id_fk": { "name": "devices_user_id_users_id_fk", "tableFrom": "devices", "tableTo": "users", "columnsFrom": ["user_id"], "columnsTo": ["id"], "onDelete": "cascade", "onUpdate": "no action" }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

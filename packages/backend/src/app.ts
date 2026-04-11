@@ -10,6 +10,7 @@ import { registerGoogleOauth } from "./auth/googleOauth";
 import { registerHealthz } from "./routes/healthz";
 import { registerAuth } from "./routes/auth";
 import { registerMe } from "./routes/me";
+import { registerPairing, createDrizzleDeviceStore } from "./routes/pairing";
 import type { FetchGoogleUserInfo } from "./routes/auth";
 import type { Env } from "./env";
 
@@ -53,6 +54,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   });
 
   await registerMe(app, { store: deps.store, env: deps.env });
+
+  await registerPairing(app, {
+    deviceStore: createDrizzleDeviceStore(deps.db),
+    redis: deps.redis,
+    store: deps.store,
+    env: deps.env,
+  });
 
   return app;
 }

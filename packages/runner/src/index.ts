@@ -14,8 +14,9 @@ import { createProjectsRouter } from "./routes/projectsRouter";
 import { createProvidersRouter } from "./routes/providersRouter";
 import { createRunInterventionRouter, createRunsRouter } from "./routes/runsRouter";
 import { createSessionAuth } from "./security/sessionAuth";
-import { loadDeviceToken } from "./hosted/deviceTokenStore";
+import { loadDeviceToken, saveDeviceToken } from "./hosted/deviceTokenStore";
 import { startHostedOutboundClient } from "./hosted/outboundClient";
+import { claimPairingCode } from "./hosted/pairingClient";
 
 export async function createRunnerServer(ctx: RunnerContext): Promise<{
   app: express.Express;
@@ -202,7 +203,9 @@ async function main(): Promise<void> {
 
   const mode = process.env["JAFICTION_MODE"] ?? "local";
 
-  if (mode === "hosted") {
+  if (mode === "pair") {
+    await mainPair();
+  } else if (mode === "hosted") {
     await mainHosted();
   } else {
     await mainLocal();
@@ -215,6 +218,44 @@ async function mainLocal(): Promise<void> {
   server.listen(port, () => {
     console.log(`JaFiction runner listening on http://localhost:${port}`);
   });
+}
+
+async function mainPair(): Promise<void> {
+  const backendUrl = process.env["JAFICTION_BACKEND_URL"];
+  const pairingCode = process.env["JAFICTION_PAIRING_CODE"];
+
+  if (!backendUrl || !pairingCode) {
+    process.stderr.write(
+      [
+        "[runner] Pairing mode requires both environment variables to be set:",
+        "  JAFICTION_BACKEND_URL  — e.g. https://yourbackend.example.com",
+        "  JAFICTION_PAIRING_CODE — the 8-character code shown in the web UI",
+        "",
+        "Example:",
+        "  JAFICTION_MODE=pair \\",
+        "  JAFICTION_BACKEND_URL=https://yourbackend.example.com \\",
+        "  JAFICTION_PAIRING_CODE=ABCD1234 \\",
+        "  ./scripts/with-npm.sh run -w packages/runner start",
+      ].join("\n") + "\n"
+    );
+    process.exit(1);
+  }
+
+  let result: Awaited<ReturnType<typeof claimPairingCode>>;
+  try {
+    result = await claimPairingCode({ backendUrl, code: pairingCode });
+  } catch (err) {
+    process.stderr.write(
+      `[runner] Pairing failed: ${err instanceof Error ? err.message : String(err)}\n`
+    );
+    process.exit(1);
+  }
+
+  await saveDeviceToken(result.token);
+  console.log(`[runner] Device paired successfully!`);
+  console.log(`[runner]   Device ID : ${result.deviceId}`);
+  console.log(`[runner]   User ID   : ${result.userId}`);
+  console.log(`[runner] Token saved. You can now run the runner with JAFICTION_MODE=hosted.`);
 }
 
 async function mainHosted(): Promise<void> {

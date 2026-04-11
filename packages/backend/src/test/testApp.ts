@@ -18,6 +18,8 @@ import {
 import type { AuthenticatedRequest } from "../auth/session";
 import { registerHealthz } from "../routes/healthz";
 import { registerMe } from "../routes/me";
+import { registerPairing } from "../routes/pairing";
+import type { DeviceStore } from "../routes/pairing";
 import type { Env } from "../env";
 import type { GoogleUserInfo } from "../routes/auth";
 
@@ -46,6 +48,11 @@ export interface TestAppDeps {
    * Tests call POST /test/seed-user to pre-create users in the store.
    */
   readonly userMap: Map<string, { id: string; email: string; google_sub: string }>;
+  /**
+   * Optional device store for pairing tests.
+   * If provided, pairing routes are registered.
+   */
+  readonly deviceStore?: DeviceStore;
 }
 
 export async function buildTestApp(deps: TestAppDeps): Promise<FastifyInstance> {
@@ -118,6 +125,16 @@ export async function buildTestApp(deps: TestAppDeps): Promise<FastifyInstance> 
 
   // /api/me
   await registerMe(app, { store: deps.store, env });
+
+  // /api/pairing + /api/devices (only when a device store is provided)
+  if (deps.deviceStore) {
+    await registerPairing(app, {
+      deviceStore: deps.deviceStore,
+      redis: deps.redis,
+      store: deps.store,
+      env,
+    });
+  }
 
   return app;
 }

@@ -6,17 +6,21 @@ import type {
   SidebarState
 } from "@jafiction/shared";
 import { startTransition, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { RunnerClient } from "./api/client";
+import { RunnerClient, BackendClient } from "./api/client";
 import { OverviewPage } from "./pages/OverviewPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { RunsPage } from "./pages/RunsPage";
 import { SettingsPage, type SettingsSection } from "./pages/SettingsPage";
+import { DevicesPage } from "./pages/DevicesPage";
 
 const defaultRunnerBaseUrl = import.meta.env.VITE_RUNNER_BASE_URL
   || `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_RUNNER_PORT || "4123"}`;
 
-type AppTab = "overview" | "providers" | "projects" | "runs" | "settings";
+const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL ?? window.location.origin;
+const backendClient = new BackendClient(backendBaseUrl);
+
+type AppTab = "overview" | "providers" | "projects" | "runs" | "devices" | "settings";
 type ActionTone = "pending" | "success" | "warning" | "error";
 type ProviderActionKind = "test" | "notion-check" | "notion-connect" | "notion-disconnect";
 type OpenDartActionKind = "save" | "delete" | "test";
@@ -43,7 +47,8 @@ const tabs: Array<{ id: AppTab; label: string }> = [
   { id: "overview", label: "개요" },
   { id: "providers", label: "프로바이더" },
   { id: "projects", label: "지원서" },
-  { id: "runs", label: "실행" }
+  { id: "runs", label: "실행" },
+  { id: "devices", label: "디바이스" }
 ];
 
 export function App() {
@@ -727,6 +732,10 @@ export function App() {
               onGetRunMessages={(projectSlug, runId) => client.getRunMessages(projectSlug, runId)}
               onAwaitingUserInput={showAwaitingUserInputNotice}
             />
+          ) : null}
+
+          {selectedTab === "devices" ? (
+            <DevicesPage client={backendClient} />
           ) : null}
         </section>
       </div>

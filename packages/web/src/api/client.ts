@@ -244,3 +244,71 @@ function toWsUrl(baseUrl: string, pathname: string): string {
   url.search = "";
   return url.toString();
 }
+
+// ---------------------------------------------------------------------------
+// BackendClient — typed client for the hosted backend API (Phase 5+)
+// ---------------------------------------------------------------------------
+
+export interface DeviceInfo {
+  readonly id: string;
+  readonly label: string;
+  readonly workspaceRoot: string;
+  readonly createdAt: string;
+  readonly lastSeenAt: string | null;
+  readonly revokedAt: string | null;
+}
+
+export interface StartPairingResult {
+  readonly code: string;
+  readonly expiresAt: string;
+}
+
+export class BackendClient {
+  constructor(readonly baseUrl: string) {}
+
+  async startPairing(opts: {
+    label: string;
+    workspaceRoot: string;
+  }): Promise<StartPairingResult> {
+    return this.request<StartPairingResult>("/api/pairing/start", {
+      method: "POST",
+      body: opts,
+    });
+  }
+
+  async listDevices(): Promise<readonly DeviceInfo[]> {
+    const result = await this.request<{ devices: DeviceInfo[] }>("/api/devices");
+    return result.devices;
+  }
+
+  async revokeDevice(id: string): Promise<void> {
+    await this.request(`/api/devices/${id}/revoke`, { method: "POST" });
+  }
+
+  private async request<T = unknown>(
+    pathname: string,
+    init: { method?: string; body?: unknown } = {}
+  ): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${pathname}`, {
+      credentials: "include",
+      method: init.method ?? "GET",
+      headers: { "Content-Type": "application/json" },
+      body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+      const message =
+        typeof payload["message"] === "string"
+          ? payload["message"]
+          : `Request failed (${response.status})`;
+      throw new Error(message);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return response.json() as Promise<T>;
+  }
+}
