@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { createDeviceHub } from "../ws/deviceHub";
 import { makeFakePubSubRedis, makeWsPair } from "./fakes";
 import type { RpcResponse, EventEnvelope } from "@jasojeon/shared";
+import { wrapEvent, wrapRpcResponse } from "@jasojeon/shared";
 
 function makeHub() {
   const redis = makeFakePubSubRedis();
@@ -72,7 +73,7 @@ describe("DeviceHub", () => {
     // So to simulate runner sending data TO the hub, we use client.send(data) which
     // delivers as a message event on server (the hub side).
     const response: RpcResponse = { v: 1, id: "req-1", ok: true, result: { foo: "bar" } };
-    client.send(JSON.stringify(response));
+    client.send(JSON.stringify(wrapRpcResponse(response)));
 
     const result = await rpcPromise;
     assert.ok(result.ok);
@@ -93,8 +94,8 @@ describe("DeviceHub", () => {
     // Send responses in reverse order.
     const resp2: RpcResponse = { v: 1, id: "req-B", ok: true, result: { x: 2 } };
     const resp1: RpcResponse = { v: 1, id: "req-A", ok: true, result: { x: 1 } };
-    client.send(JSON.stringify(resp2));
-    client.send(JSON.stringify(resp1));
+    client.send(JSON.stringify(wrapRpcResponse(resp2)));
+    client.send(JSON.stringify(wrapRpcResponse(resp1)));
 
     const [r1, r2] = await Promise.all([p1, p2]);
     assert.ok(r1.ok);
@@ -187,7 +188,7 @@ describe("DeviceHub", () => {
       event: "run_event",
       payload: { runId: "run-1", event: validRunEvent as unknown as import("@jasojeon/shared").RunEvent }
     };
-    client.send(JSON.stringify(envelope));
+    client.send(JSON.stringify(wrapEvent(envelope)));
 
     assert.strictEqual(received.length, 1);
     const parsed = JSON.parse(received[0]);

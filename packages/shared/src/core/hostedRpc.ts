@@ -459,6 +459,33 @@ export const RpcResponseSchema = z.discriminatedUnion("ok", [
 export type RpcResponse = z.infer<typeof RpcResponseSchema>;
 
 // ---------------------------------------------------------------------------
+// Runner → Backend WS wire frames
+// ---------------------------------------------------------------------------
+// The runner wraps every outbound frame with a `type` discriminator so the
+// backend's DeviceHub can dispatch without guessing from the schema shape.
+// These helpers are the single source of truth for that wire format — both
+// the runner (outboundClient) and backend test fakes import them to prevent
+// drift. If the wrapper shape ever changes, update here and both sides stay
+// in lockstep.
+
+export type RunnerRpcResponseFrame = RpcResponse & { readonly type: "rpc_response" };
+
+export interface RunnerEventFrame {
+  readonly type: "event";
+  readonly v: 1;
+  readonly event: string;
+  readonly payload: unknown;
+}
+
+export function wrapRpcResponse(response: RpcResponse): RunnerRpcResponseFrame {
+  return { type: "rpc_response", ...response } as RunnerRpcResponseFrame;
+}
+
+export function wrapEvent(envelope: { v: 1; event: string; payload: unknown }): RunnerEventFrame {
+  return { type: "event", ...envelope };
+}
+
+// ---------------------------------------------------------------------------
 // Event schemas — 4 events from plan section 4
 // ---------------------------------------------------------------------------
 

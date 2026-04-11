@@ -31,7 +31,9 @@ import {
   EventEnvelopeSchema,
   RpcRequest,
   RpcRequestSchema,
-  RpcResponse
+  RpcResponse,
+  wrapEvent,
+  wrapRpcResponse
 } from "@jasojeon/shared";
 import type { RunnerContext } from "../runnerContext";
 
@@ -168,7 +170,7 @@ export function startHostedOutboundClient(options: OutboundClientOptions): Outbo
     if (options.onRpc) {
       try {
         const response = await options.onRpc(req);
-        send(socket, { type: "rpc_response", ...response });
+        send(socket, wrapRpcResponse(response));
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         log.error("[outboundClient] onRpc threw", { op: req.op, message });
@@ -178,7 +180,7 @@ export function startHostedOutboundClient(options: OutboundClientOptions): Outbo
           ok: false,
           error: { code: "handler_error", message }
         };
-        send(socket, { type: "rpc_response", ...response });
+        send(socket, wrapRpcResponse(response));
       }
     } else {
       // Phase 3 has not wired a dispatcher yet.
@@ -188,7 +190,7 @@ export function startHostedOutboundClient(options: OutboundClientOptions): Outbo
         ok: false,
         error: { code: "not_wired", message: "RPC dispatcher not yet installed" }
       };
-      send(socket, { type: "rpc_response", ...response });
+      send(socket, wrapRpcResponse(response));
     }
   }
 
@@ -277,7 +279,7 @@ export function startHostedOutboundClient(options: OutboundClientOptions): Outbo
               ok: false,
               error: { code: "invalid_request", message: "RPC request failed schema validation" }
             };
-            send(socket, { type: "rpc_response", ...response });
+            send(socket, wrapRpcResponse(response));
           }
           return;
         }
@@ -343,7 +345,7 @@ export function startHostedOutboundClient(options: OutboundClientOptions): Outbo
         });
         return;
       }
-      send(ws, { type: "event", ...envelope });
+      send(ws, wrapEvent(envelope));
     }
   };
 }

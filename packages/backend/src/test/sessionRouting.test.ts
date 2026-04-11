@@ -29,6 +29,7 @@ import {
 import type { UserRow } from "../auth/session";
 import { SESSION_COOKIE } from "../auth/session";
 import type { RpcResponse, EventEnvelope } from "@jasojeon/shared";
+import { wrapEvent, wrapRpcResponse } from "@jasojeon/shared";
 
 function makeUser(id: string): UserRow {
   return { id, email: `${id}@test.com`, google_sub: `sub-${id}` };
@@ -80,7 +81,7 @@ describe("session routing regression — user → device → ws", () => {
         receivedAt.push("dev-A");
         const id = frame["id"] as string;
         const response: RpcResponse = { v: 1, id, ok: true, result: { status: "idle" } };
-        pairA.client.send(JSON.stringify(response));
+        pairA.client.send(JSON.stringify(wrapRpcResponse(response)));
       }
     });
     pairB.client.on("message", (data: Buffer) => {
@@ -89,7 +90,7 @@ describe("session routing regression — user → device → ws", () => {
         receivedAt.push("dev-B");
         const id = frame["id"] as string;
         const response: RpcResponse = { v: 1, id, ok: true, result: { status: "idle" } };
-        pairB.client.send(JSON.stringify(response));
+        pairB.client.send(JSON.stringify(wrapRpcResponse(response)));
       }
     });
 
@@ -129,9 +130,9 @@ describe("session routing regression — user → device → ws", () => {
         event: "run_event",
         payload: { runId: "run-1", event: { timestamp: new Date().toISOString(), type: "run-started" } },
       };
-      // Runner-side sends as { type: "event", ...envelope } — deviceHub's message
-      // handler validates the envelope (ignoring `type`) via EventEnvelopeSchema.
-      pairA.client.send(JSON.stringify(envelope));
+      // Runner-side always wraps with { type: "event", ... } — deviceHub
+      // rejects bare frames since Phase 11.0, so we must wrap here too.
+      pairA.client.send(JSON.stringify(wrapEvent(envelope)));
 
       // Synchronous in fake pub/sub: publish happens inside the message handler.
       // Give the event a microtask tick just in case the handler awaits anything.

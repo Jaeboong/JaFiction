@@ -12,12 +12,12 @@ import type { RpcDeviceStore } from "../routes/rpc";
 import { createDeviceHub } from "../ws/deviceHub";
 import {
   makeFakePubSubRedis,
-  makeInMemorySessionStore,
-  makeWsPair
+  makeInMemorySessionStore
 } from "./fakes";
+import { attachFakeRunner } from "./helpers/fakeRunner";
 import type { UserRow } from "../auth/session";
 import { SESSION_COOKIE } from "../auth/session";
-import type { RpcResponse, RpcRequest } from "@jasojeon/shared";
+import type { RpcResponse } from "@jasojeon/shared";
 import type { DeviceHub } from "../ws/deviceHub";
 
 // ---------------------------------------------------------------------------
@@ -116,18 +116,12 @@ describe("POST /api/rpc", () => {
     const store = makeInMemorySessionStore(userMap);
     const { raw } = await store.createSession(userId);
 
-    // Attach a fake runner.
-    const { client, server } = makeWsPair();
-    hub.attach("dev-1", userId, server as unknown as import("ws").WebSocket);
-
-    // Fake runner: respond automatically to any rpc_request.
-    client.on("message", (data: Buffer) => {
-      const frame = JSON.parse(String(data)) as Record<string, unknown>;
-      if (frame["type"] === "rpc_request") {
-        const id = frame["id"] as string;
-        const response: RpcResponse = { v: 1, id, ok: true, result: { status: "idle" } };
-        client.send(JSON.stringify(response));
-      }
+    // Attach a fake runner that answers every request via the shared helper.
+    const runner = attachFakeRunner({
+      hub,
+      deviceId: "dev-1",
+      userId,
+      handler: (req) => ({ v: 1, id: req.id, ok: true, result: { status: "idle" } })
     });
 
     const { app, port } = await buildTestApp(store, hub, makeMemoryRpcDeviceStore(["dev-1"]));
@@ -142,7 +136,7 @@ describe("POST /api/rpc", () => {
       assert.ok(b.ok);
       assert.deepStrictEqual((b as Extract<RpcResponse, { ok: true }>).result, { status: "idle" });
     } finally {
-      client.close();
+      runner.close();
       await app.close();
     }
   });
@@ -155,16 +149,16 @@ describe("POST /api/rpc", () => {
     const store = makeInMemorySessionStore(userMap);
     const { raw } = await store.createSession(userId);
 
-    const { client, server } = makeWsPair();
-    hub.attach("dev-1", userId, server as unknown as import("ws").WebSocket);
-
-    client.on("message", (data: Buffer) => {
-      const frame = JSON.parse(String(data)) as Record<string, unknown>;
-      if (frame["type"] === "rpc_request") {
-        const id = frame["id"] as string;
-        const response: RpcResponse = { v: 1, id, ok: false, error: { code: "not_found", message: "project missing" } };
-        client.send(JSON.stringify(response));
-      }
+    const runner = attachFakeRunner({
+      hub,
+      deviceId: "dev-1",
+      userId,
+      handler: (req) => ({
+        v: 1,
+        id: req.id,
+        ok: false,
+        error: { code: "not_found", message: "project missing" }
+      })
     });
 
     const { app, port } = await buildTestApp(store, hub, makeMemoryRpcDeviceStore(["dev-1"]));
@@ -180,8 +174,86 @@ describe("POST /api/rpc", () => {
       assert.ok(!b.ok);
       assert.strictEqual((b as Extract<RpcResponse, { ok: false }>).error.code, "not_found");
     } finally {
-      client.close();
+      runner.close();
       await app.close();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deviceHub wrapper-contract regression
+//
+// These assertions protect the `{type: "rpc_response"|"event", ...}` wire
+// format that real runners use. They talk to hub.sendRpc directly (not
+// through HTTP) so the 30s POST /api/rpc timeout doesn't stretch test time.
+//
+// If anyone either:
+//   1. removes the type-dispatch branch from deviceHub.onMessage, or
+//   2. forgets to wrap an outgoing frame in the runner,
+// these tests must fail — that's the whole point of locking the contract.
+// ---------------------------------------------------------------------------
+
+describe("deviceHub wrapper contract", () => {
+  it("wrapped rpc_response from runner correlates and resolves", async () => {
+    const redis = makeFakePubSubRedis();
+    const hub = createDeviceHub({ redis });
+    const runner = attachFakeRunner({
+      hub,
+      deviceId: "dev-wrap-ok",
+      userId: "user-wrap",
+      handler: (req) => ({ v: 1, id: req.id, ok: true, result: { hello: "world" } })
+    });
+
+    try {
+      const result = await hub.sendRpc(
+        "dev-wrap-ok",
+        { v: 1, id: "req-wrap-1", op: "get_state", payload: {} },
+        { timeoutMs: 500 }
+      );
+      assert.ok(result.ok, "wrapped rpc_response should correlate and resolve");
+      assert.deepStrictEqual(
+        (result as Extract<RpcResponse, { ok: true }>).result,
+        { hello: "world" }
+      );
+    } finally {
+      runner.close();
+    }
+  });
+
+  it("bare (un-wrapped) rpc_response is dropped and sendRpc times out", async () => {
+    const redis = makeFakePubSubRedis();
+    const hub = createDeviceHub({ redis });
+    // Attach a runner with NO handler — we'll inject a bare response manually.
+    const runner = attachFakeRunner({
+      hub,
+      deviceId: "dev-wrap-bad",
+      userId: "user-wrap"
+    });
+
+    try {
+      const pending = hub.sendRpc(
+        "dev-wrap-bad",
+        { v: 1, id: "req-wrap-2", op: "get_state", payload: {} },
+        { timeoutMs: 40 }
+      );
+
+      // Drive a schema-valid RpcResponse without the `{type: ...}` wrapper.
+      // The hub must drop it because contract-violating frames are rejected.
+      runner.sendBareRpcResponse({
+        v: 1,
+        id: "req-wrap-2",
+        ok: true,
+        result: { should: "be-dropped" }
+      });
+
+      const result = await pending;
+      assert.ok(!result.ok, "bare rpc_response must not correlate");
+      assert.strictEqual(
+        (result as Extract<RpcResponse, { ok: false }>).error.code,
+        "timeout"
+      );
+    } finally {
+      runner.close();
     }
   });
 });
