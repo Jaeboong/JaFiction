@@ -65,6 +65,10 @@ import {
   OpendartDeleteKeyResultSchema,
   SaveAgentDefaultsPayloadSchema,
   SaveAgentDefaultsResultSchema,
+  DeleteRunPayloadSchema,
+  DeleteRunResultSchema,
+  ResumeRunResultSchema,
+  SubmitInterventionResultSchema,
   StateSnapshotEventPayloadSchema,
   RunEventPayloadSchema,
   InterventionRequestPayloadSchema,
@@ -750,6 +754,65 @@ test("save_agent_defaults: requires agentDefaults object; result is {ok:true}", 
 });
 
 // ---------------------------------------------------------------------------
+// Stage 11.4 — run lifecycle parity
+// ---------------------------------------------------------------------------
+
+test("delete_run: requires slug and runId; result is {ok:true}", () => {
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-del-run", op: "delete_run",
+    payload: { slug: "alpha", runId: "run-1" }
+  });
+  assert.equal(ok.success, true);
+  const missingSlug = DeleteRunPayloadSchema.safeParse({ runId: "run-1" });
+  assert.equal(missingSlug.success, false);
+  const missingRunId = DeleteRunPayloadSchema.safeParse({ slug: "alpha" });
+  assert.equal(missingRunId.success, false);
+  const extra = DeleteRunPayloadSchema.safeParse({ slug: "alpha", runId: "run-1", hack: true });
+  assert.equal(extra.success, false);
+  const result = DeleteRunResultSchema.parse({ ok: true });
+  assert.equal(result.ok, true);
+});
+
+test("resume_run: result requires runId and resumedFromRunId (strict)", () => {
+  const ok = ResumeRunResultSchema.parse({ runId: "run-2", resumedFromRunId: "run-1" });
+  assert.equal(ok.runId, "run-2");
+  assert.equal(ok.resumedFromRunId, "run-1");
+  // Old {ok: true} shape is now rejected — breaking change is load-bearing.
+  const legacy = ResumeRunResultSchema.safeParse({ ok: true });
+  assert.equal(legacy.success, false);
+  // Missing resumedFromRunId
+  const partial = ResumeRunResultSchema.safeParse({ runId: "run-2" });
+  assert.equal(partial.success, false);
+  // Extra field rejected
+  const extra = ResumeRunResultSchema.safeParse({
+    runId: "run-2", resumedFromRunId: "run-1", questionIndex: 0
+  });
+  assert.equal(extra.success, false);
+});
+
+test("submit_intervention: result outcome union, runId required, nextRunId optional", () => {
+  const queued = SubmitInterventionResultSchema.parse({ outcome: "queued", runId: "run-1" });
+  assert.equal(queued.outcome, "queued");
+  assert.equal(queued.nextRunId, undefined);
+  const resumed = SubmitInterventionResultSchema.parse({ outcome: "resumed", runId: "run-1" });
+  assert.equal(resumed.outcome, "resumed");
+  const continuation = SubmitInterventionResultSchema.parse({
+    outcome: "continuation",
+    runId: "run-1",
+    nextRunId: "run-2"
+  });
+  assert.equal(continuation.nextRunId, "run-2");
+  // Old {ok: true} shape is now rejected.
+  const legacy = SubmitInterventionResultSchema.safeParse({ ok: true });
+  assert.equal(legacy.success, false);
+  // Unknown outcome rejected
+  const bogus = SubmitInterventionResultSchema.safeParse({
+    outcome: "exploded", runId: "run-1"
+  });
+  assert.equal(bogus.success, false);
+});
+
+// ---------------------------------------------------------------------------
 // Event envelope round-trips
 // ---------------------------------------------------------------------------
 
@@ -887,12 +950,13 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "notion_check": return acc + 1;
       case "opendart_delete_key": return acc + 1;
       case "save_agent_defaults": return acc + 1;
+      case "delete_run": return acc + 1;
       default: return assertNever(op);
     }
   }, 0);
 
-  assert.equal(count, 37);
-  assert.equal(OP_NAMES.length, 37);
+  assert.equal(count, 38);
+  assert.equal(OP_NAMES.length, 38);
 });
 
 test("EVENT_NAMES exhaustiveness via switch", () => {

@@ -246,4 +246,97 @@ describe("session routing regression — user → device → ws", () => {
       }
     }
   });
+
+  // -------------------------------------------------------------------------
+  // Stage 11.4 — per-op user-scope invariant for run lifecycle
+  //
+  // delete_run is the most sensitive new op because it destroys persistent
+  // state. We also parameterize over resume_run + submit_intervention to pin
+  // their routing under the expanded result schemas.
+  // -------------------------------------------------------------------------
+  it("Stage 11.4 run lifecycle ops route per user", async () => {
+    const ops: readonly {
+      readonly op: "delete_run" | "resume_run" | "submit_intervention";
+      readonly payload: Record<string, unknown>;
+      readonly fakeResult: Record<string, unknown>;
+    }[] = [
+      {
+        op: "delete_run",
+        payload: { slug: "alpha", runId: "run-1" },
+        fakeResult: { ok: true }
+      },
+      {
+        op: "resume_run",
+        payload: { runId: "run-1" },
+        fakeResult: { runId: "run-1", resumedFromRunId: "run-1" }
+      },
+      {
+        op: "submit_intervention",
+        payload: { runId: "run-1", text: "go" },
+        fakeResult: { outcome: "queued", runId: "run-1" }
+      }
+    ];
+
+    for (const { op, payload, fakeResult } of ops) {
+      const redis = makeFakePubSubRedis();
+      const hub = createDeviceHub({ redis });
+
+      const userAId = `userA-${op}`;
+      const userBId = `userB-${op}`;
+      const userMap = new Map<string, UserRow>([
+        [userAId, makeUser(userAId)],
+        [userBId, makeUser(userBId)]
+      ]);
+      const store = makeInMemorySessionStore(userMap);
+      const sessionA = await store.createSession(userAId);
+
+      const deviceStore = makePerUserDeviceStore({
+        [userAId]: [`dev-A-${op}`],
+        [userBId]: [`dev-B-${op}`]
+      });
+
+      const pairA = makeWsPair();
+      const pairB = makeWsPair();
+      hub.attach(`dev-A-${op}`, userAId, pairA.server as unknown as import("ws").WebSocket);
+      hub.attach(`dev-B-${op}`, userBId, pairB.server as unknown as import("ws").WebSocket);
+
+      const receivedAt: string[] = [];
+      const onMessage = (deviceLabel: string, pair: ReturnType<typeof makeWsPair>) => (data: Buffer) => {
+        const frame = JSON.parse(String(data)) as Record<string, unknown>;
+        if (frame["type"] === "rpc_request") {
+          receivedAt.push(deviceLabel);
+          const id = frame["id"] as string;
+          const response: RpcResponse = { v: 1, id, ok: true, result: fakeResult };
+          pair.client.send(JSON.stringify(wrapRpcResponse(response)));
+        }
+      };
+      pairA.client.on("message", onMessage(`dev-A-${op}`, pairA));
+      pairB.client.on("message", onMessage(`dev-B-${op}`, pairB));
+
+      const app = Fastify({ logger: false });
+      await app.register(fastifyCookie, { secret: "test-secret-32-chars-minimum-!!!" });
+      await registerRpc(app, { store, hub, deviceStore });
+      await app.listen({ port: 0, host: "127.0.0.1" });
+      const port = (app.server.address() as import("net").AddressInfo).port;
+
+      try {
+        const res = await fetch(`http://127.0.0.1:${port}/api/rpc`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `${SESSION_COOKIE}=${sessionA.raw}`
+          },
+          body: JSON.stringify({ v: 1, id: `req-${op}`, op, payload })
+        });
+        assert.equal(res.status, 200);
+        const body = (await res.json()) as RpcResponse;
+        assert.ok(body.ok, `${op} must succeed for user A`);
+        assert.deepEqual(receivedAt, [`dev-A-${op}`], `${op} must route only to user A's device`);
+      } finally {
+        pairA.client.close();
+        pairB.client.close();
+        await app.close();
+      }
+    }
+  });
 });

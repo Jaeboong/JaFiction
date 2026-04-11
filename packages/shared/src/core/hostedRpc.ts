@@ -217,12 +217,19 @@ export type StartRunPayload = z.infer<typeof StartRunPayloadSchema>;
 export type StartRunResult = z.infer<typeof StartRunResultSchema>;
 
 // resume_run — mirrors runsRouter POST /:runId/resume
+// Stage 11.4 breaking schema expansion (plan Decisions #2): result now carries
+// `runId` (the new/resumed run) and `resumedFromRunId` (the prior run). In the
+// current runner implementation the two are equal because resume reuses the
+// existing runId slot, but downstream callers treat them as independent fields
+// to allow a future split. Both required — strict schema by design so an old
+// runner cannot silently drop a missing field.
 export const ResumeRunPayloadSchema = z.object({
   runId: z.string(),
   message: z.string().optional()
 }).strict();
 export const ResumeRunResultSchema = z.object({
-  ok: z.literal(true)
+  runId: z.string(),
+  resumedFromRunId: z.string()
 }).strict();
 export type ResumeRunPayload = z.infer<typeof ResumeRunPayloadSchema>;
 export type ResumeRunResult = z.infer<typeof ResumeRunResultSchema>;
@@ -249,15 +256,24 @@ export type CompleteRunPayload = z.infer<typeof CompleteRunPayloadSchema>;
 export type CompleteRunResult = z.infer<typeof CompleteRunResultSchema>;
 
 // submit_intervention — mirrors createRunInterventionRouter POST /:runId/intervention
+// Stage 11.4 breaking schema expansion (plan Decisions #2): result now carries
+// the RunSessionManager outcome (mirrors the local REST shape returned by
+// createRunInterventionRouter) plus the target runId and optional nextRunId for
+// the "continuation" path. `outcome` union is sourced directly from
+// RunSessionManager.submitIntervention's return type.
 export const SubmitInterventionPayloadSchema = z.object({
   runId: z.string(),
   text: z.string()
 }).strict();
+export const SubmitInterventionOutcomeSchema = z.enum(["queued", "resumed", "continuation"]);
 export const SubmitInterventionResultSchema = z.object({
-  ok: z.literal(true)
+  outcome: SubmitInterventionOutcomeSchema,
+  runId: z.string(),
+  nextRunId: z.string().optional()
 }).strict();
 export type SubmitInterventionPayload = z.infer<typeof SubmitInterventionPayloadSchema>;
 export type SubmitInterventionResult = z.infer<typeof SubmitInterventionResultSchema>;
+export type SubmitInterventionOutcome = z.infer<typeof SubmitInterventionOutcomeSchema>;
 
 // call_provider_test — mirrors providersRouter POST /:providerId/test
 export const CallProviderTestPayloadSchema = z.object({
@@ -615,6 +631,24 @@ export type ListWorkspaceFilesPayload = z.infer<typeof ListWorkspaceFilesPayload
 export type ListWorkspaceFilesResult = z.infer<typeof ListWorkspaceFilesResultSchema>;
 
 // ---------------------------------------------------------------------------
+// Stage 11.4 ops — run lifecycle parity
+// ---------------------------------------------------------------------------
+
+// delete_run — mirrors projectsRouter DELETE /:projectSlug/runs/:runId
+// New op (no prior REST/RPC equivalent on the hosted path). The runner handler
+// scopes the delete by slug+runId against ctx.storage() which is already a
+// per-user store via the device routing layer, so there is no cross-user path.
+export const DeleteRunPayloadSchema = z.object({
+  slug: z.string(),
+  runId: z.string()
+}).strict();
+export const DeleteRunResultSchema = z.object({
+  ok: z.literal(true)
+}).strict();
+export type DeleteRunPayload = z.infer<typeof DeleteRunPayloadSchema>;
+export type DeleteRunResult = z.infer<typeof DeleteRunResultSchema>;
+
+// ---------------------------------------------------------------------------
 // Exhaustive op name list
 // ---------------------------------------------------------------------------
 export const OP_NAMES = [
@@ -654,7 +688,8 @@ export const OP_NAMES = [
   "clear_provider_api_key",
   "notion_check",
   "opendart_delete_key",
-  "save_agent_defaults"
+  "save_agent_defaults",
+  "delete_run"
 ] as const satisfies readonly [string, ...string[]];
 
 // Hard cap for chunked upload assembly (server-enforced in handler).
@@ -709,7 +744,8 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("clear_provider_api_key"), payload: ClearProviderApiKeyPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("notion_check"), payload: NotionCheckPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("opendart_delete_key"), payload: OpendartDeleteKeyPayloadSchema }).strict(),
-  RpcRequestBaseSchema.extend({ op: z.literal("save_agent_defaults"), payload: SaveAgentDefaultsPayloadSchema }).strict()
+  RpcRequestBaseSchema.extend({ op: z.literal("save_agent_defaults"), payload: SaveAgentDefaultsPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("delete_run"), payload: DeleteRunPayloadSchema }).strict()
 ]);
 
 export type RpcRequest = z.infer<typeof RpcRequestSchema>;

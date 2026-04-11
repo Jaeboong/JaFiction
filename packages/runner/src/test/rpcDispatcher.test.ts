@@ -758,7 +758,12 @@ test("rpc:exhaustive — every OP_NAME is handled (no unknown_op response)", asy
       totalBytes: 1,
       sha256: "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
       chunkBase64: Buffer.from("x").toString("base64")
-    }
+    },
+    clear_provider_api_key: { provider: "claude" },
+    notion_check: { provider: "claude" },
+    opendart_delete_key: {},
+    save_agent_defaults: { agentDefaults: {} },
+    delete_run: { slug: project.slug, runId: "nonexistent-run" }
   };
 
   for (const op of OP_NAMES) {
@@ -996,8 +1001,8 @@ test("B3: rpc:save_project — accepts supported field (companyName) and persist
 // ---------------------------------------------------------------------------
 // OP_NAMES count sanity
 // ---------------------------------------------------------------------------
-test("OP_NAMES contains exactly 37 ops", () => {
-  assert.equal(OP_NAMES.length, 37);
+test("OP_NAMES contains exactly 38 ops", () => {
+  assert.equal(OP_NAMES.length, 38);
 });
 
 // ---------------------------------------------------------------------------
@@ -1405,6 +1410,97 @@ test("rpc:save_agent_defaults — persists defaults and returns {ok:true}", asyn
     if (res.ok) {
       assert.equal(res.result.ok, true);
     }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Stage 11.4 — run lifecycle parity dispatcher wiring
+// ---------------------------------------------------------------------------
+test("rpc:delete_run — returns {ok:true} for a no-op runId (idempotent rm -rf)", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "DelRunCo" });
+    const res = await h.dispatch(makeEnvelope("delete_run", {
+      slug: project.slug,
+      runId: "ghost-run-id"
+    }));
+    // storage.deleteRun uses rm -rf and tolerates missing paths, so a non-existent
+    // runId still returns ok:true. The important regression is that the dispatcher
+    // wires the op and the handler does not throw.
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.ok, true);
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:delete_run — removes a created run directory end-to-end", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "DelRunCo2" });
+    await h.storage.createRun({
+      id: "run-to-delete",
+      projectSlug: project.slug,
+      question: "Q",
+      draft: "D",
+      reviewMode: "realtime",
+      coordinatorProvider: "claude",
+      reviewerProviders: [],
+      rounds: 1,
+      maxRoundsPerSection: 1,
+      selectedDocumentIds: [],
+      status: "completed",
+      startedAt: "2026-04-11T00:00:00.000Z",
+      finishedAt: "2026-04-11T00:01:00.000Z"
+    });
+    const listBefore = await h.storage.listRuns(project.slug);
+    assert.ok(listBefore.some((r) => r.id === "run-to-delete"));
+    const res = await h.dispatch(makeEnvelope("delete_run", {
+      slug: project.slug,
+      runId: "run-to-delete"
+    }));
+    assert.equal(res.ok, true);
+    const listAfter = await h.storage.listRuns(project.slug);
+    assert.ok(!listAfter.some((r) => r.id === "run-to-delete"), "run directory must be removed");
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:resume_run — result carries runId and resumedFromRunId (11.4 schema expansion)", async () => {
+  // Without a live orchestrator the handler path that returns the new shape
+  // is unreachable — resumeRun calls startRunInternal which needs an
+  // orchestrator. The important regression for this stage is instead covered
+  // at the shared-schema level: `ResumeRunResultSchema` now rejects the legacy
+  // {ok:true} shape. Here we only verify the dispatcher still accepts the
+  // payload envelope and that the not_found path surfaces correctly.
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("resume_run", { runId: "ghost-for-11-4" }));
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "not_found");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:submit_intervention — dispatcher accepts updated envelope; surface error on idle session", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("submit_intervention", {
+      runId: "ghost-run-11-4",
+      text: "resume please"
+    }));
+    // No active session → RunSessionManager throws AddressedRunMismatchError
+    // → dispatcher maps to invalid_input. The new result shape never reaches
+    // the wire in this path, but schema coverage is pinned in hostedRpc.test.
+    assert.equal(res.ok, false);
   } finally {
     await h.cleanup();
   }

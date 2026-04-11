@@ -13,6 +13,9 @@ import {
   CompleteRunResult,
   SubmitInterventionPayload,
   SubmitInterventionResult,
+  SubmitInterventionOutcome,
+  DeleteRunPayload,
+  DeleteRunResult,
   AddressedRunMismatchError,
   RunRequest,
   RunEvent,
@@ -136,7 +139,12 @@ export async function resumeRun(
           maxRoundsPerSection: continuation.record.maxRoundsPerSection ?? 1,
           selectedDocumentIds: continuation.record.selectedDocumentIds
         });
-        return { ok: true };
+        // Stage 11.4 breaking schema expansion: return the resumed runId and
+        // the originating runId. The runner currently reuses the same runId
+        // slot on resume (startRunInternal with existingRunId), so these are
+        // equal — downstream callers still treat them as distinct fields so a
+        // future split into a fresh runId does not require another schema bump.
+        return { runId, resumedFromRunId: runId };
       }
     } catch {
       // try next project
@@ -238,7 +246,8 @@ export async function submitIntervention(
 ): Promise<SubmitInterventionResult> {
   const { runId, text } = payload;
   try {
-    const outcome = ctx.runSessions.submitIntervention(runId, text);
+    const outcome: SubmitInterventionOutcome = ctx.runSessions.submitIntervention(runId, text);
+    let nextRunId: string | undefined;
     if (outcome === "continuation") {
       const runState = ctx.runSessions.snapshot();
       if (!runState.projectSlug) {
@@ -248,7 +257,7 @@ export async function submitIntervention(
         );
       }
       ctx.runSessions.finishAddressedRun(runId);
-      await startRunInternal(ctx, {
+      nextRunId = await startRunInternal(ctx, {
         projectSlug: runState.projectSlug,
         question: "",
         draft: "",
@@ -264,13 +273,34 @@ export async function submitIntervention(
     }
     ctx.stateStore.setRunState(ctx.runSessions.snapshot());
     await ctx.pushState();
-    return { ok: true };
+    // Stage 11.4 breaking schema expansion: mirror the local REST shape
+    // (createRunInterventionRouter). nextRunId is populated only on the
+    // "continuation" path; otherwise it is omitted entirely.
+    return nextRunId === undefined
+      ? { outcome, runId }
+      : { outcome, runId, nextRunId };
   } catch (error) {
     if (error instanceof AddressedRunMismatchError) {
       throw Object.assign(new Error(error.message), { code: "invalid_input" });
     }
     throw error;
   }
+}
+
+// Stage 11.4 new op — mirrors projectsRouter DELETE /:projectSlug/runs/:runId.
+// User-scope invariant: ctx.storage() is bound to the calling user's
+// per-device workspace via the device hub routing layer, so passing an
+// arbitrary {slug, runId} pair here can only reach the caller's own runs.
+export async function deleteRun(
+  ctx: RunnerContext,
+  payload: DeleteRunPayload
+): Promise<DeleteRunResult> {
+  const { slug, runId } = payload;
+  await ctx.runBusy("실행 기록을 삭제하는 중...", async () => {
+    await ctx.storage().deleteRun(slug, runId);
+    await ctx.stateStore.refreshProjects(slug);
+  });
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------

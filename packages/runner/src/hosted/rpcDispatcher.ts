@@ -23,7 +23,7 @@ import {
   generateInsights,
   uploadDocumentChunk
 } from "../routes/projectsHandlers";
-import { listRuns, getRunMessages, startRun, resumeRun, abortRun, completeRun, submitIntervention } from "../routes/runsHandlers";
+import { listRuns, getRunMessages, startRun, resumeRun, abortRun, completeRun, submitIntervention, deleteRun } from "../routes/runsHandlers";
 import {
   callProviderTest,
   saveProviderConfig,
@@ -283,6 +283,9 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
 
     case "save_agent_defaults":
       return saveAgentDefaults(ctx, req.payload);
+
+    case "delete_run":
+      return deleteRun(ctx, req.payload);
 
     default:
       // Compile-time exhaustiveness guard + runtime defense
