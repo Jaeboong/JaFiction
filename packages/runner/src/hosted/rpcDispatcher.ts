@@ -1,0 +1,202 @@
+import {
+  RpcRequest,
+  RpcResponse,
+  RpcRequestSchema,
+  assertNever
+} from "@jafiction/shared";
+import { RunnerContext } from "../runnerContext";
+
+import { getState } from "../routes/stateHandlers";
+import { listProjects, getProject, saveProject, uploadDocument, deleteDocument } from "../routes/projectsHandlers";
+import { listRuns, getRunMessages, startRun, resumeRun, abortRun, completeRun, submitIntervention } from "../routes/runsHandlers";
+import {
+  callProviderTest,
+  saveProviderConfig,
+  saveProviderApiKey,
+  notionConnect,
+  notionDisconnect
+} from "../routes/providersHandlers";
+import { opendartSaveKey, opendartTest } from "../routes/openDartHandlers";
+import { readFile, writeFile, listWorkspaceFiles } from "../routes/fileHandlers";
+
+// ---------------------------------------------------------------------------
+// Logger interface — narrow surface so callers can provide console or pino
+// ---------------------------------------------------------------------------
+export interface Logger {
+  info(msg: string, meta?: Record<string, unknown>): void;
+  warn(msg: string, meta?: Record<string, unknown>): void;
+  error(msg: string, meta?: Record<string, unknown>): void;
+}
+
+const defaultLogger: Logger = {
+  info: (msg, meta) => console.info(msg, meta ?? ""),
+  warn: (msg, meta) => console.warn(msg, meta ?? ""),
+  error: (msg, meta) => console.error(msg, meta ?? "")
+};
+
+// ---------------------------------------------------------------------------
+// Error taxonomy
+// ---------------------------------------------------------------------------
+type ErrorCode = "bad_request" | "not_found" | "invalid_input" | "internal" | "unauthorized" | "unknown_op";
+
+function classifyError(error: unknown): { code: ErrorCode; message: string } {
+  if (error && typeof error === "object") {
+    const tagged = error as { code?: string; message?: string };
+    const code = tagged.code;
+    if (code === "not_found" || code === "invalid_input" || code === "unauthorized") {
+      return { code, message: tagged.message ?? String(error) };
+    }
+  }
+  if (error instanceof Error) {
+    return { code: "internal", message: error.message };
+  }
+  return { code: "internal", message: String(error) };
+}
+
+// ---------------------------------------------------------------------------
+// Secret redaction for logging
+// ---------------------------------------------------------------------------
+export function redactForLog(op: string, payload: Record<string, unknown>): Record<string, unknown> {
+  if (op === "save_provider_api_key") {
+    const { key: _key, ...rest } = payload as { key?: string } & Record<string, unknown>;
+    return { ...rest, key: "***" };
+  }
+  if (op === "notion_connect") {
+    const { token: _token, ...rest } = payload as { token?: string } & Record<string, unknown>;
+    return { ...rest, token: "***" };
+  }
+  if (op === "opendart_save_key") {
+    const { key: _key, ...rest } = payload as { key?: string } & Record<string, unknown>;
+    return { ...rest, key: "***" };
+  }
+  return payload;
+}
+
+// ---------------------------------------------------------------------------
+// Dispatcher factory
+// ---------------------------------------------------------------------------
+export interface DispatcherDeps {
+  readonly runnerContext: RunnerContext;
+  readonly logger?: Logger;
+}
+
+export function createRpcDispatcher(
+  deps: DispatcherDeps
+): (req: unknown) => Promise<RpcResponse> {
+  const ctx = deps.runnerContext;
+  const log = deps.logger ?? defaultLogger;
+
+  return async function dispatch(rawReq: unknown): Promise<RpcResponse> {
+    // 1. Validate envelope
+    const parseResult = RpcRequestSchema.safeParse(rawReq);
+    if (!parseResult.success) {
+      log.warn("rpc:bad_request", { error: parseResult.error.message });
+      return {
+        v: 1,
+        id: typeof rawReq === "object" && rawReq !== null && "id" in rawReq ? String((rawReq as Record<string, unknown>).id) : "unknown",
+        ok: false,
+        error: { code: "bad_request", message: parseResult.error.message }
+      };
+    }
+
+    const req: RpcRequest = parseResult.data;
+    const start = Date.now();
+
+    log.info(`rpc:${req.op}:start`, {
+      id: req.id,
+      payload: redactForLog(req.op, req.payload as Record<string, unknown>)
+    });
+
+    try {
+      const result = await route(ctx, req);
+      const ms = Date.now() - start;
+      log.info(`rpc:${req.op}:ok`, { id: req.id, ms });
+      return { v: 1, id: req.id, ok: true, result: result as Record<string, unknown> };
+    } catch (error) {
+      const ms = Date.now() - start;
+      const { code, message } = classifyError(error);
+      log.error(`rpc:${req.op}:err`, { id: req.id, ms, code, message });
+      return { v: 1, id: req.id, ok: false, error: { code, message } };
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Route switch — exhaustive discriminated union
+// ---------------------------------------------------------------------------
+async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
+  switch (req.op) {
+    case "get_state":
+      return getState(ctx, req.payload);
+
+    case "list_projects":
+      return listProjects(ctx, req.payload);
+
+    case "get_project":
+      return getProject(ctx, req.payload);
+
+    case "save_project":
+      return saveProject(ctx, req.payload);
+
+    case "upload_document":
+      return uploadDocument(ctx, req.payload);
+
+    case "delete_document":
+      return deleteDocument(ctx, req.payload);
+
+    case "list_runs":
+      return listRuns(ctx, req.payload);
+
+    case "get_run_messages":
+      return getRunMessages(ctx, req.payload);
+
+    case "start_run":
+      return startRun(ctx, req.payload);
+
+    case "resume_run":
+      return resumeRun(ctx, req.payload);
+
+    case "abort_run":
+      return abortRun(ctx, req.payload);
+
+    case "complete_run":
+      return completeRun(ctx, req.payload);
+
+    case "submit_intervention":
+      return submitIntervention(ctx, req.payload);
+
+    case "call_provider_test":
+      return callProviderTest(ctx, req.payload);
+
+    case "save_provider_config":
+      return saveProviderConfig(ctx, req.payload);
+
+    case "save_provider_api_key":
+      return saveProviderApiKey(ctx, req.payload);
+
+    case "notion_connect":
+      return notionConnect(ctx, req.payload);
+
+    case "notion_disconnect":
+      return notionDisconnect(ctx, req.payload);
+
+    case "opendart_save_key":
+      return opendartSaveKey(ctx, req.payload);
+
+    case "opendart_test":
+      return opendartTest(ctx, req.payload);
+
+    case "read_file":
+      return readFile(ctx, req.payload);
+
+    case "write_file":
+      return writeFile(ctx, req.payload);
+
+    case "list_workspace_files":
+      return listWorkspaceFiles(ctx, req.payload);
+
+    default:
+      // Compile-time exhaustiveness guard + runtime defense
+      return assertNever(req);
+  }
+}
