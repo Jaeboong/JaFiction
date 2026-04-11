@@ -22,6 +22,7 @@ export * from "./core/providers";
 export * from "./core/projectInsights";
 export * from "./core/roleAssignments";
 export * from "./core/runRepository";
+export * from "./core/hostedRpc";
 export * from "./core/schemas";
 export * from "./core/storage";
 export * from "./core/storageInterfaces";
