@@ -6,6 +6,25 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js -p tsconfig.json",
-    "typecheck": "../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js --noEmit -p tsconfig.json"
+    "typecheck": "../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js --noEmit -p tsconfig.json",
+    "test": "../../scripts/with-node.sh ../../node_modules/typescript/lib/tsc.js -p tsconfig.json && ../../scripts/with-node.sh --test --test-force-exit dist/test/*.test.js",
+    "db:generate": "../../scripts/with-node.sh ../../node_modules/.bin/drizzle-kit generate",
+    "db:migrate": "../../scripts/with-node.sh ../../node_modules/.bin/drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^9.4.0",
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/oauth2": "^7.2.0",
+    "@fastify/websocket": "^8.3.1",
+    "@jafiction/shared": "file:../shared",
+    "drizzle-orm": "^0.38.4",
+    "fastify": "^4.28.1",
+    "ioredis": "^5.3.2",
+    "pg": "^8.14.1",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.11",
+    "drizzle-kit": "^0.30.4"
   }
 }

@@ -1,14 +1,23 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "composite": true,
     "module": "commonjs",
     "rootDir": "src",
     "outDir": "dist",
+    "paths": {
+      "@jafiction/shared": [
+        "../shared/dist/index.d.ts"
+      ]
+    },
     "types": [
       "node"
     ]
   },
+  "references": [
+    { "path": "../shared" }
+  ],
   "include": [
     "src/**/*.ts"
   ]
