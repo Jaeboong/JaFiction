@@ -1,6 +1,43 @@
 import * as path from "node:path";
 
 /**
+ * Typed error used by the workspace path normalizer.
+ * fileRpc.ts maps `code` through to the RPC dispatcher error taxonomy.
+ */
+export class WorkspacePathError extends Error {
+  readonly code: "invalid_input";
+  constructor(message: string) {
+    super(message);
+    this.name = "WorkspacePathError";
+    this.code = "invalid_input";
+  }
+}
+
+/**
+ * Pure (no fs access) input validation for a user-supplied workspace path.
+ *
+ * Rejects:
+ *  - empty strings
+ *  - null bytes (POSIX path truncation attack)
+ *
+ * Returns the input unchanged — fs-level realpath + prefix check happens in
+ * fileRpc.ts where fs access is allowed.
+ *
+ * NFC/NFD: we pass through unchanged. On macOS HFS+/APFS the kernel handles
+ * normalization; on Linux two differently-normalized names are genuinely
+ * different files. This is the only behavior consistent across platforms.
+ */
+export function validateWorkspaceInputPath(requestedPath: string): string {
+  if (typeof requestedPath !== "string" || requestedPath.length === 0) {
+    throw new WorkspacePathError("Workspace path must be a non-empty string");
+  }
+  if (requestedPath.includes("\u0000")) {
+    throw new WorkspacePathError("Workspace path must not contain null bytes");
+  }
+  return requestedPath;
+}
+
+/**
  * Computes all filesystem paths used by ForJobStorage.
  * Extracted to keep path logic in one place and reduce storage.ts size.
  */
