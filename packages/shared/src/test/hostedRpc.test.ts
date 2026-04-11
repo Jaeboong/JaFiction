@@ -37,6 +37,8 @@ import {
   ListWorkspaceFilesResultSchema,
   WriteFileResultSchema,
   ReadFileResultSchema,
+  GetAgentDefaultsPayloadSchema,
+  GetAgentDefaultsResultSchema,
   StateSnapshotEventPayloadSchema,
   RunEventPayloadSchema,
   InterventionRequestPayloadSchema,
@@ -477,6 +479,20 @@ test("list_workspace_files: subdir optional, entries in result", () => {
   assert.equal(result.entries[0]?.isDirectory, false);
 });
 
+test("get_agent_defaults: valid request and result round-trip", () => {
+  const req = RpcRequestSchema.safeParse({
+    v: 1, id: "r24", op: "get_agent_defaults", payload: {}
+  });
+  assert.equal(req.success, true);
+
+  const result = GetAgentDefaultsResultSchema.parse({ agentDefaults: {} });
+  assert.deepEqual(result.agentDefaults, {});
+});
+
+test("get_agent_defaults: extra payload field rejected", () => {
+  assert.equal(GetAgentDefaultsPayloadSchema.safeParse({ role: "coordinator" }).success, false);
+});
+
 // ---------------------------------------------------------------------------
 // Event envelope round-trips
 // ---------------------------------------------------------------------------
@@ -601,12 +617,13 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "read_file": return acc + 1;
       case "write_file": return acc + 1;
       case "list_workspace_files": return acc + 1;
+      case "get_agent_defaults": return acc + 1;
       default: return assertNever(op);
     }
   }, 0);
 
-  assert.equal(count, 23);
-  assert.equal(OP_NAMES.length, 23);
+  assert.equal(count, 24);
+  assert.equal(OP_NAMES.length, 24);
 });
 
 test("EVENT_NAMES exhaustiveness via switch", () => {

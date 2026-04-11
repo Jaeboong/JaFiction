@@ -6,7 +6,7 @@ import {
 } from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 
-import { getState } from "../routes/stateHandlers";
+import { getState, getAgentDefaults } from "../routes/stateHandlers";
 import { listProjects, getProject, saveProject, uploadDocument, deleteDocument } from "../routes/projectsHandlers";
 import { listRuns, getRunMessages, startRun, resumeRun, abortRun, completeRun, submitIntervention } from "../routes/runsHandlers";
 import {
@@ -205,6 +205,9 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
 
     case "list_workspace_files":
       return listWorkspaceFiles(ctx, req.payload);
+
+    case "get_agent_defaults":
+      return getAgentDefaults(ctx, req.payload);
 
     default:
       // Compile-time exhaustiveness guard + runtime defense

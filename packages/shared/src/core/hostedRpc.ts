@@ -8,7 +8,8 @@ import {
   ContextDocumentSchema,
   RunRecordSchema,
   RunChatMessageSchema,
-  RunLedgerEntrySchema
+  RunLedgerEntrySchema,
+  AgentDefaultsSchema
 } from "./schemas";
 import { SidebarStateSchema } from "./viewModels";
 
@@ -357,6 +358,14 @@ export const WriteFileResultSchema = z.object({
 export type WriteFilePayload = z.infer<typeof WriteFilePayloadSchema>;
 export type WriteFileResult = z.infer<typeof WriteFileResultSchema>;
 
+// get_agent_defaults — read-only mirror of configRouter GET /agent-defaults
+export const GetAgentDefaultsPayloadSchema = z.object({}).strict();
+export const GetAgentDefaultsResultSchema = z.object({
+  agentDefaults: AgentDefaultsSchema
+}).strict();
+export type GetAgentDefaultsPayload = z.infer<typeof GetAgentDefaultsPayloadSchema>;
+export type GetAgentDefaultsResult = z.infer<typeof GetAgentDefaultsResultSchema>;
+
 // list_workspace_files — new file RPC (root-jail enforced in Phase 8)
 export const ListWorkspaceFilesPayloadSchema = z.object({
   subdir: z.string().optional()
@@ -393,7 +402,8 @@ export const OP_NAMES = [
   "opendart_test",
   "read_file",
   "write_file",
-  "list_workspace_files"
+  "list_workspace_files",
+  "get_agent_defaults"
 ] as const satisfies readonly [string, ...string[]];
 
 export type OpName = (typeof OP_NAMES)[number];
@@ -429,7 +439,8 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("opendart_test"), payload: OpendartTestPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("read_file"), payload: ReadFilePayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("write_file"), payload: WriteFilePayloadSchema }).strict(),
-  RpcRequestBaseSchema.extend({ op: z.literal("list_workspace_files"), payload: ListWorkspaceFilesPayloadSchema }).strict()
+  RpcRequestBaseSchema.extend({ op: z.literal("list_workspace_files"), payload: ListWorkspaceFilesPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("get_agent_defaults"), payload: GetAgentDefaultsPayloadSchema }).strict()
 ]);
 
 export type RpcRequest = z.infer<typeof RpcRequestSchema>;

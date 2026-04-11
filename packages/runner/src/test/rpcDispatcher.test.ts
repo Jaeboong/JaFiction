@@ -736,7 +736,8 @@ test("rpc:exhaustive — every OP_NAME is handled (no unknown_op response)", asy
     opendart_test: {},
     read_file: { path: "nonexistent-file.txt" },
     write_file: { path: "exhaust-test.txt", contentBase64: Buffer.from("x").toString("base64") },
-    list_workspace_files: {}
+    list_workspace_files: {},
+    get_agent_defaults: {}
   };
 
   for (const op of OP_NAMES) {
@@ -974,8 +975,27 @@ test("B3: rpc:save_project — accepts supported field (companyName) and persist
 // ---------------------------------------------------------------------------
 // OP_NAMES count sanity
 // ---------------------------------------------------------------------------
-test("OP_NAMES contains exactly 23 ops", () => {
-  assert.equal(OP_NAMES.length, 23);
+test("OP_NAMES contains exactly 24 ops", () => {
+  assert.equal(OP_NAMES.length, 24);
+});
+
+// ---------------------------------------------------------------------------
+// get_agent_defaults — returns wrapped defaults object
+// ---------------------------------------------------------------------------
+test("rpc:get_agent_defaults — returns { agentDefaults }", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("get_agent_defaults", {}));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.ok(
+        res.result.agentDefaults && typeof res.result.agentDefaults === "object",
+        "result.agentDefaults should be an object"
+      );
+    }
+  } finally {
+    await h.cleanup();
+  }
 });
 
 // ---------------------------------------------------------------------------

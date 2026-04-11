@@ -3,6 +3,7 @@ import type {
   AbortRunResult,
   CompleteRunResult,
   DeleteDocumentResult,
+  GetAgentDefaultsResult,
   GetRunMessagesResult,
   JobPostingExtractionResult,
   ListProjectsResult,
@@ -84,6 +85,10 @@ export class RunnerClient {
   }
 
   async getAgentDefaults(): Promise<AgentDefaults> {
+    if (this.mode === "hosted") {
+      const result = await this.rpcCall<GetAgentDefaultsResult>("get_agent_defaults", {});
+      return result.agentDefaults;
+    }
     const payload = await this.request<{ agentDefaults: AgentDefaults }>("/api/config/agent-defaults");
     return payload.agentDefaults;
   }
