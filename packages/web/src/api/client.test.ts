@@ -272,6 +272,121 @@ describe("RunnerClient shape-wrap (hosted)", () => {
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // Stage 11.8 — profile document hosted parity
+  // ---------------------------------------------------------------------------
+  const MINIMAL_PROFILE_DOC = {
+    id: "pdoc-1",
+    scope: "profile",
+    title: "이력서",
+    sourceType: "text",
+    rawPath: "raw/pdoc-1.md",
+    pinnedByDefault: false,
+    extractionStatus: "normalized",
+    createdAt: "2026-04-11T00:00:00.000Z"
+  };
+
+  it("listProfileDocuments dispatches profile_list_documents and unwraps", async () => {
+    const client = new RunnerClient("http://hosted.test");
+    fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
+      const req = JSON.parse(String(init.body));
+      return new Response(
+        JSON.stringify({ v: 1, id: req.id, ok: true, result: { documents: [MINIMAL_PROFILE_DOC] } }),
+        { status: 200 }
+      );
+    });
+    try {
+      const docs = await client.listProfileDocuments();
+      assert.equal(docs.length, 1);
+      assert.equal(docs[0]!.title, "이력서");
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
+      assert.equal(body.op, "profile_list_documents");
+    } finally {
+      restore();
+    }
+  });
+
+  it("saveProfileTextDocument dispatches with payload and returns unwrapped document", async () => {
+    const client = new RunnerClient("http://hosted.test");
+    fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
+      const req = JSON.parse(String(init.body));
+      return new Response(
+        JSON.stringify({ v: 1, id: req.id, ok: true, result: { document: MINIMAL_PROFILE_DOC } }),
+        { status: 200 }
+      );
+    });
+    try {
+      const doc = await client.saveProfileTextDocument({
+        title: "이력서",
+        content: "내용",
+        note: "2026",
+        pinnedByDefault: true
+      });
+      assert.equal(doc.id, "pdoc-1");
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
+      assert.equal(body.op, "profile_save_text_document");
+      assert.equal(body.payload.title, "이력서");
+      assert.equal(body.payload.note, "2026");
+      assert.equal(body.payload.pinnedByDefault, true);
+    } finally {
+      restore();
+    }
+  });
+
+  it("setProfileDocumentPinned dispatches profile_set_document_pinned", async () => {
+    const client = new RunnerClient("http://hosted.test");
+    fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
+      const req = JSON.parse(String(init.body));
+      return new Response(
+        JSON.stringify({ v: 1, id: req.id, ok: true, result: { document: { ...MINIMAL_PROFILE_DOC, pinnedByDefault: true } } }),
+        { status: 200 }
+      );
+    });
+    try {
+      const doc = await client.setProfileDocumentPinned("pdoc-1", true);
+      assert.equal(doc.pinnedByDefault, true);
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
+      assert.equal(body.op, "profile_set_document_pinned");
+      assert.equal(body.payload.documentId, "pdoc-1");
+      assert.equal(body.payload.pinned, true);
+    } finally {
+      restore();
+    }
+  });
+
+  it("getProfileDocumentPreview dispatches profile_get_document_preview", async () => {
+    const client = new RunnerClient("http://hosted.test");
+    fetchMock.mockImplementationOnce(async (_url: string, init: RequestInit) => {
+      const req = JSON.parse(String(init.body));
+      return new Response(
+        JSON.stringify({
+          v: 1, id: req.id, ok: true, result: {
+            documentId: "pdoc-1",
+            title: "이력서",
+            note: "",
+            sourceType: "text",
+            extractionStatus: "normalized",
+            rawPath: "raw/pdoc-1.md",
+            normalizedPath: "",
+            previewSource: "normalized",
+            content: "hello"
+          }
+        }),
+        { status: 200 }
+      );
+    });
+    try {
+      const preview = await client.getProfileDocumentPreview("pdoc-1");
+      assert.equal(preview.content, "hello");
+      assert.equal(preview.previewSource, "normalized");
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
+      assert.equal(body.op, "profile_get_document_preview");
+      assert.equal(body.payload.documentId, "pdoc-1");
+    } finally {
+      restore();
+    }
+  });
+
   it("testOpenDartConnection maps hosted {ok,sample} to {ok,message}", async () => {
     const client = new RunnerClient("http://hosted.test");
     // Override mock to return a sample string.

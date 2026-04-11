@@ -457,7 +457,11 @@ export function App() {
               runnerBaseUrlDraft={runnerBaseUrlDraft}
               lastUpdatedAt={lastUpdatedAt}
               pendingOpenDartAction={pendingOpenDartAction}
+              client={client}
               onSelectSection={setSelectedSettingsSection}
+              onProfileDocumentsChanged={() => {
+                void refreshProviderState();
+              }}
               onRunnerBaseUrlDraftChange={setRunnerBaseUrlDraft}
               onApplyRunnerBaseUrl={() => setRunnerBaseUrl(runnerBaseUrlDraft)}
               onSaveAgentDefaults={async (agentDefaults) => {

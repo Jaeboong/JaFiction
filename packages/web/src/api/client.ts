@@ -4,6 +4,7 @@ import type {
   AnalyzeInsightsResult,
   AnalyzePostingResult,
   CompleteRunResult,
+  ContextDocument,
   CreateProjectResult,
   DeleteDocumentResult,
   DeleteProjectResult,
@@ -16,6 +17,10 @@ import type {
   ListProjectsResult,
   OpName,
   OpendartSaveKeyResult,
+  ProfileGetDocumentPreviewResult,
+  ProfileListDocumentsResult,
+  ProfileSaveTextDocumentResult,
+  ProfileSetDocumentPinnedResult,
   ProjectInsightWorkspaceState,
   ProjectRecord,
   ProviderId,
@@ -182,6 +187,57 @@ export class RunnerClient {
       slug: projectSlug,
       questionIndex,
       draft
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Stage 11.8 — profile document hosted parity
+  // ---------------------------------------------------------------------------
+
+  async listProfileDocuments(): Promise<readonly ContextDocument[]> {
+    const result = await this.rpcCall<ProfileListDocumentsResult>("profile_list_documents", {});
+    return result.documents;
+  }
+
+  async saveProfileTextDocument(opts: {
+    title: string;
+    content: string;
+    note?: string;
+    pinnedByDefault?: boolean;
+  }): Promise<ContextDocument> {
+    const payload: { title: string; content: string; note?: string; pinnedByDefault?: boolean } = {
+      title: opts.title,
+      content: opts.content
+    };
+    if (opts.note !== undefined) {
+      payload.note = opts.note;
+    }
+    if (opts.pinnedByDefault !== undefined) {
+      payload.pinnedByDefault = opts.pinnedByDefault;
+    }
+    const result = await this.rpcCall<ProfileSaveTextDocumentResult>("profile_save_text_document", payload);
+    return result.document;
+  }
+
+  async setProfileDocumentPinned(documentId: string, pinned: boolean): Promise<ContextDocument> {
+    const result = await this.rpcCall<ProfileSetDocumentPinnedResult>("profile_set_document_pinned", {
+      documentId,
+      pinned
+    });
+    return result.document;
+  }
+
+  async getProfileDocumentPreview(documentId: string): Promise<ProfileGetDocumentPreviewResult> {
+    return this.rpcCall<ProfileGetDocumentPreviewResult>("profile_get_document_preview", { documentId });
+  }
+
+  async uploadProfileDocument(file: File, opts: { note?: string; pinnedByDefault?: boolean } = {}): Promise<ContextDocument> {
+    const { uploadProfileFileInChunks } = await import("./hostedProfileUpload");
+    return uploadProfileFileInChunks({
+      client: this,
+      file,
+      note: opts.note,
+      pinnedByDefault: opts.pinnedByDefault
     });
   }
 
