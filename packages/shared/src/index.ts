@@ -30,6 +30,7 @@ export * from "./core/storagePaths";
 export * from "./core/types";
 export * from "./core/utils";
 export * from "./core/webviewProtocol";
+export * from "./logging/redact";
 export {
   RunArtifactFlagsSchema,
   RunPreviewSchema,

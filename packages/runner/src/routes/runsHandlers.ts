@@ -395,6 +395,9 @@ export async function startRunInternal(ctx: RunnerContext, request: RunRequest):
       }
     }
   })().catch(async (error) => {
+    // Phase 9 decision: we do NOT emit a separate `run_finished: failed` here.
+    // The `run_event` envelope below already carries a `run-failed` RunEvent,
+    // which browsers treat as the authoritative terminal signal for failed runs.
     const hasTerminalEvent = bufferedEvents.some((event) => event.type === "run-failed" || event.type === "run-aborted");
     if (!hasTerminalEvent && !isRunAbortedError(error)) {
       bufferedEvents.push({

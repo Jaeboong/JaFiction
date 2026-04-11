@@ -4,7 +4,7 @@ import http from "node:http";
 import cors from "cors";
 import express from "express";
 import { WebSocketServer } from "ws";
-import { resolveNodeRuntime } from "@jafiction/shared";
+import { resolveNodeRuntime, redactSecrets } from "@jafiction/shared";
 import { createRunnerContext, type RunnerContext } from "./runnerContext";
 import { createInsightsRouter } from "./routes/insightsRouter";
 import { createConfigRouter } from "./routes/configRouter";
@@ -277,10 +277,14 @@ async function mainHosted(): Promise<void> {
     process.exit(1);
   }
 
+  // Phase 9: all hosted-mode logs funnel through redactSecrets to scrub any
+  // accidental API keys / bearer tokens / device tokens that land in meta.
+  const safeMeta = (meta?: Record<string, unknown>): unknown =>
+    meta === undefined ? "" : redactSecrets(meta);
   const logger = {
-    info: (msg: string, meta?: Record<string, unknown>) => console.log(msg, meta ?? ""),
-    warn: (msg: string, meta?: Record<string, unknown>) => console.warn(msg, meta ?? ""),
-    error: (msg: string, meta?: Record<string, unknown>) => console.error(msg, meta ?? "")
+    info: (msg: string, meta?: Record<string, unknown>) => console.log(redactSecrets(msg), safeMeta(meta)),
+    warn: (msg: string, meta?: Record<string, unknown>) => console.warn(redactSecrets(msg), safeMeta(meta)),
+    error: (msg: string, meta?: Record<string, unknown>) => console.error(redactSecrets(msg), safeMeta(meta))
   };
 
   const ctx = await createRunnerContext();

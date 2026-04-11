@@ -4,8 +4,8 @@
  */
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyCookie from "@fastify/cookie";
-import fastifyHelmet from "@fastify/helmet";
 import fastifyWebsocket from "@fastify/websocket";
+import { registerStrictSecurityHeaders } from "../security/csp";
 import type { Pool } from "pg";
 import type Redis from "ioredis";
 import type { SessionStore } from "../auth/session";
@@ -63,7 +63,7 @@ export async function buildTestApp(deps: TestAppDeps): Promise<FastifyInstance> 
     secret: env.COOKIE_SECRET,
   });
 
-  await app.register(fastifyHelmet, { contentSecurityPolicy: false });
+  await registerStrictSecurityHeaders(app);
   await app.register(fastifyWebsocket);
 
   // Healthz
