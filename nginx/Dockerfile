@@ -27,8 +27,10 @@ COPY packages/web    ./packages/web
 RUN node ./node_modules/typescript/lib/tsc.js -p ./packages/shared/tsconfig.json
 
 # Vite build. `tsc -p` first to surface type errors, then vite bundles.
+# Vite 5.x `build` subcommand rejects `--root`; cd into the package instead.
 RUN node ./node_modules/typescript/lib/tsc.js -p ./packages/web/tsconfig.json \
- && node ./node_modules/vite/bin/vite.js build --root ./packages/web
+ && cd ./packages/web \
+ && node ../../node_modules/vite/bin/vite.js build
 
 # ---------- nginx runtime ----------
 FROM ${NGINX_IMAGE} AS runtime
