@@ -1,16 +1,15 @@
 /**
- * Pairing routes — Phase 5
+ * Device routes — Stage 11.9
  *
- * POST /api/pairing/start   (session required)
- * POST /api/pairing/claim   (unauthenticated — runner calls this)
- * GET  /api/devices          (session required)
- * POST /api/devices/:id/revoke (session required)
+ * POST /auth/device-claim         (unauthenticated — runner registers pending claim)
+ * GET  /auth/device-claim/:id     (unauthenticated — runner polls for approval)
+ * POST /api/device-claim/approve  (session required — web UI approves on Connect)
+ * GET  /api/devices               (session required)
+ * POST /api/devices/:id/revoke    (session required)
  *
- * Pairing codes: 8 chars, base32 alphabet (A-Z, 2-9, no O/0/1/I).
- * Codes are stored in Redis under `pairing:<CODE>` with 600s TTL.
- * Rate limit: 5 starts / 10 min per user (Redis counter `pairing-rate:<userId>`).
- * Max 5 failed claim attempts per code (guessing protection).
- * Token: 32 random bytes hex. Only sha256(token) stored in DB.
+ * Redis key layout:
+ *   claim:<claimId>      — JSON ClaimEntry, TTL 600s
+ *   claim-rate:<ip>      — rate limit counter, TTL 60s, max 10 per minute per IP
  */
 
 import * as crypto from "node:crypto";
@@ -24,7 +23,14 @@ import { makeRequireSession } from "../auth/session";
 import type { AuthenticatedRequest } from "../auth/session";
 import type Redis from "ioredis";
 import type { Env } from "../env";
-// eq/and/Db/devices are only used in DrizzleDeviceStore — kept for production path
+
+const CLAIM_TTL_SECONDS = 600;
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
+// Cap long-poll response time. The backend returns pending if still waiting
+// so the runner re-polls; avoids fighting Fastify's idle-timeout defaults.
+const POLL_TICK_MS = 500;
+const POLL_MAX_MS = 25_000;
 
 // ---------------------------------------------------------------------------
 // DeviceRecord — shape returned to callers (never exposes token_hash)
@@ -32,7 +38,8 @@ import type { Env } from "../env";
 export interface DeviceRecord {
   readonly id: string;
   readonly label: string;
-  readonly workspaceRoot: string;
+  readonly hostname: string | null;
+  readonly os: string | null;
   readonly createdAt: Date;
   readonly lastSeenAt: Date | null;
   readonly revokedAt: Date | null;
@@ -46,7 +53,10 @@ export interface DeviceStore {
     id: string;
     userId: string;
     label: string;
-    workspaceRoot: string;
+    hostname?: string;
+    os?: string;
+    runnerVersion?: string;
+    workspaceRoot?: string;
     tokenHash: string;
   }): Promise<void>;
   listDevices(userId: string): Promise<readonly DeviceRecord[]>;
@@ -58,12 +68,15 @@ export interface DeviceStore {
 // ---------------------------------------------------------------------------
 export function createDrizzleDeviceStore(db: Db): DeviceStore {
   return {
-    async insertDevice({ id, userId, label, workspaceRoot, tokenHash }) {
+    async insertDevice({ id, userId, label, hostname, os, runnerVersion, workspaceRoot, tokenHash }) {
       await db.insert(devices).values({
         id,
         user_id: userId,
         label,
-        workspace_root: workspaceRoot,
+        hostname: hostname ?? null,
+        os: os ?? null,
+        runner_version: runnerVersion ?? null,
+        workspace_root: workspaceRoot ?? null,
         token_hash: tokenHash,
       });
     },
@@ -73,7 +86,8 @@ export function createDrizzleDeviceStore(db: Db): DeviceStore {
         .select({
           id: devices.id,
           label: devices.label,
-          workspace_root: devices.workspace_root,
+          hostname: devices.hostname,
+          os: devices.os,
           created_at: devices.created_at,
           last_seen_at: devices.last_seen_at,
           revoked_at: devices.revoked_at,
@@ -84,7 +98,8 @@ export function createDrizzleDeviceStore(db: Db): DeviceStore {
       return rows.map((r) => ({
         id: r.id,
         label: r.label,
-        workspaceRoot: r.workspace_root,
+        hostname: r.hostname,
+        os: r.os,
         createdAt: r.created_at,
         lastSeenAt: r.last_seen_at,
         revokedAt: r.revoked_at,
@@ -103,58 +118,6 @@ export function createDrizzleDeviceStore(db: Db): DeviceStore {
 }
 
 // ---------------------------------------------------------------------------
-// Pairing code helpers
-// ---------------------------------------------------------------------------
-
-// Base32 alphabet: uppercase letters + digits, excluding O, 0, 1, I (confusing)
-const BASE32_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CODE_LENGTH = 8;
-const CODE_TTL_SECONDS = 600; // 10 minutes
-const RATE_LIMIT_MAX = 5;
-const RATE_LIMIT_WINDOW_SECONDS = 600;
-const MAX_CLAIM_ATTEMPTS = 5;
-
-function generatePairingCode(): string {
-  const bytes = crypto.randomBytes(CODE_LENGTH);
-  let code = "";
-  for (let i = 0; i < CODE_LENGTH; i++) {
-    code += BASE32_ALPHABET[bytes[i] % BASE32_ALPHABET.length];
-  }
-  return code;
-}
-
-function normalizeCode(raw: string): string {
-  return raw
-    .toUpperCase()
-    .replace(/[O0]/g, "0") // map O/0 to 0 (already excluded, but belt-and-suspenders)
-    .replace(/[I1]/g, "1")
-    .trim();
-}
-
-// ---------------------------------------------------------------------------
-// Redis key helpers
-// ---------------------------------------------------------------------------
-
-function pairingKey(code: string): string {
-  return `pairing:${code}`;
-}
-
-function rateKey(userId: string): string {
-  return `pairing-rate:${userId}`;
-}
-
-// ---------------------------------------------------------------------------
-// Pairing value schema (stored in Redis as JSON)
-// ---------------------------------------------------------------------------
-
-interface PairingValue {
-  readonly userId: string;
-  readonly label: string;
-  readonly workspaceRoot: string;
-  attemptCount: number;
-}
-
-// ---------------------------------------------------------------------------
 // Token helpers
 // ---------------------------------------------------------------------------
 
@@ -167,20 +130,52 @@ function hashToken(token: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Route body schemas (validate at boundary)
+// ClaimEntry — stored as JSON in Redis under claim:<claimId>
 // ---------------------------------------------------------------------------
 
-const StartBodySchema = z.object({
-  label: z.string().min(1).max(100),
-  workspaceRoot: z.string().min(1).max(500),
+interface ClaimEntry {
+  readonly hostname: string;
+  readonly os: string;
+  readonly runnerVersion: string;
+  readonly workspaceRoot?: string;
+  readonly ip: string;
+  readonly pollToken: string;
+  readonly registeredAt: number; // epoch ms
+  status: "pending" | "approved" | "rejected";
+  token?: string;
+  deviceId?: string;
+  userId?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Body schemas
+// ---------------------------------------------------------------------------
+
+const RegisterClaimBodySchema = z.object({
+  hostname: z.string().min(1).max(200),
+  os: z.string().min(1).max(200),
+  runnerVersion: z.string().min(1).max(100),
+  workspaceRoot: z.string().max(500).optional(),
 });
 
-const ClaimBodySchema = z.object({
-  code: z.string().min(1).max(20),
+const ApproveClaimBodySchema = z.object({
+  claimId: z.string().min(1).optional(),
 });
 
 // ---------------------------------------------------------------------------
-// Registration
+// Redis key helpers
+// ---------------------------------------------------------------------------
+
+function claimKey(claimId: string): string {
+  return `claim:${claimId}`;
+}
+
+function rateKey(ip: string): string {
+  return `claim-rate:${ip}`;
+}
+
+// ---------------------------------------------------------------------------
+// PairingDeps
 // ---------------------------------------------------------------------------
 
 export interface PairingDeps {
@@ -190,6 +185,10 @@ export interface PairingDeps {
   readonly env: Pick<Env, "NODE_ENV">;
 }
 
+// ---------------------------------------------------------------------------
+// Registration
+// ---------------------------------------------------------------------------
+
 export async function registerPairing(
   app: FastifyInstance,
   deps: PairingDeps
@@ -197,114 +196,209 @@ export async function registerPairing(
   const requireSession = makeRequireSession(deps.store);
 
   // -------------------------------------------------------------------------
-  // POST /api/pairing/start
+  // POST /auth/device-claim  (unauthenticated — runner registers a pending claim)
+  // -------------------------------------------------------------------------
+  app.post("/auth/device-claim", async (request, reply) => {
+    const parsed = RegisterClaimBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_body", details: parsed.error.flatten() });
+    }
+
+    // Trust Fastify's request.ip which respects X-Forwarded-For when
+    // trustProxy is enabled (set in prod behind nginx). In dev it's the
+    // raw connecting address.
+    const ip = request.ip ?? request.socket.remoteAddress ?? "unknown";
+
+    // Rate limit: max 10 per minute per IP
+    const rateK = rateKey(ip);
+    const countRaw = await deps.redis.get(rateK);
+    const count = countRaw === null ? 0 : parseInt(countRaw, 10);
+
+    if (count >= RATE_LIMIT_MAX) {
+      return reply.code(429).send({ error: "rate_limited" });
+    }
+
+    if (count === 0) {
+      await deps.redis.set(rateK, "1", "EX", RATE_LIMIT_WINDOW_SECONDS);
+    } else {
+      await deps.redis.incr(rateK);
+    }
+
+    const claimId = crypto.randomUUID();
+    const pollToken = crypto.randomBytes(24).toString("hex");
+    const expiresAt = new Date(Date.now() + CLAIM_TTL_SECONDS * 1000).toISOString();
+
+    const entry: ClaimEntry = {
+      hostname: parsed.data.hostname,
+      os: parsed.data.os,
+      runnerVersion: parsed.data.runnerVersion,
+      workspaceRoot: parsed.data.workspaceRoot,
+      ip,
+      pollToken,
+      registeredAt: Date.now(),
+      status: "pending",
+    };
+
+    await deps.redis.set(claimKey(claimId), JSON.stringify(entry), "EX", CLAIM_TTL_SECONDS);
+
+    return reply.code(200).send({ claimId, pollToken, expiresAt });
+  });
+
+  // -------------------------------------------------------------------------
+  // GET /auth/device-claim/:claimId  (unauthenticated — runner polls for result)
+  // -------------------------------------------------------------------------
+  app.get("/auth/device-claim/:claimId", async (request, reply) => {
+    const { claimId } = request.params as { claimId: string };
+    const { pollToken } = request.query as { pollToken?: string };
+
+    if (!pollToken) {
+      return reply.code(400).send({ error: "missing_poll_token" });
+    }
+
+    // Long-poll: check periodically up to POLL_MAX_MS, then return pending.
+    const deadline = Date.now() + POLL_MAX_MS;
+
+    while (true) {
+      const raw = await deps.redis.get(claimKey(claimId));
+
+      if (raw === null) {
+        return reply.code(200).send({ status: "expired" });
+      }
+
+      const entry = JSON.parse(raw) as ClaimEntry;
+
+      if (entry.pollToken !== pollToken) {
+        return reply.code(401).send({ error: "invalid_poll_token" });
+      }
+
+      if (entry.status === "approved") {
+        // Consume the claim — delete the Redis key so second poll returns expired.
+        await deps.redis.del(claimKey(claimId));
+        return reply.code(200).send({
+          status: "approved",
+          token: entry.token,
+          deviceId: entry.deviceId,
+          userId: entry.userId,
+        });
+      }
+
+      if (entry.status === "rejected") {
+        return reply.code(200).send({ status: "rejected" });
+      }
+
+      // Still pending — wait a tick or return if deadline reached.
+      if (Date.now() + POLL_TICK_MS > deadline) {
+        return reply.code(200).send({ status: "pending" });
+      }
+
+      await new Promise<void>((resolve) => setTimeout(resolve, POLL_TICK_MS));
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // POST /api/device-claim/approve  (session required — web UI calls this)
   // -------------------------------------------------------------------------
   app.post(
-    "/api/pairing/start",
+    "/api/device-claim/approve",
     { preHandler: requireSession },
     async (request, reply) => {
       const { user } = (request as AuthenticatedRequest).sessionData;
 
-      // Validate body
-      const parsed = StartBodySchema.safeParse(request.body);
+      const parsed = ApproveClaimBodySchema.safeParse(request.body ?? {});
       if (!parsed.success) {
-        return reply
-          .code(400)
-          .send({ error: "invalid_body", details: parsed.error.flatten() });
+        return reply.code(400).send({ error: "invalid_body" });
       }
-      const { label, workspaceRoot } = parsed.data;
 
-      // Rate limit check
-      const rateK = rateKey(user.id);
-      const countRaw = await deps.redis.get(rateK);
-      const count = countRaw === null ? 0 : parseInt(countRaw, 10);
+      const ip = request.ip ?? request.socket.remoteAddress ?? "unknown";
+      const now = Date.now();
+      const twoMinutesAgo = now - 2 * 60 * 1000;
 
-      if (count >= RATE_LIMIT_MAX) {
-        return reply.code(429).send({
-          error: "rate_limited",
-          message: "Too many pairing starts. Try again in 10 minutes.",
+      // If explicit claimId provided, look it up directly.
+      if (parsed.data.claimId) {
+        const raw = await deps.redis.get(claimKey(parsed.data.claimId));
+        if (!raw) {
+          return reply.code(200).send({ status: "no_claim" });
+        }
+        const entry = JSON.parse(raw) as ClaimEntry;
+        if (entry.status !== "pending") {
+          return reply.code(200).send({ status: "no_claim" });
+        }
+        return approveEntry(parsed.data.claimId, entry, user.id);
+      }
+
+      // Scan Redis for pending claims matching request.ip within the last 2 minutes.
+      // We scan using a pattern. This works at test/dev scale; for prod scale
+      // a secondary index would be better, but the claim volume is tiny.
+      const keys = await scanClaimKeys(deps.redis);
+      const matching: Array<{ claimId: string; entry: ClaimEntry }> = [];
+
+      for (const key of keys) {
+        const raw = await deps.redis.get(key);
+        if (!raw) continue;
+        const entry = JSON.parse(raw) as ClaimEntry;
+        if (
+          entry.status === "pending" &&
+          entry.ip === ip &&
+          entry.registeredAt >= twoMinutesAgo
+        ) {
+          const claimId = key.slice("claim:".length);
+          matching.push({ claimId, entry });
+        }
+      }
+
+      if (matching.length === 0) {
+        return reply.code(200).send({ status: "no_claim" });
+      }
+
+      if (matching.length > 1) {
+        return reply.code(200).send({
+          status: "multiple_claims",
+          claims: matching.map(({ claimId, entry }) => ({
+            claimId,
+            hostname: entry.hostname,
+            os: entry.os,
+          })),
         });
       }
 
-      // Increment rate counter (set with TTL on first call)
-      if (count === 0) {
-        await deps.redis.set(rateK, "1", "EX", RATE_LIMIT_WINDOW_SECONDS);
-      } else {
-        await deps.redis.incr(rateK);
+      const { claimId, entry } = matching[0];
+      return approveEntry(claimId, entry, user.id);
+
+      async function approveEntry(
+        id: string,
+        entry: ClaimEntry,
+        userId: string
+      ) {
+        const token = generateToken();
+        const tokenHash = hashToken(token);
+        const deviceId = crypto.randomUUID();
+        const label = entry.hostname;
+
+        try {
+          await deps.deviceStore.insertDevice({
+            id: deviceId,
+            userId,
+            label,
+            hostname: entry.hostname,
+            os: entry.os,
+            runnerVersion: entry.runnerVersion,
+            workspaceRoot: entry.workspaceRoot,
+            tokenHash,
+          });
+        } catch (err) {
+          request.log.error({ err }, "device insert failed during auto-claim approval");
+          return reply.code(500).send({ error: "internal_error" });
+        }
+
+        // Update the Redis claim entry with approved status + token.
+        // The runner's next poll will consume this and receive the token.
+        const updated: ClaimEntry = { ...entry, status: "approved", token, deviceId, userId };
+        await deps.redis.set(claimKey(id), JSON.stringify(updated), "EX", CLAIM_TTL_SECONDS);
+
+        return reply.code(200).send({ status: "approved", deviceId, label });
       }
-
-      // Generate code and store in Redis
-      const code = generatePairingCode();
-      const value: PairingValue = {
-        userId: user.id,
-        label,
-        workspaceRoot,
-        attemptCount: 0,
-      };
-      await deps.redis.set(
-        pairingKey(code),
-        JSON.stringify(value),
-        "EX",
-        CODE_TTL_SECONDS
-      );
-
-      const expiresAt = new Date(Date.now() + CODE_TTL_SECONDS * 1000).toISOString();
-
-      return reply.code(200).send({ code, expiresAt });
     }
   );
-
-  // -------------------------------------------------------------------------
-  // POST /api/pairing/claim  (unauthenticated — runner calls this)
-  // -------------------------------------------------------------------------
-  app.post("/api/pairing/claim", async (request, reply) => {
-    const parsed = ClaimBodySchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: "invalid_body" });
-    }
-
-    const normalized = normalizeCode(parsed.data.code);
-    const redisKey = pairingKey(normalized);
-    const raw = await deps.redis.get(redisKey);
-
-    if (raw === null) {
-      return reply.code(400).send({ error: "invalid_code" });
-    }
-
-    const entry = JSON.parse(raw) as PairingValue;
-
-    if (entry.attemptCount >= MAX_CLAIM_ATTEMPTS) {
-      return reply.code(400).send({ error: "invalid_code" });
-    }
-
-    // Generate device token and insert into DB
-    const token = generateToken();
-    const tokenHash = hashToken(token);
-    const deviceId = crypto.randomUUID();
-
-    try {
-      await deps.deviceStore.insertDevice({
-        id: deviceId,
-        userId: entry.userId,
-        label: entry.label,
-        workspaceRoot: entry.workspaceRoot,
-        tokenHash: tokenHash,
-      });
-    } catch (err) {
-      // DB insert failed — don't expose details
-      request.log.error({ err }, "device insert failed");
-      return reply.code(500).send({ error: "internal_error" });
-    }
-
-    // Delete the pairing code (one-time use)
-    await deps.redis.del(redisKey);
-
-    return reply.code(200).send({
-      token,
-      deviceId,
-      userId: entry.userId,
-    });
-  });
 
   // -------------------------------------------------------------------------
   // GET /api/devices
@@ -321,7 +415,8 @@ export async function registerPairing(
         devices: rows.map((r) => ({
           id: r.id,
           label: r.label,
-          workspaceRoot: r.workspaceRoot,
+          hostname: r.hostname,
+          os: r.os,
           createdAt: r.createdAt,
           lastSeenAt: r.lastSeenAt,
           revokedAt: r.revokedAt,
@@ -349,4 +444,22 @@ export async function registerPairing(
       return reply.code(200).send({ ok: true });
     }
   );
+}
+
+// ---------------------------------------------------------------------------
+// scanClaimKeys — SCAN Redis for all claim:<id> keys
+// ---------------------------------------------------------------------------
+
+async function scanClaimKeys(redis: Redis): Promise<readonly string[]> {
+  const keys: string[] = [];
+  // ioredis scan returns [cursor, keys]. We iterate until cursor is "0".
+  let cursor = "0";
+  do {
+    const [nextCursor, batch] = await (redis as unknown as {
+      scan(cursor: string, matchOption: string, pattern: string, countOption: string, count: number): Promise<[string, string[]]>;
+    }).scan(cursor, "MATCH", "claim:*", "COUNT", 100);
+    cursor = nextCursor;
+    keys.push(...batch);
+  } while (cursor !== "0");
+  return keys;
 }

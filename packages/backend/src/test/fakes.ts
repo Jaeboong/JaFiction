@@ -14,7 +14,10 @@ export interface DeviceRow {
   readonly id: string;
   readonly user_id: string;
   readonly label: string;
-  readonly workspace_root: string;
+  readonly hostname: string | null;
+  readonly os: string | null;
+  readonly runner_version: string | null;
+  readonly workspace_root: string | null;
   readonly token_hash: string;
   revoked_at: Date | null;
   readonly created_at: Date;
@@ -120,6 +123,21 @@ export function makeFakeRedis(opts: { failPing?: boolean } = {}): FakeRedis {
       return 1;
     },
 
+    // Minimal SCAN implementation: pattern matching with glob-style * only.
+    // Cast as unknown to avoid ioredis overload signature mismatch in tests.
+    scan: (async (cursor: unknown, _matchOpt: unknown, pattern: unknown, _countOpt: unknown, _count: unknown) => {
+      const pat = String(pattern);
+      const prefix = pat.endsWith("*") ? pat.slice(0, -1) : pat;
+      const matched: string[] = [];
+      for (const key of store.keys()) {
+        if (!isExpired(key) && key.startsWith(prefix)) {
+          matched.push(key);
+        }
+      }
+      // Single-batch: always return cursor "0" (scan complete).
+      return ["0", matched] as [string, string[]];
+    }) as unknown as Redis["scan"],
+
     advanceTime(ms: number): void {
       now += ms;
     },
@@ -215,6 +233,7 @@ export interface FakePubSubRedis {
   del(...keys: unknown[]): Promise<number>;
   incr(key: unknown): Promise<number>;
   expire(key: unknown, seconds: unknown): Promise<number>;
+  scan(cursor: unknown, matchOpt: unknown, pattern: unknown, countOpt: unknown, count: unknown): Promise<[string, string[]]>;
   advanceTime(ms: number): void;
   // Pub/sub
   publish(channel: string, message: string): Promise<number>;
@@ -236,6 +255,8 @@ export function makeFakePubSubRedis(opts: { failPing?: boolean } = {}): FakePubS
     del: (...keys: unknown[]) => (base as unknown as { del(...k: unknown[]): Promise<number> }).del(...keys),
     incr: (key: unknown) => (base as unknown as { incr(k: unknown): Promise<number> }).incr(key),
     expire: (key: unknown, seconds: unknown) => (base as unknown as { expire(k: unknown, s: unknown): Promise<number> }).expire(key, seconds),
+    scan: (cursor: unknown, matchOpt: unknown, pattern: unknown, countOpt: unknown, count: unknown) =>
+      (base as unknown as { scan(c: unknown, m: unknown, p: unknown, co: unknown, cn: unknown): Promise<[string, string[]]> }).scan(cursor, matchOpt, pattern, countOpt, count),
     advanceTime: (ms: number) => base.advanceTime(ms),
 
     async publish(channel: string, message: string): Promise<number> {
@@ -343,12 +364,15 @@ export function makeInMemoryDeviceStore(): DeviceStore & { rows: Map<string, Dev
   return {
     rows,
 
-    async insertDevice({ id, userId, label, workspaceRoot, tokenHash }) {
+    async insertDevice({ id, userId, label, hostname, os, runnerVersion, workspaceRoot, tokenHash }) {
       const row: DeviceRow = {
         id,
         user_id: userId,
         label,
-        workspace_root: workspaceRoot,
+        hostname: hostname ?? null,
+        os: os ?? null,
+        runner_version: runnerVersion ?? null,
+        workspace_root: workspaceRoot ?? null,
         token_hash: tokenHash,
         revoked_at: null,
         created_at: new Date(),
@@ -363,7 +387,8 @@ export function makeInMemoryDeviceStore(): DeviceStore & { rows: Map<string, Dev
         .map((r) => ({
           id: r.id,
           label: r.label,
-          workspaceRoot: r.workspace_root,
+          hostname: r.hostname,
+          os: r.os,
           createdAt: r.created_at,
           lastSeenAt: r.last_seen_at,
           revokedAt: r.revoked_at,

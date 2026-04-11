@@ -136,7 +136,7 @@ export async function buildTestApp(deps: TestAppDeps): Promise<FastifyInstance> 
   // /api/me
   await registerMe(app, { store: deps.store, env });
 
-  // /api/pairing + /api/devices (only when a device store is provided)
+  // /auth/device-claim + /api/device-claim/approve + /api/devices (only when a device store is provided)
   if (deps.deviceStore) {
     await registerPairing(app, {
       deviceStore: deps.deviceStore,

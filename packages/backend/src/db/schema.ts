@@ -32,7 +32,7 @@ export const sessions = pgTable("sessions", {
 });
 
 // ---------------------------------------------------------------------------
-// devices  (Phase 5 — defined here so schema file is stable)
+// devices  (Phase 5 — extended in Stage 11.9 with hostname/os/runner_version)
 // ---------------------------------------------------------------------------
 export const devices = pgTable("devices", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -40,7 +40,10 @@ export const devices = pgTable("devices", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   label: text("label").notNull(),
-  workspace_root: text("workspace_root").notNull(),
+  hostname: text("hostname"),
+  os: text("os"),
+  runner_version: text("runner_version"),
+  workspace_root: text("workspace_root"),
   token_hash: text("token_hash").notNull(),
   revoked_at: timestamp("revoked_at"),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
