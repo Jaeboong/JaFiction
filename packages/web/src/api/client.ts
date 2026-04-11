@@ -1,6 +1,7 @@
 import type {
   AgentDefaults,
   JobPostingExtractionResult,
+  OpName,
   ProjectInsightWorkspaceState,
   ProjectRecord,
   ProviderId,
@@ -15,10 +16,47 @@ export interface SessionPayload {
   storageRoot: string;
 }
 
-export class RunnerClient {
-  constructor(readonly baseUrl: string) {}
+export type RunnerClientMode = "local" | "hosted";
 
-  static async bootstrap(baseUrl: string): Promise<SessionPayload> {
+interface RpcResponseOkShape {
+  readonly v: 1;
+  readonly id: string;
+  readonly ok: true;
+  readonly result: unknown;
+}
+
+interface RpcResponseErrShape {
+  readonly v: 1;
+  readonly id: string;
+  readonly ok: false;
+  readonly error: { readonly code: string; readonly message: string };
+}
+
+type RpcResponseShape = RpcResponseOkShape | RpcResponseErrShape;
+
+function generateRpcId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `rpc-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export class RunnerClient {
+  readonly mode: RunnerClientMode;
+
+  constructor(readonly baseUrl: string, mode: RunnerClientMode = "local") {
+    this.mode = mode;
+  }
+
+  static async bootstrap(baseUrl: string, mode: RunnerClientMode = "local"): Promise<SessionPayload> {
+    if (mode === "hosted") {
+      // Hosted mode has no /api/session endpoint; derive the initial state
+      // via the same RPC dispatcher the rest of the client uses.
+      const tempClient = new RunnerClient(baseUrl, "hosted");
+      const state = await tempClient.rpcCall<SidebarState>("get_state", {});
+      return { state, storageRoot: "" };
+    }
+
     const response = await fetch(`${baseUrl}/api/session`, {
       credentials: "include"
     });
@@ -33,6 +71,9 @@ export class RunnerClient {
   }
 
   async fetchState(): Promise<SidebarState> {
+    if (this.mode === "hosted") {
+      return this.rpcCall<SidebarState>("get_state", {});
+    }
     return this.request<SidebarState>("/api/state");
   }
 
@@ -49,10 +90,20 @@ export class RunnerClient {
   }
 
   createStateSocket(): WebSocket {
+    if (this.mode === "hosted") {
+      return new WebSocket(toWsUrl(this.baseUrl, "/ws/events"));
+    }
     return new WebSocket(toWsUrl(this.baseUrl, "/ws/state"));
   }
 
   createRunSocket(runId: string): WebSocket {
+    if (this.mode === "hosted") {
+      // Hosted mode multiplexes all events (state, run, intervention, finished)
+      // through a single /ws/events endpoint scoped to the session cookie.
+      // Callers filter frames by envelope.event on the client side.
+      void runId;
+      return new WebSocket(toWsUrl(this.baseUrl, "/ws/events"));
+    }
     return new WebSocket(toWsUrl(this.baseUrl, `/ws/runs/${runId}`));
   }
 
@@ -188,6 +239,35 @@ export class RunnerClient {
 
   generateInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectInsightWorkspaceState> {
     return this.request<ProjectInsightWorkspaceState>(`/api/projects/${projectSlug}/insights/generate`, { method: "POST", body: payload });
+  }
+
+  /**
+   * Hosted-mode RPC dispatcher. Sends a single envelope to POST /api/rpc and
+   * returns the unwrapped `result`. Safe to call in both modes; callers should
+   * gate by `this.mode` when the local REST path differs.
+   */
+  async rpcCall<TResult = unknown>(op: OpName, payload: unknown): Promise<TResult> {
+    const id = generateRpcId();
+    const response = await fetch(`${this.baseUrl}/api/rpc`, {
+      credentials: "include",
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ v: 1, id, op, payload })
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+      const message = typeof body["message"] === "string"
+        ? body["message"]
+        : `RPC ${op} failed (${response.status})`;
+      throw new Error(message);
+    }
+
+    const envelope = await response.json() as RpcResponseShape;
+    if (envelope.ok === false) {
+      throw new Error(envelope.error.message || `RPC ${op} failed`);
+    }
+    return envelope.result as TResult;
   }
 
   private async request<T = unknown>(

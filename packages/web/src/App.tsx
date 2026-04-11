@@ -7,6 +7,7 @@ import type {
 } from "@jafiction/shared";
 import { startTransition, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { RunnerClient, BackendClient } from "./api/client";
+import { decodeSidebarStateFrame } from "./lib/wsFrames";
 import { OverviewPage } from "./pages/OverviewPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
@@ -14,10 +15,17 @@ import { RunsPage } from "./pages/RunsPage";
 import { SettingsPage, type SettingsSection } from "./pages/SettingsPage";
 import { DevicesPage } from "./pages/DevicesPage";
 
-const defaultRunnerBaseUrl = import.meta.env.VITE_RUNNER_BASE_URL
-  || `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_RUNNER_PORT || "4123"}`;
+const hostedApiBase = import.meta.env.VITE_HOSTED_API_BASE ?? "";
+const isHostedMode = hostedApiBase.length > 0;
 
-const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL ?? window.location.origin;
+const defaultRunnerBaseUrl = isHostedMode
+  ? hostedApiBase
+  : (import.meta.env.VITE_RUNNER_BASE_URL
+      || `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_RUNNER_PORT || "4123"}`);
+
+const backendBaseUrl = isHostedMode
+  ? hostedApiBase
+  : (import.meta.env.VITE_BACKEND_BASE_URL ?? window.location.origin);
 const backendClient = new BackendClient(backendBaseUrl);
 
 type AppTab = "overview" | "providers" | "projects" | "runs" | "devices" | "settings";
@@ -130,13 +138,13 @@ export function App() {
     setState(undefined);
     setErrorMessage(undefined);
 
-    void RunnerClient.bootstrap(runnerBaseUrl)
+    void RunnerClient.bootstrap(runnerBaseUrl, isHostedMode ? "hosted" : "local")
       .then((session) => {
         if (disposed) {
           return;
         }
 
-        const nextClient = new RunnerClient(runnerBaseUrl);
+        const nextClient = new RunnerClient(runnerBaseUrl, isHostedMode ? "hosted" : "local");
         setClient(nextClient);
         setStorageRoot(session.storageRoot);
         setLastUpdatedAt(Date.now());
@@ -146,7 +154,13 @@ export function App() {
 
         stateSocket = nextClient.createStateSocket();
         stateSocket.onmessage = (event) => {
-          const snapshot = JSON.parse(event.data) as SidebarState;
+          const parsed = JSON.parse(event.data) as unknown;
+          // Hosted mode multiplexes frames through /ws/events as EventEnvelope;
+          // local mode sends SidebarState directly on /ws/state.
+          const snapshot = decodeSidebarStateFrame(parsed);
+          if (!snapshot) {
+            return;
+          }
           setLastUpdatedAt(Date.now());
           startTransition(() => {
             setState(snapshot);

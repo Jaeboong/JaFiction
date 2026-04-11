@@ -36,8 +36,44 @@ export class AddressedRunMismatchError extends Error {
   }
 }
 
+export type InterventionRequestHandler = (runId: string, prompt: string) => void;
+export type RunFinishedStatus = "completed" | "aborted";
+export type RunFinishedHandler = (runId: string, status: RunFinishedStatus) => void;
+
 export class RunSessionManager {
   private activeSession?: ActiveRunSession;
+  private readonly interventionObservers = new Set<InterventionRequestHandler>();
+  private readonly runFinishedObservers = new Set<RunFinishedHandler>();
+
+  /**
+   * Subscribe to intervention prompt transitions. Fires each time an active
+   * run transitions to `paused` via waitForIntervention().
+   */
+  onInterventionRequest(handler: InterventionRequestHandler): () => void {
+    this.interventionObservers.add(handler);
+    return () => { this.interventionObservers.delete(handler); };
+  }
+
+  /**
+   * Subscribe to run-finished transitions. Fires each time the active
+   * session is cleared (completed, user-finished, or aborted).
+   */
+  onRunFinished(handler: RunFinishedHandler): () => void {
+    this.runFinishedObservers.add(handler);
+    return () => { this.runFinishedObservers.delete(handler); };
+  }
+
+  private emitInterventionRequest(runId: string, prompt: string): void {
+    for (const observer of this.interventionObservers) {
+      observer(runId, prompt);
+    }
+  }
+
+  private emitRunFinished(runId: string, status: RunFinishedStatus): void {
+    for (const observer of this.runFinishedObservers) {
+      observer(runId, status);
+    }
+  }
 
   assertCanStart(projectSlug: string): void {
     if (!this.activeSession) {
@@ -127,6 +163,7 @@ export class RunSessionManager {
       pendingInterventionRequest: request,
       resolveIntervention: resolve
     };
+      this.emitInterventionRequest(request.runId, pausedMessage(request));
     });
   }
 
@@ -151,7 +188,11 @@ export class RunSessionManager {
     this.assertAddressedRun(runId);
 
     if (this.activeSession.state.status === "paused" && !this.activeSession.resolveIntervention) {
+      const finishedRunId = this.activeSession.state.runId;
       this.activeSession = undefined;
+      if (finishedRunId) {
+        this.emitRunFinished(finishedRunId, "aborted");
+      }
       return;
     }
 
@@ -283,14 +324,24 @@ export class RunSessionManager {
       throw new Error("There is no active session to finish.");
     }
     this.assertAddressedRun(addressedRunId);
+    const status: RunFinishedStatus = this.activeSession.state.status === "aborting" ? "aborted" : "completed";
+    const finishedRunId = this.activeSession.state.runId;
     this.activeSession = undefined;
+    if (finishedRunId) {
+      this.emitRunFinished(finishedRunId, status);
+    }
   }
 
   finish(sessionId: string): void {
     if (this.activeSession?.sessionId !== sessionId) {
       return;
     }
+    const status: RunFinishedStatus = this.activeSession.state.status === "aborting" ? "aborted" : "completed";
+    const finishedRunId = this.activeSession.state.runId;
     this.activeSession = undefined;
+    if (finishedRunId) {
+      this.emitRunFinished(finishedRunId, status);
+    }
   }
 
   snapshot(): RunSessionState {

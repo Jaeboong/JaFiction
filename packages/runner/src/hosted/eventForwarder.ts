@@ -41,8 +41,28 @@ export function startEventForwarding(
     });
   });
 
+  // Forward intervention-request transitions from RunSessionManager.
+  const unsubscribeIntervention = ctx.runSessions.onInterventionRequest((runId, prompt) => {
+    client.sendEvent({
+      v: 1,
+      event: "intervention_request",
+      payload: { runId, prompt }
+    });
+  });
+
+  // Forward run-finished transitions from RunSessionManager.
+  const unsubscribeFinished = ctx.runSessions.onRunFinished((runId, status) => {
+    client.sendEvent({
+      v: 1,
+      event: "run_finished",
+      payload: { runId, status }
+    });
+  });
+
   return () => {
     unsubscribeState();
     unsubscribeRun();
+    unsubscribeIntervention();
+    unsubscribeFinished();
   };
 }

@@ -8,6 +8,7 @@ import type {
   SidebarState
 } from "@jafiction/shared";
 import { renderMarkdown } from "../lib/markdown";
+import { decodeRunEventFrame } from "../lib/wsFrames";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   buildParticipantSelectionFromDefaults,
@@ -180,7 +181,11 @@ export function RunsPage({
         return;
       }
 
-      const { event } = JSON.parse(ev.data as string) as { runId: string; event: RunEvent };
+      const frame = decodeRunEventFrame(JSON.parse(ev.data as string));
+      if (!frame || frame.runId !== liveRunId) {
+        return;
+      }
+      const { event } = frame;
       const nextVisualState = reduceLiveRunVisualState(liveRunVisualStateRef.current, event);
       if (event.type === "awaiting-user-input" && awaitingUserInputNoticeRunIdRef.current !== liveRunId) {
         awaitingUserInputNoticeRunIdRef.current = liveRunId;
@@ -1373,7 +1378,11 @@ function RunFeed({
       if (disposed) {
         return;
       }
-      const { event } = JSON.parse(ev.data as string) as { runId: string; event: RunEvent };
+      const frame = decodeRunEventFrame(JSON.parse(ev.data as string));
+      if (!frame || frame.runId !== runId) {
+        return;
+      }
+      const { event } = frame;
       receivedCount++;
 
       if (event.type === "discussion-ledger-updated" && event.discussionLedger) {
