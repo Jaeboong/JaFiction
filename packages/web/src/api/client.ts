@@ -102,6 +102,10 @@ export class RunnerClient {
   }
 
   async saveAgentDefaults(agentDefaults: AgentDefaults): Promise<void> {
+    if (this.mode === "hosted") {
+      await this.rpcCall("save_agent_defaults", { agentDefaults });
+      return;
+    }
     await this.request("/api/config/agent-defaults", {
       method: "PUT",
       body: { agentDefaults }
@@ -235,42 +239,94 @@ export class RunnerClient {
     return this.request<JobPostingExtractionResult>("/api/projects/analyze-posting", { method: "POST", body: payload });
   }
 
-  // LOCAL-ONLY: hosted call_provider_test returns {ok, stdoutExcerpt?, runtimeState?}; method contract is ProviderRuntimeState
-  testProvider(providerId: ProviderId): Promise<ProviderRuntimeState> {
+  async testProvider(providerId: ProviderId): Promise<ProviderRuntimeState> {
+    if (this.mode === "hosted") {
+      await this.rpcCall("call_provider_test", { provider: providerId });
+      return this.refetchProviderRuntimeState(providerId);
+    }
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/test`, { method: "POST" });
   }
 
-  // LOCAL-ONLY: hosted save_provider_config returns {ok: true}; method contract is ProviderRuntimeState
-  updateProviderConfig(providerId: ProviderId, payload: Record<string, unknown>): Promise<ProviderRuntimeState> {
+  async updateProviderConfig(providerId: ProviderId, payload: Record<string, unknown>): Promise<ProviderRuntimeState> {
+    if (this.mode === "hosted") {
+      const config = {
+        authMode: typeof payload.authMode === "string" ? payload.authMode as "cli" | "apiKey" : undefined,
+        model: typeof payload.model === "string" ? payload.model : undefined,
+        effort: typeof payload.effort === "string" ? payload.effort : undefined,
+        command: typeof payload.command === "string" ? payload.command : undefined
+      };
+      await this.rpcCall("save_provider_config", { provider: providerId, config });
+      return this.refetchProviderRuntimeState(providerId);
+    }
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/config`, { method: "PUT", body: payload });
   }
 
-  // LOCAL-ONLY: hosted save_provider_api_key returns {ok: true}; method contract is ProviderRuntimeState
-  saveProviderApiKey(providerId: ProviderId, apiKey: string): Promise<ProviderRuntimeState> {
+  async saveProviderApiKey(providerId: ProviderId, apiKey: string): Promise<ProviderRuntimeState> {
+    if (this.mode === "hosted") {
+      await this.rpcCall("save_provider_api_key", { provider: providerId, key: apiKey });
+      return this.refetchProviderRuntimeState(providerId);
+    }
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/apikey`, {
       method: "POST",
       body: { apiKey }
     });
   }
 
-  // LOCAL-ONLY: no hosted op yet
-  clearProviderApiKey(providerId: ProviderId) {
-    return this.request(`/api/providers/${providerId}/apikey`, { method: "DELETE" });
+  async clearProviderApiKey(providerId: ProviderId): Promise<void> {
+    if (this.mode === "hosted") {
+      await this.rpcCall("clear_provider_api_key", { provider: providerId });
+      return;
+    }
+    await this.request(`/api/providers/${providerId}/apikey`, { method: "DELETE" });
   }
 
-  // LOCAL-ONLY: no hosted op yet
-  checkNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
+  async checkNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
+    if (this.mode === "hosted") {
+      await this.rpcCall("notion_check", { provider: providerId });
+      return this.refetchProviderRuntimeState(providerId);
+    }
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/notion`);
   }
 
-  // LOCAL-ONLY: hosted notion_connect requires {token, dbId}; method signature only carries providerId
-  connectNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
+  async connectNotion(providerId: ProviderId, hostedOpts?: { token: string; dbId?: string }): Promise<ProviderRuntimeState> {
+    if (this.mode === "hosted") {
+      if (!hostedOpts || !hostedOpts.token) {
+        throw new Error("Notion 토큰이 필요합니다.");
+      }
+      const payload: { token: string; dbId?: string } = { token: hostedOpts.token };
+      if (hostedOpts.dbId) {
+        payload.dbId = hostedOpts.dbId;
+      }
+      await this.rpcCall("notion_connect", payload);
+      return this.refetchProviderRuntimeState(providerId);
+    }
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/notion/connect`, { method: "POST" });
   }
 
-  // LOCAL-ONLY: hosted notion_disconnect returns {ok: true}; method contract is ProviderRuntimeState
-  disconnectNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
+  async disconnectNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
+    if (this.mode === "hosted") {
+      await this.rpcCall("notion_disconnect", {});
+      return this.refetchProviderRuntimeState(providerId);
+    }
     return this.request<ProviderRuntimeState>(`/api/providers/${providerId}/notion/disconnect`, { method: "POST" });
+  }
+
+  /**
+   * Shape-wrap helper. Hosted-mode write ops on Provider/Notion return
+   * `{ok: true}` but the UI contract on RunnerClient methods is a
+   * `ProviderRuntimeState`. After a write succeeds we refetch the full
+   * sidebar state via `get_state` and extract the provider slice, preserving
+   * the pre-hosted interface. The subsequent `state_snapshot` WS event still
+   * wins if the runner pushes a newer state — that's the authoritative path.
+   * See plan Decisions #1.
+   */
+  private async refetchProviderRuntimeState(providerId: ProviderId): Promise<ProviderRuntimeState> {
+    const state = await this.rpcCall<SidebarState>("get_state", {});
+    const runtime = state.providers.find((p) => p.providerId === providerId);
+    if (!runtime) {
+      throw new Error(`Provider runtime state not found for ${providerId}`);
+    }
+    return runtime;
   }
 
   async startRun(projectSlug: string, payload: Record<string, unknown>): Promise<StartRunResult> {
@@ -302,13 +358,22 @@ export class RunnerClient {
     return this.request("/api/opendart/apikey", { method: "POST", body: { apiKey } });
   }
 
-  // LOCAL-ONLY: no hosted op yet
-  deleteOpenDartApiKey(): Promise<void> {
-    return this.request("/api/opendart/apikey", { method: "DELETE" });
+  async deleteOpenDartApiKey(): Promise<void> {
+    if (this.mode === "hosted") {
+      await this.rpcCall("opendart_delete_key", {});
+      return;
+    }
+    await this.request("/api/opendart/apikey", { method: "DELETE" });
   }
 
-  // LOCAL-ONLY: hosted opendart_test returns {ok, sample?}; method contract exposes `message`
-  testOpenDartConnection(): Promise<{ ok: boolean; message: string }> {
+  async testOpenDartConnection(): Promise<{ ok: boolean; message: string }> {
+    if (this.mode === "hosted") {
+      const result = await this.rpcCall<{ ok: boolean; sample?: string }>("opendart_test", {});
+      // Shape-wrap: hosted result is {ok, sample?}, but the UI contract is
+      // {ok, message}. On success surface the sample (first 500 chars of a
+      // resolved company payload) as the message; on failure leave blank.
+      return { ok: result.ok, message: result.sample ?? "" };
+    }
     return this.request<{ ok: boolean; message: string }>("/api/opendart/test", { method: "POST" });
   }
 

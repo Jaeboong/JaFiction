@@ -14,6 +14,7 @@ import { ProvidersPage } from "./pages/ProvidersPage";
 import { RunsPage } from "./pages/RunsPage";
 import { SettingsPage, type SettingsSection } from "./pages/SettingsPage";
 import { DevicesPage } from "./pages/DevicesPage";
+import { NotionConnectModal } from "./components/settings/NotionConnectModal";
 
 const hostedApiBase = import.meta.env.VITE_HOSTED_API_BASE ?? "";
 const isHostedMode = hostedApiBase.length > 0;
@@ -73,6 +74,7 @@ export function App() {
   const [actionNotice, setActionNotice] = useState<ActionNoticeState | undefined>();
   const [pendingProviderAction, setPendingProviderAction] = useState<{ providerId: ProviderId; kind: ProviderActionKind } | undefined>();
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [notionConnectTarget, setNotionConnectTarget] = useState<ProviderId | undefined>();
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | undefined>();
   const actionNoticeRef = useRef<ActionNoticeState | undefined>(undefined);
   const nextActionNoticeIdRef = useRef(0);
@@ -580,6 +582,12 @@ export function App() {
                 }, () => client.checkNotion(providerId));
               }}
               onConnectNotion={async (providerId) => {
+                if (isHostedMode) {
+                  // Hosted mode needs the token over the RPC itself; pop the
+                  // modal and let the submit handler run the action.
+                  setNotionConnectTarget(providerId);
+                  return;
+                }
                 await runProviderAction(providerId, "notion-connect", {
                   pending: { tone: "pending", message: "Notion MCP를 연결중입니다..." },
                   success: (result) => buildNotionConnectNotice(result),
@@ -810,6 +818,20 @@ export function App() {
           <span>LOCAL ENGINE ONLINE</span>
         </div>
       </footer>
+      <NotionConnectModal
+        isOpen={notionConnectTarget !== undefined}
+        onCancel={() => setNotionConnectTarget(undefined)}
+        onSubmit={async (opts) => {
+          const providerId = notionConnectTarget;
+          if (!providerId || !client) return;
+          setNotionConnectTarget(undefined);
+          await runProviderAction(providerId, "notion-connect", {
+            pending: { tone: "pending", message: "Notion MCP를 연결중입니다..." },
+            success: (result) => buildNotionConnectNotice(result),
+            failure: (error) => ({ tone: "error", message: "Notion MCP 연결에 실패했습니다.", detail: getErrorMessage(error) })
+          }, () => client.connectNotion(providerId, opts));
+        }}
+      />
     </main>
   );
 }
