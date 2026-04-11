@@ -181,6 +181,7 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
   const isConnectingNotion = pendingProviderAction?.providerId === provider.providerId && pendingProviderAction.kind === "notion-connect";
   const isDisconnectingNotion = pendingProviderAction?.providerId === provider.providerId && pendingProviderAction.kind === "notion-disconnect";
   const hasPendingProviderAction = pendingProviderAction?.providerId === provider.providerId;
+  const cliNotConnected = provider.authMode === "cli" && provider.authStatus !== "healthy";
   const providerLabel = providerName(provider.providerId);
   const providerAvatar = providerLabel.charAt(0).toUpperCase();
   const installationLabel = provider.installed ? provider.version ?? "Installed" : "Missing";
@@ -204,8 +205,14 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
           </div>
 
           <div className="providers-header-actions">
-            <button className="providers-secondary-button" onClick={() => onTest(provider.providerId)} disabled={hasPendingProviderAction}>
-              {isTesting ? <ButtonBusyLabel label="테스트중..." /> : "테스트"}
+            <button
+              className={cliNotConnected ? "providers-primary-button" : "providers-secondary-button"}
+              onClick={() => onTest(provider.providerId)}
+              disabled={hasPendingProviderAction}
+            >
+              {isTesting
+                ? <ButtonBusyLabel label={cliNotConnected ? "연결 중..." : "테스트중..."} />
+                : cliNotConnected ? "연결" : "테스트"}
             </button>
             <button
               className="providers-primary-button"
