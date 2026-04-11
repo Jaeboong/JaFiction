@@ -3,11 +3,6 @@ import * as path from "node:path";
 
 import { FileSecretStore } from "../secretStore";
 
-// Namespace key used in FileSecretStore for the hosted device token.
-// Phase 5 pairing code will call saveDeviceToken after a successful exchange.
-const DEVICE_TOKEN_KEY = "hosted.deviceToken";
-const DEVICE_ID_KEY = "hosted.deviceId";
-
 // Resolve the same secrets.enc path that createRunnerContext uses.
 function resolveSecretsPath(): string {
   const storageRoot = path.join(os.homedir(), ".jasojeon");
@@ -18,33 +13,42 @@ function makeStore(): FileSecretStore {
   return new FileSecretStore(resolveSecretsPath());
 }
 
-export async function loadDeviceToken(): Promise<string | undefined> {
-  const store = makeStore();
-  await store.initialize();
-  return store.get(DEVICE_TOKEN_KEY);
+function makeKeys(backendUrl: string): { tokenKey: string; idKey: string } {
+  const hostname = new URL(backendUrl).hostname;
+  return {
+    tokenKey: `hosted.${hostname}.deviceToken`,
+    idKey: `hosted.${hostname}.deviceId`,
+  };
 }
 
-export async function saveDeviceToken(token: string): Promise<void> {
+export async function loadDeviceToken(backendUrl: string): Promise<string | undefined> {
   const store = makeStore();
   await store.initialize();
-  await store.store(DEVICE_TOKEN_KEY, token);
+  return store.get(makeKeys(backendUrl).tokenKey);
 }
 
-export async function loadDeviceId(): Promise<string | undefined> {
+export async function saveDeviceToken(backendUrl: string, token: string): Promise<void> {
   const store = makeStore();
   await store.initialize();
-  return store.get(DEVICE_ID_KEY);
+  await store.store(makeKeys(backendUrl).tokenKey, token);
 }
 
-export async function saveDeviceId(deviceId: string): Promise<void> {
+export async function loadDeviceId(backendUrl: string): Promise<string | undefined> {
   const store = makeStore();
   await store.initialize();
-  await store.store(DEVICE_ID_KEY, deviceId);
+  return store.get(makeKeys(backendUrl).idKey);
 }
 
-export async function clearDeviceToken(): Promise<void> {
+export async function saveDeviceId(backendUrl: string, deviceId: string): Promise<void> {
   const store = makeStore();
   await store.initialize();
-  await store.delete(DEVICE_TOKEN_KEY);
-  await store.delete(DEVICE_ID_KEY);
+  await store.store(makeKeys(backendUrl).idKey, deviceId);
+}
+
+export async function clearDeviceToken(backendUrl: string): Promise<void> {
+  const store = makeStore();
+  await store.initialize();
+  const { tokenKey, idKey } = makeKeys(backendUrl);
+  await store.delete(tokenKey);
+  await store.delete(idKey);
 }

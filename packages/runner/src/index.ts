@@ -36,14 +36,14 @@ async function mainHosted(): Promise<void> {
     process.exit(1);
   }
 
-  let deviceToken = await loadDeviceToken();
-  let deviceId = await loadDeviceId();
+  let deviceToken = await loadDeviceToken(backendUrl);
+  let deviceId = await loadDeviceId(backendUrl);
 
   if (deviceToken && !deviceId) {
     try {
       deviceId = await resolveDeviceId({ backendUrl, deviceToken });
       if (deviceId) {
-        await saveDeviceId(deviceId);
+        await saveDeviceId(backendUrl, deviceId);
       }
     } catch (err) {
       process.stderr.write(
@@ -95,8 +95,8 @@ async function mainHosted(): Promise<void> {
       process.stderr.write("[runner] Auto-claim failed: unexpected authorization response\n");
       process.exit(1);
     }
-    await saveDeviceToken(result.token);
-    await saveDeviceId(result.deviceId);
+    await saveDeviceToken(backendUrl, result.token);
+    await saveDeviceId(backendUrl, result.deviceId);
     console.log(`[runner] Device paired! Device ID: ${result.deviceId}`);
     deviceToken = result.token;
     deviceId = result.deviceId;
@@ -107,7 +107,7 @@ async function mainHosted(): Promise<void> {
       pollToken: claim.pollToken,
     }).then(async (result) => {
       if (result.status === "authorized" && result.deviceId !== deviceId) {
-        await saveDeviceId(result.deviceId);
+        await saveDeviceId(backendUrl, result.deviceId);
       }
     }).catch(() => {});
   }
