@@ -6,7 +6,8 @@ import type {
   SidebarState
 } from "@jasojeon/shared";
 import { startTransition, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { RunnerClient, BackendClient } from "./api/client";
+import { RunnerClient, BackendClient, RunnerBootstrapError, type RunnerBootstrapErrorReason } from "./api/client";
+import { BootstrapGate } from "./components/BootstrapGate";
 import { decodeSidebarStateFrame } from "./lib/wsFrames";
 import { OverviewPage } from "./pages/OverviewPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
@@ -74,6 +75,8 @@ export function App() {
   const [actionNotice, setActionNotice] = useState<ActionNoticeState | undefined>();
   const [pendingProviderAction, setPendingProviderAction] = useState<{ providerId: ProviderId; kind: ProviderActionKind } | undefined>();
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [bootstrapErrorReason, setBootstrapErrorReason] = useState<RunnerBootstrapErrorReason | undefined>();
+  const [bootstrapRetryNonce, setBootstrapRetryNonce] = useState(0);
   const [notionConnectTarget, setNotionConnectTarget] = useState<ProviderId | undefined>();
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | undefined>();
   const actionNoticeRef = useRef<ActionNoticeState | undefined>(undefined);
@@ -139,6 +142,7 @@ export function App() {
     setClient(undefined);
     setState(undefined);
     setErrorMessage(undefined);
+    setBootstrapErrorReason(undefined);
 
     void RunnerClient.bootstrap(runnerBaseUrl, isHostedMode ? "hosted" : "local")
       .then((session) => {
@@ -173,6 +177,11 @@ export function App() {
         };
       })
       .catch((error) => {
+        if (disposed) {
+          return;
+        }
+        const reason = error instanceof RunnerBootstrapError ? error.reason : "unknown";
+        setBootstrapErrorReason(reason);
         setErrorMessage(describeRunnerBootstrapError(runnerBaseUrl, error));
       });
 
@@ -180,7 +189,7 @@ export function App() {
       disposed = true;
       stateSocket?.close();
     };
-  }, [runnerBaseUrl]);
+  }, [runnerBaseUrl, bootstrapRetryNonce]);
 
   useEffect(() => {
     return () => {
@@ -342,8 +351,13 @@ export function App() {
   };
 
   if (!client || !state) {
+    // Render the full shell chrome (header, tabs) with a gated content area
+    // so the user can still see context and navigate. The gate body is
+    // selected by the bootstrap error reason; the "still pending" case
+    // (no reason yet) falls back to the legacy loading card.
+    const retryBootstrap = () => setBootstrapRetryNonce((n) => n + 1);
     return (
-      <main className="app-shell">
+      <main className="app-shell" data-bootstrap-state={bootstrapErrorReason ?? "pending"}>
         <header className="app-header" aria-label="Main navigation">
           <div className="app-header-left">
             <div className="app-brand" aria-hidden="true">
@@ -371,11 +385,13 @@ export function App() {
         </header>
 
         <div className="app-stage app-stage-loading">
-          <section className="app-loading-card">
-            <p className="app-loading-kicker">Jasojeon</p>
-            <h1>로컬 러너와 연결 중입니다.</h1>
-            <p>{errorMessage ?? `시도 중: ${runnerBaseUrl}`}</p>
-          </section>
+          <BootstrapGate
+            reason={bootstrapErrorReason}
+            errorMessage={errorMessage}
+            runnerBaseUrl={runnerBaseUrl}
+            backendClient={backendClient}
+            onRetry={retryBootstrap}
+          />
         </div>
       </main>
     );

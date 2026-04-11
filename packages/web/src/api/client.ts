@@ -36,6 +36,34 @@ export interface SessionPayload {
 
 export type RunnerClientMode = "local" | "hosted";
 
+/**
+ * Discriminated bootstrap error. The bootstrap path maps each failure mode
+ * onto one of four reasons so App.tsx can render a targeted gate (login CTA,
+ * device onboarding, network retry, unknown) instead of a monolithic loading
+ * card that traps the user with no way out.
+ *
+ *  - "auth_required" : backend returned 401 (session missing/expired)
+ *  - "device_offline": backend returned ok:false { code: "device_offline" }
+ *    or /api/session reported no active runner
+ *  - "network_error" : fetch threw (CORS, DNS, offline, TLS)
+ *  - "unknown"       : any other failure shape
+ */
+export type RunnerBootstrapErrorReason =
+  | "auth_required"
+  | "device_offline"
+  | "network_error"
+  | "unknown";
+
+export class RunnerBootstrapError extends Error {
+  readonly reason: RunnerBootstrapErrorReason;
+
+  constructor(reason: RunnerBootstrapErrorReason, message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "RunnerBootstrapError";
+    this.reason = reason;
+  }
+}
+
 interface RpcResponseOkShape {
   readonly v: 1;
   readonly id: string;
@@ -69,21 +97,65 @@ export class RunnerClient {
   static async bootstrap(baseUrl: string, mode: RunnerClientMode = "local"): Promise<SessionPayload> {
     if (mode === "hosted") {
       // Hosted mode has no /api/session endpoint; derive the initial state
-      // via the same RPC dispatcher the rest of the client uses.
-      const tempClient = new RunnerClient(baseUrl, "hosted");
-      const state = await tempClient.rpcCall<SidebarState>("get_state", {});
-      return { state, storageRoot: "" };
+      // via a direct POST to /api/rpc so we can inspect the HTTP status and
+      // the RPC envelope `error.code` to map onto RunnerBootstrapErrorReason.
+      const id = generateRpcId();
+      let response: Response;
+      try {
+        response = await fetch(`${baseUrl}/api/rpc`, {
+          credentials: "include",
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ v: 1, id, op: "get_state", payload: {} })
+        });
+      } catch (error) {
+        throw new RunnerBootstrapError(
+          "network_error",
+          `Runner bootstrap network error: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error }
+        );
+      }
+      if (response.status === 401) {
+        throw new RunnerBootstrapError("auth_required", "Hosted session not authenticated.");
+      }
+      if (!response.ok) {
+        throw new RunnerBootstrapError(
+          "unknown",
+          `Hosted bootstrap failed (${response.status}).`
+        );
+      }
+      const envelope = await response.json().catch(() => undefined) as RpcResponseShape | undefined;
+      if (!envelope) {
+        throw new RunnerBootstrapError("unknown", "Hosted bootstrap returned an invalid envelope.");
+      }
+      if (envelope.ok === false) {
+        if (envelope.error.code === "device_offline") {
+          throw new RunnerBootstrapError("device_offline", envelope.error.message);
+        }
+        throw new RunnerBootstrapError("unknown", envelope.error.message || "Hosted bootstrap failed.");
+      }
+      return { state: envelope.result as SidebarState, storageRoot: "" };
     }
 
-    const response = await fetch(`${baseUrl}/api/session`, {
-      credentials: "include"
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/api/session`, { credentials: "include" });
+    } catch (error) {
+      throw new RunnerBootstrapError(
+        "network_error",
+        `Runner bootstrap network error: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      );
+    }
+    if (response.status === 401) {
+      throw new RunnerBootstrapError("auth_required", "Runner session not authenticated.");
+    }
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
       const message = typeof payload.message === "string"
         ? payload.message
         : `Runner session bootstrap failed (${response.status}).`;
-      throw new Error(message);
+      throw new RunnerBootstrapError("unknown", message);
     }
     return response.json() as Promise<SessionPayload>;
   }
