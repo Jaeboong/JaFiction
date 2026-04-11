@@ -30,25 +30,26 @@ jobs:
         run: npx tsc -p packages/backend/tsconfig.json --noEmit
 
       - name: Deploy to OCI
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.OCI_HOST }}
-          username: ${{ secrets.OCI_USER }}
-          key: ${{ secrets.OCI_SSH_KEY }}
-          script: |
-            set -e
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+        run: |
+          echo "$OCI_SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            "${OCI_USER}@${OCI_HOST}" \
+            'set -e
             cd ~/jasojeon
-
             echo "=== git pull ==="
             git pull origin main
-
             echo "=== docker compose build ==="
             docker compose --env-file .env.production build --no-cache
-
             echo "=== docker compose up ==="
             docker compose --env-file .env.production up -d
-
             echo "=== cleanup ==="
             docker image prune -f
-
-            echo "=== done ==="
+            echo "=== done ==="'
+          rm -f /tmp/deploy_key
