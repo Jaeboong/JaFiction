@@ -35,6 +35,13 @@ import {
 } from "../routes/providersHandlers";
 import { opendartSaveKey, opendartTest, opendartDeleteKey } from "../routes/openDartHandlers";
 import { readFile, writeFile, listWorkspaceFiles } from "../routes/fileHandlers";
+import {
+  profileListDocuments,
+  profileSaveTextDocument,
+  profileUploadDocumentChunk,
+  profileSetDocumentPinned,
+  profileGetDocumentPreview
+} from "../routes/profileHandlers";
 
 // ---------------------------------------------------------------------------
 // Logger interface — narrow surface so callers can provide console or pino
@@ -91,6 +98,13 @@ export function redactForLog(op: string, payload: Record<string, unknown>): Reco
     const { key: _key, ...rest } = payload as { key?: string } & Record<string, unknown>;
     return { ...rest, key: "***" };
   }
+  if (op === "profile_save_text_document") {
+    const { content: _c, note: _n, ...rest } = payload as {
+      content?: string;
+      note?: string;
+    } & Record<string, unknown>;
+    return { ...rest, content: "<redacted>", note: _n !== undefined ? "<redacted>" : undefined };
+  }
   if (op === "save_document") {
     // Document body may contain PII — never log the raw content.
     const { content: _c, note: _n, ...rest } = payload as {
@@ -103,7 +117,7 @@ export function redactForLog(op: string, payload: Record<string, unknown>): Reco
     const { draft: _d, ...rest } = payload as { draft?: string } & Record<string, unknown>;
     return { ...rest, draft: "<redacted>" };
   }
-  if (op === "upload_document" || op === "upload_document_chunk") {
+  if (op === "upload_document" || op === "upload_document_chunk" || op === "profile_upload_document_chunk") {
     const { contentBase64: _b, chunkBase64: _cb, ...rest } = payload as {
       contentBase64?: string;
       chunkBase64?: string;
@@ -286,6 +300,21 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
 
     case "delete_run":
       return deleteRun(ctx, req.payload);
+
+    case "profile_list_documents":
+      return profileListDocuments(ctx, req.payload);
+
+    case "profile_save_text_document":
+      return profileSaveTextDocument(ctx, req.payload);
+
+    case "profile_upload_document_chunk":
+      return profileUploadDocumentChunk(ctx, req.payload);
+
+    case "profile_set_document_pinned":
+      return profileSetDocumentPinned(ctx, req.payload);
+
+    case "profile_get_document_preview":
+      return profileGetDocumentPreview(ctx, req.payload);
 
     default:
       // Compile-time exhaustiveness guard + runtime defense

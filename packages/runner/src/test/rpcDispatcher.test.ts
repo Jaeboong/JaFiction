@@ -77,6 +77,7 @@ async function makeHarness(opts: HarnessOpts = {}): Promise<Harness> {
     refreshProvider: async () => undefined,
     refreshOpenDartConfigured: async () => undefined,
     refreshAgentDefaults: async () => undefined,
+    refreshProfileDocuments: async () => undefined,
     setOpenDartConnectionState: () => undefined
   } as unknown as RunnerContext["stateStore"];
 
@@ -762,7 +763,20 @@ test("rpc:exhaustive — every OP_NAME is handled (no unknown_op response)", asy
     notion_check: { provider: "claude" },
     opendart_delete_key: {},
     save_agent_defaults: { agentDefaults: {} },
-    delete_run: { slug: project.slug, runId: "nonexistent-run" }
+    delete_run: { slug: project.slug, runId: "nonexistent-run" },
+    profile_list_documents: {},
+    profile_save_text_document: { title: "이력서", content: "내용" },
+    profile_upload_document_chunk: {
+      uploadId: "exhaust-profile-upl",
+      fileName: "exhaust-profile.txt",
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalBytes: 1,
+      sha256: "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      chunkBase64: Buffer.from("x").toString("base64")
+    },
+    profile_set_document_pinned: { documentId: "nonexistent-profile-doc", pinned: true },
+    profile_get_document_preview: { documentId: "nonexistent-profile-doc" }
   };
 
   for (const op of OP_NAMES) {
@@ -1000,8 +1014,8 @@ test("B3: rpc:save_project — accepts supported field (companyName) and persist
 // ---------------------------------------------------------------------------
 // OP_NAMES count sanity
 // ---------------------------------------------------------------------------
-test("OP_NAMES contains exactly 38 ops", () => {
-  assert.equal(OP_NAMES.length, 38);
+test("OP_NAMES contains exactly 43 ops", () => {
+  assert.equal(OP_NAMES.length, 43);
 });
 
 // ---------------------------------------------------------------------------
@@ -1290,6 +1304,220 @@ test("rpc:upload_document_chunk — rejects hash mismatch", async () => {
   } finally {
     await h.cleanup();
   }
+});
+
+// ---------------------------------------------------------------------------
+// Stage 11.8 — profile document hosted parity
+// ---------------------------------------------------------------------------
+
+test("rpc:profile_save_text_document — happy path creates profile document", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("profile_save_text_document", {
+      title: "이력서",
+      content: "경력 사항",
+      note: "2026 버전",
+      pinnedByDefault: true
+    }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      const doc = res.result.document as { id: string; title: string; pinnedByDefault: boolean };
+      assert.ok(typeof doc.id === "string" && doc.id.length > 0);
+      assert.equal(doc.title, "이력서");
+      assert.equal(doc.pinnedByDefault, true);
+    }
+    // listProfileDocuments should reflect the new doc
+    const list = await h.dispatch(makeEnvelope("profile_list_documents", {}));
+    assert.equal(list.ok, true);
+    if (list.ok) {
+      const docs = list.result.documents as unknown[];
+      assert.equal(docs.length, 1);
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:profile_save_text_document — rejects empty title at schema", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch({
+      v: 1, id: "x", op: "profile_save_text_document",
+      payload: { title: "   ", content: "" }
+    });
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "bad_request");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:profile_set_document_pinned — toggles pinned flag", async () => {
+  const h = await makeHarness();
+  try {
+    const created = await h.storage.saveProfileTextDocument("경력기술서", "내용", false);
+    const res = await h.dispatch(makeEnvelope("profile_set_document_pinned", {
+      documentId: created.id,
+      pinned: true
+    }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      const doc = res.result.document as { id: string; pinnedByDefault: boolean };
+      assert.equal(doc.id, created.id);
+      assert.equal(doc.pinnedByDefault, true);
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:profile_get_document_preview — returns normalized preview", async () => {
+  const h = await makeHarness();
+  try {
+    const created = await h.storage.saveProfileTextDocument("이력서", "본문", false);
+    const res = await h.dispatch(makeEnvelope("profile_get_document_preview", {
+      documentId: created.id
+    }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.documentId, created.id);
+      assert.equal(res.result.title, "이력서");
+      assert.ok(typeof res.result.content === "string");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:profile_upload_document_chunk — single-chunk happy path", async () => {
+  const h = await makeHarness();
+  try {
+    const body = Buffer.from("profile resume body");
+    const hash = crypto.createHash("sha256").update(body).digest("hex");
+    const res = await h.dispatch(makeEnvelope("profile_upload_document_chunk", {
+      uploadId: "upl-p-single",
+      fileName: "resume.txt",
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalBytes: body.byteLength,
+      sha256: hash,
+      chunkBase64: body.toString("base64"),
+      pinnedByDefault: true,
+      note: "uploaded via test"
+    }));
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      assert.equal(res.result.status, "completed");
+      if (res.result.status === "completed") {
+        const doc = res.result.document as { id: string; pinnedByDefault: boolean };
+        assert.ok(typeof doc.id === "string" && doc.id.length > 0);
+        assert.equal(doc.pinnedByDefault, true);
+      }
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:profile_upload_document_chunk — multi-chunk reassembly", async () => {
+  const h = await makeHarness();
+  try {
+    const body = Buffer.from("profile-chunk-zero|profile-chunk-one");
+    const mid = Math.floor(body.byteLength / 2);
+    const chunks = [body.subarray(0, mid), body.subarray(mid)];
+    const hash = crypto.createHash("sha256").update(body).digest("hex");
+    const uploadId = "upl-p-multi";
+    const first = await h.dispatch(makeEnvelope("profile_upload_document_chunk", {
+      uploadId,
+      fileName: "multi.txt",
+      chunkIndex: 0,
+      totalChunks: 2,
+      totalBytes: body.byteLength,
+      sha256: hash,
+      chunkBase64: chunks[0].toString("base64")
+    }));
+    assert.equal(first.ok, true);
+    if (first.ok) {
+      assert.equal(first.result.status, "accepted");
+    }
+    const second = await h.dispatch(makeEnvelope("profile_upload_document_chunk", {
+      uploadId,
+      fileName: "multi.txt",
+      chunkIndex: 1,
+      totalChunks: 2,
+      totalBytes: body.byteLength,
+      sha256: hash,
+      chunkBase64: chunks[1].toString("base64")
+    }));
+    assert.equal(second.ok, true);
+    if (second.ok) {
+      assert.equal(second.result.status, "completed");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:profile_upload_document_chunk — rejects hash mismatch", async () => {
+  const h = await makeHarness();
+  try {
+    const body = Buffer.from("profile-hash-body");
+    const res = await h.dispatch(makeEnvelope("profile_upload_document_chunk", {
+      uploadId: "upl-p-hash",
+      fileName: "h.txt",
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalBytes: body.byteLength,
+      sha256: "1".repeat(64),
+      chunkBase64: body.toString("base64")
+    }));
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "invalid_input");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("rpc:profile_upload_document_chunk — rejects oversized file (>100MB)", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("profile_upload_document_chunk", {
+      uploadId: "upl-p-big",
+      fileName: "big.bin",
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalBytes: 200 * 1024 * 1024,
+      sha256: "0".repeat(64),
+      chunkBase64: "AAAA"
+    }));
+    assert.equal(res.ok, false);
+    if (!res.ok) {
+      assert.equal(res.error.code, "invalid_input");
+    }
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("redactForLog — profile_save_text_document masks content", () => {
+  const result = redactForLog("profile_save_text_document", {
+    title: "t", content: "SECRET-CONTENT", note: "PRIVATE"
+  });
+  assert.equal(result.content, "<redacted>");
+  assert.equal(result.note, "<redacted>");
+  assert.equal(result.title, "t");
+});
+
+test("redactForLog — profile_upload_document_chunk masks chunkBase64", () => {
+  const result = redactForLog("profile_upload_document_chunk", {
+    uploadId: "u", fileName: "f", chunkBase64: "RAW-B64"
+  });
+  assert.equal(result.chunkBase64, "<redacted>");
+  assert.equal(result.uploadId, "u");
 });
 
 test("rpc:analyze_posting — returns error envelope when no URL/text provided", async () => {
