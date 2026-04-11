@@ -29,13 +29,24 @@ jobs:
       - name: Type check
         run: npx tsc -p packages/backend/tsconfig.json --noEmit
 
+      - name: Validate secrets
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+        run: |
+          if [ -z "$OCI_HOST" ]; then echo "::error::OCI_HOST secret is empty"; exit 1; fi
+          if [ -z "$OCI_USER" ]; then echo "::error::OCI_USER secret is empty"; exit 1; fi
+          if [ -z "$OCI_SSH_KEY" ]; then echo "::error::OCI_SSH_KEY secret is empty"; exit 1; fi
+          echo "All secrets present. Host length: ${#OCI_HOST}, User: $OCI_USER"
+
       - name: Deploy to OCI
         env:
           OCI_HOST: ${{ secrets.OCI_HOST }}
           OCI_USER: ${{ secrets.OCI_USER }}
           OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
         run: |
-          echo "$OCI_SSH_KEY" > /tmp/deploy_key
+          printf '%s\n' "$OCI_SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
           ssh -i /tmp/deploy_key \
             -o StrictHostKeyChecking=no \
