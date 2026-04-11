@@ -191,6 +191,101 @@ test("run messages endpoint returns persisted chat ledgers with chat history", a
   });
 });
 
+test("complete route pins the answer and closes the active round-complete session", async (t) => {
+  const harness = await startHarness();
+  t.after(() => harness.close());
+
+  const project = await harness.ctx.storage().createProject({
+    companyName: "Naver",
+    essayQuestions: ["왜 네이버인가?"]
+  });
+
+  await harness.ctx.storage().createRun({
+    id: "run-1",
+    projectSlug: project.slug,
+    projectQuestionIndex: 0,
+    question: "왜 네이버인가?",
+    draft: "지원 동기 초안",
+    reviewMode: "realtime",
+    coordinatorProvider: "codex",
+    reviewerProviders: ["claude"],
+    rounds: 1,
+    maxRoundsPerSection: 1,
+    selectedDocumentIds: [],
+    status: "completed",
+    startedAt: "2026-04-10T00:00:00.000Z",
+    finishedAt: "2026-04-10T00:03:00.000Z"
+  });
+
+  const sessionId = harness.ctx.runSessions.start(project.slug, "realtime");
+  harness.ctx.runSessions.setRunId(sessionId, "run-1");
+  harness.ctx.runSessions.markRoundComplete(sessionId);
+
+  const response = await authenticatedJsonRequest(
+    harness.baseUrl,
+    `/api/projects/${project.slug}/runs/run-1/complete`,
+    { method: "POST" }
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(harness.ctx.runSessions.snapshot().status, "idle");
+
+  const refreshedProject = await harness.ctx.storage().getProject(project.slug);
+  const answerState = refreshedProject.essayAnswerStates?.find((state) => state.questionIndex === 0);
+  assert.equal(answerState?.status, "completed");
+  assert.equal(answerState?.lastRunId, "run-1");
+});
+
+test("resume route reopens completed answer state on the same run id", async (t) => {
+  const harness = await startHarness();
+  t.after(() => harness.close());
+
+  const project = await harness.ctx.storage().createProject({
+    companyName: "Naver",
+    essayQuestions: ["왜 네이버인가?"]
+  });
+
+  await harness.ctx.storage().createRun({
+    id: "run-1",
+    projectSlug: project.slug,
+    projectQuestionIndex: 0,
+    question: "왜 네이버인가?",
+    draft: "지원 동기 초안",
+    reviewMode: "realtime",
+    coordinatorProvider: "codex",
+    reviewerProviders: ["claude"],
+    rounds: 1,
+    maxRoundsPerSection: 1,
+    selectedDocumentIds: [],
+    status: "completed",
+    startedAt: "2026-04-10T00:00:00.000Z",
+    finishedAt: "2026-04-10T00:03:00.000Z"
+  });
+  await harness.ctx.storage().saveCompletedEssayAnswer(project.slug, 0, "왜 네이버인가?", "완료 답안", "run-1");
+
+  const response = await authenticatedJsonRequest(
+    harness.baseUrl,
+    `/api/projects/${project.slug}/runs/run-1/resume`,
+    { method: "POST" }
+  );
+
+  assert.equal(response.status, 202);
+  const payload = await response.json() as { runId: string; resumedFromRunId: string };
+  assert.equal(payload.resumedFromRunId, "run-1");
+  assert.equal(payload.runId, "run-1");
+
+  const refreshedProject = await harness.ctx.storage().getProject(project.slug);
+  const answerState = refreshedProject.essayAnswerStates?.find((state) => state.questionIndex === 0);
+  assert.equal(answerState?.status, "drafting");
+  assert.equal(answerState?.lastRunId, undefined);
+
+  const resumedRun = await harness.ctx.storage().getRun(project.slug, "run-1");
+  assert.ok(["running", "completed"].includes(resumedRun.status));
+
+  const runs = await harness.ctx.storage().listRuns(project.slug);
+  assert.equal(runs.length, 1);
+});
+
 test("essay draft save route persists the selected question draft and pushes refreshed state", async (t) => {
   const harness = await startHarness();
   t.after(() => harness.close());
@@ -258,7 +353,7 @@ async function startHarness(): Promise<{
     sessionToken: "test-session-token",
     storage: () => storage,
     registry: () => missingDependency("registry"),
-    orchestrator: () => missingDependency("orchestrator"),
+    orchestrator: () => createFakeOrchestrator(storage),
     config: () => ({
       getPort: async () => 4123
     }) as RunnerContext["config"] extends () => infer TResult ? TResult : never,
@@ -308,6 +403,89 @@ async function startHarness(): Promise<{
     },
     refreshProjectsCalls
   };
+}
+
+function createFakeOrchestrator(storage: ForJobStorage): RunnerContext["orchestrator"] extends () => infer TResult ? TResult : never {
+  return {
+    run: async (
+      request: {
+        projectSlug: string;
+        existingRunId?: string;
+        projectQuestionIndex?: number;
+        question: string;
+        draft: string;
+        reviewMode: "realtime" | "deepFeedback";
+        notionRequest?: string;
+        continuationFromRunId?: string;
+        continuationNote?: string;
+        roleAssignments?: unknown[];
+        coordinatorProvider?: "codex" | "claude" | "gemini";
+        reviewerProviders?: Array<"codex" | "claude" | "gemini">;
+        rounds?: number;
+        maxRoundsPerSection?: number;
+        selectedDocumentIds?: string[];
+      },
+      eventSink: (event: Record<string, unknown>) => Promise<void>
+    ) => {
+      const now = new Date().toISOString();
+      const runId = request.existingRunId ?? `fake-run-${Math.random().toString(36).slice(2, 10)}`;
+      if (request.existingRunId) {
+        await storage.updateRun(request.projectSlug, runId, {
+          projectQuestionIndex: request.projectQuestionIndex,
+          question: request.question,
+          draft: request.draft,
+          reviewMode: request.reviewMode,
+          notionRequest: request.notionRequest,
+          continuationFromRunId: request.continuationFromRunId,
+          continuationNote: request.continuationNote,
+          roleAssignments: request.roleAssignments as never,
+          coordinatorProvider: request.coordinatorProvider ?? "codex",
+          reviewerProviders: request.reviewerProviders ?? [],
+          rounds: request.rounds ?? 1,
+          maxRoundsPerSection: request.maxRoundsPerSection ?? 1,
+          selectedDocumentIds: request.selectedDocumentIds ?? [],
+          status: "running",
+          lastResumedAt: now,
+          finishedAt: undefined
+        });
+      } else {
+        await storage.createRun({
+          id: runId,
+          projectSlug: request.projectSlug,
+          projectQuestionIndex: request.projectQuestionIndex,
+          question: request.question,
+          draft: request.draft,
+          reviewMode: request.reviewMode,
+          notionRequest: request.notionRequest,
+          continuationFromRunId: request.continuationFromRunId,
+          continuationNote: request.continuationNote,
+          roleAssignments: request.roleAssignments as never,
+          coordinatorProvider: request.coordinatorProvider ?? "codex",
+          reviewerProviders: request.reviewerProviders ?? [],
+          rounds: request.rounds ?? 1,
+          maxRoundsPerSection: request.maxRoundsPerSection ?? 1,
+          selectedDocumentIds: request.selectedDocumentIds ?? [],
+          status: "completed",
+          startedAt: now,
+          finishedAt: now
+        });
+      }
+      await storage.updateRun(request.projectSlug, runId, {
+        status: "completed",
+        finishedAt: now
+      });
+      await eventSink({
+        timestamp: now,
+        type: "run-started",
+        message: "Fake run started"
+      });
+      await eventSink({
+        timestamp: now,
+        type: "run-completed",
+        message: "Fake run completed"
+      });
+    }
+  } as unknown as RunnerContext["orchestrator"] extends () => infer TResult ? TResult : never;
 }
 
 async function authenticatedJsonRequest(

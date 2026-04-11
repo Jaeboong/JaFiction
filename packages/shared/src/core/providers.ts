@@ -1,13 +1,21 @@
 import { spawn } from "node:child_process";
+import { NotionConnectPlan, NotionMcpCheckResult } from "./notionMcp";
 import {
-  buildNotionDisconnectPlan,
-  NotionConnectPlan,
-  NotionMcpCheckResult,
-  buildNotionConnectPlan,
-  parseClaudeNotionStatus,
-  parseCodexNotionStatus,
+  buildCodexNotionConnectPlan,
+  buildCodexNotionDisconnectPlan,
+  parseCodexNotionStatus
+} from "./notionMcpCodex";
+import {
+  buildClaudeNotionConnectPlan,
+  buildClaudeNotionDisconnectPlan,
+  parseClaudeNotionStatus
+} from "./notionMcpClaude";
+import {
+  buildGeminiNotionConnectPlan,
+  buildGeminiNotionDisconnectPlan,
   parseGeminiNotionStatus
-} from "./notionMcp";
+} from "./notionMcpGemini";
+import { performGeminiNotionOAuth } from "./notionOAuth";
 import { buildProviderArgs, getProviderCapabilities, loadProviderCapabilities, normalizeProviderSettingValue } from "./providerOptions";
 import { defaultProviderCommands, resolveProviderCommand, withCommandDirectoryInPath } from "./providerCommandResolver";
 import { createProviderStreamProcessor, parseProviderFinalText } from "./providerStreaming";
@@ -89,6 +97,7 @@ export class ProviderRegistry {
     const authMode = this.getAuthMode(providerId);
     const installation = await detectInstallation(command);
     const apiKey = await this.getApiKey(providerId);
+    const hasNotionToken = providerId === "claude" ? Boolean(await this.getNotionToken()) : undefined;
 
     let status: ProviderStatus = {
       providerId,
@@ -110,6 +119,7 @@ export class ProviderRegistry {
         ...status,
         command,
         hasApiKey: Boolean(apiKey),
+        hasNotionToken,
         configuredModel: this.getModel(providerId),
         configuredEffort: this.getEffort(providerId),
         capabilities
@@ -123,6 +133,7 @@ export class ProviderRegistry {
         ...status,
         command,
         hasApiKey: false,
+        hasNotionToken,
         configuredModel: this.getModel(providerId),
         configuredEffort: this.getEffort(providerId),
         capabilities
@@ -149,6 +160,7 @@ export class ProviderRegistry {
       ...status,
       command,
       hasApiKey: Boolean(apiKey),
+      hasNotionToken,
       configuredModel: this.getModel(providerId),
       configuredEffort: this.getEffort(providerId),
       capabilities,
@@ -248,6 +260,15 @@ export class ProviderRegistry {
     return this.secrets.get(secretKey(providerId));
   }
 
+  async saveNotionToken(token: string): Promise<void> {
+    if (token === "") {
+      await this.secrets.delete("jafiction.notionToken");
+    } else {
+      await this.secrets.store("jafiction.notionToken", token);
+    }
+    this.runtimeStateCache.delete("claude");
+  }
+
   async checkNotionMcp(providerId: ProviderId): Promise<NotionMcpCheckResult> {
     const command = await this.getCommand(providerId);
     const installation = await detectInstallation(command);
@@ -295,7 +316,18 @@ export class ProviderRegistry {
 
   async connectNotionMcp(providerId: ProviderId): Promise<ProviderRuntimeState> {
     const plan = await this.buildNotionConnectPlan(providerId);
+    if (providerId === "claude" && !(await this.getNotionToken()) && !plan.steps?.length) {
+      this.storeNotionStatus(providerId, {
+        configured: false,
+        connected: false,
+        message: plan.message
+      });
+      return this.refreshRuntimeState(providerId);
+    }
     await this.runNotionPlan(providerId, plan);
+    if (providerId === "gemini" && plan.steps?.length) {
+      await this.performGeminiNotionOAuth("notion");
+    }
     await this.checkNotionMcp(providerId);
     return this.refreshRuntimeState(providerId);
   }
@@ -310,13 +342,29 @@ export class ProviderRegistry {
   async buildNotionConnectPlan(providerId: ProviderId): Promise<NotionConnectPlan> {
     const command = await this.getCommand(providerId);
     const status = await this.checkNotionMcp(providerId);
-    return buildNotionConnectPlan(providerId, command, status);
+    const platform = process.platform;
+    switch (providerId) {
+      case "codex":
+        return buildCodexNotionConnectPlan(command, status, platform);
+      case "claude":
+        return buildClaudeNotionConnectPlan(command, status, platform, await this.getNotionToken());
+      case "gemini":
+        return buildGeminiNotionConnectPlan(command, status, platform);
+    }
   }
 
   async buildNotionDisconnectPlan(providerId: ProviderId): Promise<NotionConnectPlan> {
     const command = await this.getCommand(providerId);
     const status = await this.checkNotionMcp(providerId);
-    return buildNotionDisconnectPlan(providerId, command, status);
+    const platform = process.platform;
+    switch (providerId) {
+      case "codex":
+        return buildCodexNotionDisconnectPlan(command, status, platform);
+      case "claude":
+        return buildClaudeNotionDisconnectPlan(command, status, platform);
+      case "gemini":
+        return buildGeminiNotionDisconnectPlan(command, status, platform);
+    }
   }
 
   private async runNotionPlan(providerId: ProviderId, plan: NotionConnectPlan): Promise<void> {
@@ -332,11 +380,20 @@ export class ProviderRegistry {
     }
   }
 
+  protected async performGeminiNotionOAuth(serverName: string): Promise<void> {
+    await performGeminiNotionOAuth(serverName);
+  }
+
+  private async getNotionToken(): Promise<string | undefined> {
+    return this.secrets.get("jafiction.notionToken");
+  }
+
   private async buildRuntimeState(providerId: ProviderId, saved?: ProviderStatus): Promise<ProviderRuntimeState> {
     const command = await this.getCommand(providerId);
     const installation = await detectInstallation(command);
     const authMode = this.getAuthMode(providerId);
     const hasApiKey = Boolean(await this.getApiKey(providerId));
+    const hasNotionToken = providerId === "claude" ? Boolean(await this.getNotionToken()) : undefined;
     const capabilities = installation.installed
       ? await loadProviderCapabilities(providerId, command)
       : getProviderCapabilities(providerId);
@@ -356,6 +413,7 @@ export class ProviderRegistry {
       command,
       authMode,
       hasApiKey,
+      hasNotionToken,
       configuredModel: this.getModel(providerId),
       configuredEffort: this.getEffort(providerId),
       capabilities,

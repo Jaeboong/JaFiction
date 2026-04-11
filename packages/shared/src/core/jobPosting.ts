@@ -15,6 +15,7 @@ export interface JobPostingExtractionResult {
   normalizedText: string;
   companyName?: string;
   roleName?: string;
+  deadline?: string;
   overview?: string;
   mainResponsibilities?: string;
   qualifications?: string;
@@ -109,6 +110,17 @@ const knownKeywordPatterns = [
   /\bgraphql\b/i
 ];
 const sectionHeadingPatterns = {
+  deadline: [
+    /^모집\s*기간$/i,
+    /^지원\s*기간$/i,
+    /^접수\s*기간$/i,
+    /^지원\s*마감$/i,
+    /^지원\s*마감일$/i,
+    /^마감$/i,
+    /^마감\s*일$/i,
+    /^마감\s*기한$/i,
+    /^application\s*deadline$/i
+  ],
   responsibilities: [/^주요\s*업무$/i, /^담당\s*업무$/i, /^직무\s*내용$/i, /^what you'll do$/i, /^responsibilities$/i],
   qualifications: [/^자격\s*요건$/i, /^지원\s*자격$/i, /^필수\s*요건$/i, /^required qualifications$/i, /^requirements$/i],
   preferred: [/^우대\s*사항$/i, /^preferred qualifications$/i, /^nice to have$/i],
@@ -122,6 +134,7 @@ const sectionHeadingPatterns = {
   otherInfo: [/^기타\s*정보$/i, /^기타$/i, /^근무\s*조건$/i, /^기타\s*문의\s*사항$/i, /^기타\s*안내$/i, /^지원\s*서류$/i]
 };
 const stopHeadingPatterns = [
+  ...sectionHeadingPatterns.deadline,
   ...sectionHeadingPatterns.responsibilities,
   ...sectionHeadingPatterns.qualifications,
   ...sectionHeadingPatterns.preferred,
@@ -132,11 +145,15 @@ const stopHeadingPatterns = [
   ...sectionHeadingPatterns.otherInfo,
   /^지원\s*분야/i,
   /^급여\s*사항$/i,
-  /^모집\s*기간$/i,
   /^공유하기$/i,
   /^지원하기$/i,
   /^[-—–]{3,}$/i
 ];
+const deadlineHintLinePattern = /(?:모집|지원|접수)\s*기간|지원\s*마감|마감(?:일|기한)?/i;
+const deadlineDatePatterns = [
+  /(?:(\d{4})\s*년\s*)?(\d{1,2})\s*월\s*(\d{1,2})\s*일(?:\s*\([^)]*\))?(?:\s*(?:(\d{1,2})\s*:\s*(\d{2})|(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분?)?))?/g,
+  /(?:(\d{4})\s*[./-]\s*)?(\d{1,2})\s*[./-]\s*(\d{1,2})(?:\s*\([^)]*\))?(?:\s*(?:(\d{1,2})\s*:\s*(\d{2})|(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분?)?))?/g
+] as const;
 
 export async function fetchAndExtractJobPosting(
   request: JobPostingExtractionRequest,
@@ -241,6 +258,8 @@ export function extractStructuredJobPostingFields(
   const lines = normalizedText.split("\n").map((line) => line.trim()).filter(Boolean);
   const warnings: string[] = [];
   const roleName = inferRoleName(lines, options.pageTitle, options.seedRoleName);
+  const deadlineSection = findSection(lines, sectionHeadingPatterns.deadline, 8);
+  const deadline = extractDeadline(lines, deadlineSection);
   const roleHintKeywords = buildRoleHintKeywords(options.seedRoleName || roleName);
   const overview = findSection(lines, sectionHeadingPatterns.overview);
   const mainResponsibilities = findSection(lines, sectionHeadingPatterns.responsibilities);
@@ -264,6 +283,7 @@ export function extractStructuredJobPostingFields(
     pageTitle: options.pageTitle,
     companyName,
     roleName,
+    deadline,
     overview,
     mainResponsibilities,
     qualifications,
@@ -275,6 +295,122 @@ export function extractStructuredJobPostingFields(
     keywords,
     warnings
   };
+}
+
+function extractDeadline(lines: string[], deadlineSection?: string): string | undefined {
+  const candidates: string[] = [];
+  if (deadlineSection?.trim()) {
+    candidates.push(deadlineSection);
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const currentLine = stripBulletPrefix(lines[index]);
+    if (!deadlineHintLinePattern.test(currentLine)) {
+      continue;
+    }
+
+    const nextLine = lines[index + 1] ? stripBulletPrefix(lines[index + 1]) : "";
+    candidates.push(nextLine ? `${currentLine}\n${nextLine}` : currentLine);
+  }
+
+  for (const candidate of candidates) {
+    const normalized = normalizeDeadline(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeDeadline(source: string, now: Date = new Date()): string | undefined {
+  const matches = collectDeadlineMatches(source);
+  if (matches.length === 0) {
+    return undefined;
+  }
+
+  const latest = matches.reduce((current, candidate) => {
+    if (candidate.index > current.index) {
+      return candidate;
+    }
+    if (candidate.index < current.index) {
+      return current;
+    }
+    if (candidate.hasTime && !current.hasTime) {
+      return candidate;
+    }
+    return current;
+  });
+
+  const year = latest.year ?? now.getFullYear();
+  const month = pad2(latest.month);
+  const day = pad2(latest.day);
+  const time = latest.hasTime ? `${pad2(latest.hour)}:${pad2(latest.minute)}` : "-";
+  return `${year}년 ${month}월 ${day}일, ${time}`;
+}
+
+interface DeadlineMatch {
+  index: number;
+  year?: number;
+  month: number;
+  day: number;
+  hasTime: boolean;
+  hour: number;
+  minute: number;
+}
+
+function collectDeadlineMatches(source: string): DeadlineMatch[] {
+  const matches: DeadlineMatch[] = [];
+
+  for (const pattern of deadlineDatePatterns) {
+    const regex = new RegExp(pattern.source, pattern.flags);
+    let match = regex.exec(source);
+    while (match) {
+      const year = parseOptionalNumber(match[1]);
+      const month = parseOptionalNumber(match[2]);
+      const day = parseOptionalNumber(match[3]);
+      const hour = parseOptionalNumber(match[4]) ?? parseOptionalNumber(match[6]);
+      const minute = parseOptionalNumber(match[5]) ?? parseOptionalNumber(match[7]) ?? 0;
+      const hasTime = hour !== undefined && (match[5] !== undefined || match[7] !== undefined);
+      const index = match.index;
+
+      if (
+        month !== undefined &&
+        day !== undefined &&
+        month >= 1 &&
+        month <= 12 &&
+        day >= 1 &&
+        day <= 31 &&
+        (!hasTime || (hour !== undefined && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59))
+      ) {
+        matches.push({
+          index,
+          year,
+          month,
+          day,
+          hasTime,
+          hour: hour ?? 0,
+          minute
+        });
+      }
+
+      match = regex.exec(source);
+    }
+  }
+
+  return matches;
+}
+
+function parseOptionalNumber(value: string | undefined): number | undefined {
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
 }
 
 function buildExtractionResult(
@@ -301,6 +437,7 @@ function buildExtractionResult(
     normalizedText,
     companyName: extracted.companyName,
     roleName: extracted.roleName,
+    deadline: extracted.deadline,
     overview: extracted.overview,
     mainResponsibilities: extracted.mainResponsibilities,
     qualifications: extracted.qualifications,

@@ -266,32 +266,61 @@ export class ReviewOrchestrator {
       trimmedContinuationNote
     );
 
-    const runId = createId();
-    let run: RunRecord = {
-      id: runId,
-      projectSlug: request.projectSlug,
-      projectQuestionIndex: request.projectQuestionIndex,
-      question: request.question,
-      draft: request.draft,
-      reviewMode: request.reviewMode,
-      notionRequest: effectiveNotionRequest,
-      roleAssignments: resolvedRoles.all,
-      coordinatorProvider: coordinator.providerId,
-      reviewerProviders: requestedReviewers.map((reviewer) => reviewer.providerId),
-      continuationFromRunId: request.continuationFromRunId?.trim() || undefined,
-      continuationNote: trimmedContinuationNote,
-      rounds: 0,
-      maxRoundsPerSection,
-      selectedDocumentIds: request.selectedDocumentIds,
-      status: "running",
-      startedAt: nowIso()
-    };
-
-    await this.storage.createRun(run);
+    const runId = request.existingRunId?.trim() || createId();
+    const existingRunId = request.existingRunId?.trim() || undefined;
+    let run: RunRecord;
+    if (existingRunId) {
+      run = await this.storage.updateRun(request.projectSlug, runId, {
+        projectQuestionIndex: request.projectQuestionIndex,
+        question: request.question,
+        draft: request.draft,
+        reviewMode: request.reviewMode,
+        notionRequest: effectiveNotionRequest,
+        roleAssignments: resolvedRoles.all,
+        coordinatorProvider: coordinator.providerId,
+        reviewerProviders: requestedReviewers.map((reviewer) => reviewer.providerId),
+        continuationFromRunId: request.continuationFromRunId?.trim() || undefined,
+        continuationNote: trimmedContinuationNote,
+        maxRoundsPerSection,
+        selectedDocumentIds: request.selectedDocumentIds,
+        status: "running",
+        lastResumedAt: nowIso(),
+        finishedAt: undefined
+      });
+    } else {
+      run = {
+        id: runId,
+        projectSlug: request.projectSlug,
+        projectQuestionIndex: request.projectQuestionIndex,
+        question: request.question,
+        draft: request.draft,
+        reviewMode: request.reviewMode,
+        notionRequest: effectiveNotionRequest,
+        roleAssignments: resolvedRoles.all,
+        coordinatorProvider: coordinator.providerId,
+        reviewerProviders: requestedReviewers.map((reviewer) => reviewer.providerId),
+        continuationFromRunId: request.continuationFromRunId?.trim() || undefined,
+        continuationNote: trimmedContinuationNote,
+        rounds: 0,
+        maxRoundsPerSection,
+        selectedDocumentIds: request.selectedDocumentIds,
+        status: "running",
+        startedAt: nowIso()
+      };
+      await this.storage.createRun(run);
+    }
     await this.storage.setLastCoordinatorProvider(coordinator.providerId);
     await this.storage.setLastReviewMode(request.reviewMode);
     await this.storage.saveRunTextArtifact(request.projectSlug, runId, "compiled-context.md", initialContextMarkdown);
-    const chatMessages = new Map<string, RunChatMessage>();
+    const persistedReviewTurns = existingRunId
+      ? await this.storage.loadReviewTurns(request.projectSlug, runId) ?? []
+      : [];
+    const persistedChatMessages = existingRunId
+      ? await this.storage.loadRunChatMessages(request.projectSlug, runId) ?? []
+      : [];
+    const chatMessages = new Map<string, RunChatMessage>(
+      persistedChatMessages.map((message) => [message.id, message])
+    );
     const eventSink = async (event: RunEvent) => {
       applyChatEvent(chatMessages, event);
       let suppressEvent = false;
@@ -318,7 +347,7 @@ export class ReviewOrchestrator {
     await eventSink({ timestamp: nowIso(), type: "run-started", message: "Run started" });
     await eventSink({ timestamp: nowIso(), type: "compiled-context", message: "Compiled context saved" });
 
-    const turns: ReviewTurn[] = [];
+    const turns: ReviewTurn[] = [...persistedReviewTurns];
     const activeReviewers = requestedReviewers.filter((reviewer) => stateMap.get(reviewer.providerId)?.authStatus === "healthy");
     const compiledContextCache = new Map<string, string>();
     let notionBriefFull = "";

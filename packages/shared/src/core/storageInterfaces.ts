@@ -75,7 +75,9 @@ export interface RunStore {
     answer: string,
     runId?: string
   ): Promise<{ document: ContextDocument; project: ProjectRecord; state: ProjectEssayAnswerState }>;
+  reopenEssayAnswer(projectSlug: string, questionIndex: number): Promise<ProjectRecord>;
   appendRunEvent(projectSlug: string, runId: string, event: RunEvent): Promise<void>;
+  loadReviewTurns(projectSlug: string, runId: string): Promise<ReviewTurn[] | undefined>;
   saveReviewTurns(projectSlug: string, runId: string, turns: ReviewTurn[]): Promise<void>;
   saveRunChatMessages(projectSlug: string, runId: string, messages: RunChatMessage[]): Promise<void>;
   loadRunChatMessages(projectSlug: string, runId: string): Promise<RunChatMessage[] | undefined>;

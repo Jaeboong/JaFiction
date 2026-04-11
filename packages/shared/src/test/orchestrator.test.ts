@@ -808,12 +808,51 @@ test("orchestrator carries previous run context into a continuation run", async 
   ]);
 
   const compiler = new ContextCompiler(storage);
-  const gateway = new FakeGateway(healthyStates(), (providerId) => {
-    if (providerId === "claude") {
-      return ["## Summary", "Coordinator summary", "## Improvement Plan", "- Keep the collaboration angle", "## Revised Draft", "Updated draft"].join("\n");
+  const gateway = new FakeGateway(
+    healthyStates(),
+    (providerId) => {
+      if (providerId === "claude") {
+        return ["## Summary", "Coordinator summary", "## Improvement Plan", "- Keep the collaboration angle", "## Revised Draft", "Updated draft"].join("\n");
+      }
+      return ["## Overall Verdict", "Useful", "## Strengths", "- Good continuation", "## Problems", "- Need sharper closing", "## Suggestions", "- Keep collaboration central", "## Direct Responses To Other Reviewers", "- Agree"].join("\n");
+    },
+    async (providerId, _prompt, options) => {
+      await options.onEvent?.({
+        timestamp: new Date().toISOString(),
+        type: "chat-message-started",
+        providerId,
+        participantId: options.participantId,
+        participantLabel: options.participantLabel,
+        round: options.round,
+        messageId: `${providerId}-${options.round}`,
+        speakerRole: options.speakerRole,
+        recipient: "All"
+      });
+      await options.onEvent?.({
+        timestamp: new Date().toISOString(),
+        type: "chat-message-delta",
+        providerId,
+        participantId: options.participantId,
+        participantLabel: options.participantLabel,
+        round: options.round,
+        messageId: `${providerId}-${options.round}`,
+        speakerRole: options.speakerRole,
+        recipient: "All",
+        message: `${providerId} resumed message`
+      });
+      await options.onEvent?.({
+        timestamp: new Date().toISOString(),
+        type: "chat-message-completed",
+        providerId,
+        participantId: options.participantId,
+        participantLabel: options.participantLabel,
+        round: options.round,
+        messageId: `${providerId}-${options.round}`,
+        speakerRole: options.speakerRole,
+        recipient: "All"
+      });
     }
-    return ["## Overall Verdict", "Useful", "## Strengths", "- Good continuation", "## Problems", "- Need sharper closing", "## Suggestions", "- Keep collaboration central", "## Direct Responses To Other Reviewers", "- Agree"].join("\n");
-  });
+  );
 
   const orchestrator = new ReviewOrchestrator(storage, compiler, gateway);
   const events: RunEvent[] = [];
@@ -853,6 +892,97 @@ test("orchestrator carries previous run context into a continuation run", async 
     event.message?.includes("협업 강조 방향")
   );
   assert.ok(userContinuationDelta);
+});
+
+test("orchestrator can resume an existing run id without overwriting prior chat history or review turns", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const storage = await createStorage(workspaceRoot);
+  const project = await storage.createProject("Bucketplace");
+
+  await storage.createRun({
+    id: "run-1",
+    projectSlug: project.slug,
+    question: "Why Bucketplace?",
+    draft: "기존 초안",
+    reviewMode: "deepFeedback",
+    coordinatorProvider: "claude",
+    reviewerProviders: ["codex", "gemini"],
+    rounds: 1,
+    maxRoundsPerSection: 1,
+    selectedDocumentIds: [],
+    status: "completed",
+    startedAt: "2026-04-11T00:00:00.000Z",
+    finishedAt: "2026-04-11T00:03:00.000Z"
+  });
+  await storage.saveRunTextArtifact(project.slug, "run-1", "revised-draft.md", "이전 수정 초안");
+  await storage.saveReviewTurns(project.slug, "run-1", [
+    {
+      providerId: "claude",
+      participantId: "section-coordinator",
+      participantLabel: "Coordinator",
+      role: "coordinator",
+      round: 1,
+      prompt: "old prompt",
+      response: "old response",
+      startedAt: "2026-04-11T00:00:01.000Z",
+      finishedAt: "2026-04-11T00:00:05.000Z",
+      status: "completed"
+    }
+  ]);
+  await storage.saveRunChatMessages(project.slug, "run-1", [
+    {
+      id: "old-chat",
+      providerId: "claude",
+      participantId: "section-coordinator",
+      participantLabel: "Coordinator",
+      speaker: "Claude",
+      speakerRole: "coordinator",
+      recipient: "All",
+      round: 1,
+      content: "이전 대화 메시지",
+      startedAt: "2026-04-11T00:00:01.000Z",
+      finishedAt: "2026-04-11T00:00:05.000Z",
+      status: "completed"
+    }
+  ]);
+
+  const compiler = new ContextCompiler(storage);
+  const gateway = new FakeGateway(healthyStates(), (providerId) => {
+    if (providerId === "claude") {
+      return ["## Summary", "Coordinator summary", "## Improvement Plan", "- Keep the collaboration angle", "## Revised Draft", "Updated draft"].join("\n");
+    }
+    return ["## Overall Verdict", "Useful", "## Strengths", "- Good continuation", "## Problems", "- Need sharper closing", "## Suggestions", "- Keep collaboration central", "## Direct Responses To Other Reviewers", "- Agree"].join("\n");
+  });
+
+  const orchestrator = new ReviewOrchestrator(storage, compiler, gateway);
+  const result = await orchestrator.run({
+    existingRunId: "run-1",
+    projectSlug: project.slug,
+    question: "Why Bucketplace?",
+    draft: "이전 수정 초안",
+    reviewMode: "deepFeedback",
+    continuationFromRunId: "run-1",
+    continuationNote: "같은 실행에서 이어서 다듬어줘",
+    coordinatorProvider: "claude",
+    reviewerProviders: ["codex", "gemini"],
+    rounds: 1,
+    selectedDocumentIds: []
+  });
+
+  assert.equal(result.run.id, "run-1");
+  assert.equal(result.run.startedAt, "2026-04-11T00:00:00.000Z");
+  assert.ok(result.run.lastResumedAt);
+
+  const persistedTurnsRaw = await storage.readOptionalRunArtifact(project.slug, "run-1", "review-turns.json");
+  assert.ok(persistedTurnsRaw);
+  assert.match(persistedTurnsRaw, /old response/);
+
+  const chatArtifact = await storage.readOptionalRunArtifact(project.slug, "run-1", "chat-messages.json");
+  assert.ok(chatArtifact);
+  assert.match(chatArtifact, /이전 대화 메시지/);
+  assert.match(chatArtifact, /같은 실행에서 이어서 다듬어줘/);
 });
 
 test("continuation note that mentions notion triggers a fresh notion pre-pass and is treated as latest user guidance", async (t) => {

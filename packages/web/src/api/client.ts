@@ -156,8 +156,8 @@ export class RunnerClient {
     return this.request<{ ok: boolean; message: string }>("/api/opendart/test", { method: "POST" });
   }
 
-  submitIntervention(runId: string, message: string) {
-    return this.request(`/api/runs/${runId}/intervention`, {
+  submitIntervention(runId: string, message: string): Promise<{ outcome: string; runId: string; nextRunId?: string }> {
+    return this.request<{ outcome: string; runId: string; nextRunId?: string }>(`/api/runs/${runId}/intervention`, {
       method: "POST",
       body: { message }
     });
@@ -172,6 +172,13 @@ export class RunnerClient {
   completeRun(projectSlug: string, runId: string) {
     return this.request(`/api/projects/${projectSlug}/runs/${runId}/complete`, {
       method: "POST"
+    });
+  }
+
+  resumeRun(projectSlug: string, runId: string, message = ""): Promise<{ runId: string; resumedFromRunId: string }> {
+    return this.request<{ runId: string; resumedFromRunId: string }>(`/api/projects/${projectSlug}/runs/${runId}/resume`, {
+      method: "POST",
+      body: { message }
     });
   }
 

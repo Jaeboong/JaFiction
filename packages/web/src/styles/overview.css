@@ -448,12 +448,30 @@
   font-size: 12px;
   color: #111827;
   box-shadow: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.overview-role-table select {
+  cursor: pointer;
+}
+
+.overview-role-table select:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
 .overview-role-table select:focus,
 .overview-role-table input:focus {
   border-color: #111827;
   box-shadow: 0 0 0 1px rgba(17, 24, 39, 0.06);
+}
+
+.overview-role-table select:focus-visible {
+  border-color: #2563eb;
+  background-color: #f8fafc;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  outline: none;
 }
 
 .overview-role-override {

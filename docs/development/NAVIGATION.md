@@ -75,6 +75,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `reviewerCard.ts` | 브라우저 안전 reviewer card 파서와 realtime reviewer section 스캐너 |
 | `insights.ts` | 인사이트 공통 로직 |
 | `notionMcp.ts` | Notion MCP 연동 |
+| `notionOAuth.ts` | Gemini용 Notion MCP OAuth 등록, PKCE, 브라우저 인증, 토큰 저장 |
 | `openDart.ts` | OpenDart API 연동 |
 | `webviewProtocol.ts` | Webview ↔ 런너 메시지 프로토콜 정의 |
 | `utils.ts` | ID 생성, 날짜 등 범용 유틸리티 |
@@ -159,6 +160,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `insights.test.ts` | insights.ts |
 | `openDart.test.ts` | openDart.ts |
 | `notionMcp.test.ts` | notionMcp.ts |
+| `notionOAuth.test.ts` | notionOAuth.ts |
 | `providers.test.ts` | providers.ts |
 | `helpers.ts` | 테스트 공통 헬퍼 (픽스처 등) |
 

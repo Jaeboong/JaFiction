@@ -178,6 +178,7 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       slug,
       companyName: resolvedCompanyName,
       roleName: input.roleName?.trim() || undefined,
+      deadline: input.deadline?.trim() || undefined,
       overview: input.overview?.trim() || undefined,
       mainResponsibilities: input.mainResponsibilities?.trim() || undefined,
       qualifications: input.qualifications?.trim() || undefined,
@@ -231,6 +232,9 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
     const hasOverview = typeof inputOrCompanyName === "string"
       ? false
       : hasOwnField(input, "overview");
+    const hasDeadline = typeof inputOrCompanyName === "string"
+      ? false
+      : hasOwnField(input, "deadline");
     const hasMainResponsibilities = typeof inputOrCompanyName === "string"
       ? mainResponsibilities !== undefined
       : hasOwnField(input, "mainResponsibilities");
@@ -269,6 +273,7 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       : hasOwnField(input, "openDartCorpCode");
 
     const nextRoleName = hasRoleName ? input.roleName?.trim() || undefined : project.roleName;
+    const nextDeadline = hasDeadline ? input.deadline?.trim() || undefined : project.deadline;
     const nextOverview = hasOverview ? input.overview?.trim() || undefined : project.overview;
     const nextMainResponsibilities = hasMainResponsibilities
       ? input.mainResponsibilities?.trim() || undefined
@@ -302,6 +307,7 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
     const insightSourceChanged =
       trimmedCompanyName !== project.companyName ||
       nextRoleName !== project.roleName ||
+      nextDeadline !== project.deadline ||
       nextOverview !== project.overview ||
       nextMainResponsibilities !== project.mainResponsibilities ||
       nextQualifications !== project.qualifications ||
@@ -328,6 +334,7 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       ...refreshedProject,
       companyName: trimmedCompanyName,
       roleName: nextRoleName,
+      deadline: nextDeadline,
       overview: nextOverview,
       mainResponsibilities: nextMainResponsibilities,
       qualifications: nextQualifications,
@@ -590,6 +597,7 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
   async readProjectInsightJson<T>(projectSlug: string, fileName: string): Promise<T | undefined> { return this.runs.readProjectInsightJson<T>(projectSlug, fileName); }
   async appendRunEvent(projectSlug: string, runId: string, event: RunEvent): Promise<void> { return this.runs.appendRunEvent(projectSlug, runId, event); }
   async saveReviewTurns(projectSlug: string, runId: string, turns: ReviewTurn[]): Promise<void> { return this.runs.saveReviewTurns(projectSlug, runId, turns); }
+  async loadReviewTurns(projectSlug: string, runId: string): Promise<ReviewTurn[] | undefined> { return this.runs.loadReviewTurns(projectSlug, runId); }
   async saveRunChatMessages(projectSlug: string, runId: string, messages: RunChatMessage[]): Promise<void> { return this.runs.saveRunChatMessages(projectSlug, runId, messages); }
   async loadRunChatMessages(projectSlug: string, runId: string): Promise<RunChatMessage[] | undefined> { return this.runs.loadRunChatMessages(projectSlug, runId); }
   async saveRunLedgers(projectSlug: string, runId: string, ledgers: RunLedgerEntry[]): Promise<void> { return this.runs.saveRunLedgers(projectSlug, runId, ledgers); }
@@ -680,6 +688,29 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       project: updatedProject,
       state
     };
+  }
+
+  async reopenEssayAnswer(projectSlug: string, questionIndex: number): Promise<ProjectRecord> {
+    await this.ensureInitialized();
+    await this.ensureProjectDirs(projectSlug);
+
+    const project = await this.getProject(projectSlug);
+    const existingState = project.essayAnswerStates?.find((state) => state.questionIndex === questionIndex);
+    if (!existingState) {
+      return project;
+    }
+
+    const reopenedState: ProjectEssayAnswerState = {
+      ...existingState,
+      status: "drafting",
+      completedAt: undefined,
+      lastRunId: undefined
+    };
+
+    return this.updateProject({
+      ...project,
+      essayAnswerStates: upsertEssayAnswerState(project.essayAnswerStates, reopenedState)
+    });
   }
 
   private async ensureProjectDirs(projectSlug: string): Promise<void> {

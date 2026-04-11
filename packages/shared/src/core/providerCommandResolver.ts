@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { getNodeRuntime } from "./nodeRuntimeResolver";
 import { ProviderId } from "./types";
 
 export const defaultProviderCommands: Record<ProviderId, string> = {
@@ -30,21 +31,35 @@ export async function resolveProviderCommand(
 }
 
 export function withCommandDirectoryInPath(baseEnv: NodeJS.ProcessEnv, command: string): NodeJS.ProcessEnv {
+  const currentPath = baseEnv.PATH ?? "";
+  const delimiter = detectPathDelimiter(currentPath);
+
+  // Always prepend the verified node runtime binDir so the provider's child
+  // processes (e.g. MCP stdio servers) inherit the Linux node binary, not a
+  // Windows stub that may appear earlier in the ambient PATH on WSL.
+  const nodeRuntime = getNodeRuntime();
+  const nodeDir = nodeRuntime.binDir;
+
   if (!path.isAbsolute(command)) {
-    return { ...baseEnv };
+    const pathEntries = currentPath
+      .split(delimiter)
+      .filter(Boolean)
+      .filter((entry) => !samePathEntry(entry, nodeDir));
+    return {
+      ...baseEnv,
+      PATH: [nodeDir, ...pathEntries].join(delimiter)
+    };
   }
 
   const commandDir = path.dirname(command);
-  const currentPath = baseEnv.PATH ?? "";
-  const delimiter = detectPathDelimiter(currentPath);
   const pathEntries = currentPath
     .split(delimiter)
     .filter(Boolean)
-    .filter((entry) => !samePathEntry(entry, commandDir));
+    .filter((entry) => !samePathEntry(entry, nodeDir) && !samePathEntry(entry, commandDir));
 
   return {
     ...baseEnv,
-    PATH: [commandDir, ...pathEntries].join(delimiter)
+    PATH: [nodeDir, commandDir, ...pathEntries].join(delimiter)
   };
 }
 

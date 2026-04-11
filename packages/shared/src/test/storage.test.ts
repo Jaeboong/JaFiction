@@ -2,6 +2,7 @@ import * as assert from "node:assert/strict";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import test from "node:test";
+import { readJsonFile, writeJsonFile } from "../core/utils";
 import { cleanupTempWorkspace, createStorage, createTempWorkspace, writeMinimalPdf, writeMinimalPptx, writePngPlaceholder, writeTextFile } from "./helpers";
 
 test("storage imports text, pdf, pptx, and image documents", async (t) => {
@@ -60,6 +61,7 @@ test("storage updates and deletes projects", async (t) => {
   const project = await storage.createProject({
     companyName: "CJ OliveNetworks",
     roleName: "Backend",
+    deadline: "2026년 04월 19일, 23:59",
     mainResponsibilities: "검색 시스템 아키텍처 설계 및 성능 개선 지원",
     qualifications: "Linux 환경에 대한 기본 이해",
     preferredQualifications: "Spring 기반 서비스 운영 경험",
@@ -69,6 +71,7 @@ test("storage updates and deletes projects", async (t) => {
   });
 
   assert.equal(project.roleName, "Backend");
+  assert.equal(project.deadline, "2026년 04월 19일, 23:59");
   assert.equal(project.mainResponsibilities, "검색 시스템 아키텍처 설계 및 성능 개선 지원");
   assert.equal(project.qualifications, "Linux 환경에 대한 기본 이해");
   assert.equal(project.preferredQualifications, "Spring 기반 서비스 운영 경험");
@@ -79,6 +82,7 @@ test("storage updates and deletes projects", async (t) => {
   const updated = await storage.updateProjectInfo(project.slug, {
     companyName: "CJ OliveNetworks DX",
     roleName: "AI Engineer",
+    deadline: "2026년 04월 21일, -",
     mainResponsibilities: "검색 품질 향상을 위한 데이터 분석 및 개선 과제 수행",
     qualifications: "문제 해결 과정에서 원인을 논리적으로 분석하고 개선해 본 경험",
     preferredQualifications: "대규모 데이터 파이프라인 경험",
@@ -89,6 +93,7 @@ test("storage updates and deletes projects", async (t) => {
   assert.equal(updated.slug, project.slug);
   assert.equal(updated.companyName, "CJ OliveNetworks DX");
   assert.equal(updated.roleName, "AI Engineer");
+  assert.equal(updated.deadline, "2026년 04월 21일, -");
   assert.equal(updated.mainResponsibilities, "검색 품질 향상을 위한 데이터 분석 및 개선 과제 수행");
   assert.equal(updated.qualifications, "문제 해결 과정에서 원인을 논리적으로 분석하고 개선해 본 경험");
   assert.equal(updated.preferredQualifications, "대규모 데이터 파이프라인 경험");
@@ -108,6 +113,7 @@ test("storage preserves existing project metadata when partial updates omit fiel
   const project = await storage.createProject({
     companyName: "Naver",
     roleName: "Platform Engineer",
+    deadline: "2026년 04월 19일, 23:59",
     overview: "플랫폼 조직 소개",
     mainResponsibilities: "검색 품질 개선",
     qualifications: "TypeScript 경험",
@@ -144,6 +150,7 @@ test("storage preserves existing project metadata when partial updates omit fiel
 
   assert.equal(updated.companyName, "Naver");
   assert.equal(updated.roleName, "AI Platform Engineer");
+  assert.equal(updated.deadline, seededProject.deadline);
   assert.equal(updated.overview, seededProject.overview);
   assert.equal(updated.mainResponsibilities, seededProject.mainResponsibilities);
   assert.equal(updated.qualifications, seededProject.qualifications);
@@ -171,6 +178,7 @@ test("storage clears project metadata when partial updates explicitly send empty
   const project = await storage.createProject({
     companyName: "Kakao",
     roleName: "Backend Engineer",
+    deadline: "2026년 04월 25일, 18:00",
     overview: "기존 소개",
     keywords: ["광고", "추천"],
     jobPostingText: "기존 공고",
@@ -180,6 +188,7 @@ test("storage clears project metadata when partial updates explicitly send empty
   const updated = await storage.updateProjectInfo(project.slug, {
     companyName: "Kakao",
     roleName: "",
+    deadline: "",
     overview: "",
     keywords: [],
     jobPostingText: "",
@@ -188,6 +197,7 @@ test("storage clears project metadata when partial updates explicitly send empty
 
   assert.equal(updated.companyName, "Kakao");
   assert.equal(updated.roleName, undefined);
+  assert.equal(updated.deadline, undefined);
   assert.equal(updated.overview, undefined);
   assert.equal(updated.keywords, undefined);
   assert.equal(updated.jobPostingText, undefined);
@@ -535,6 +545,34 @@ test("storage saves and loads persisted run ledgers", async (t) => {
   const loaded = await storage.loadRunLedgers(project.slug, "run-ledger");
 
   assert.deepEqual(loaded, ledgers);
+});
+
+test("writeJsonFile stays readable during concurrent rewrites", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const filePath = path.join(workspaceRoot, "atomic.json");
+  await writeJsonFile(filePath, {
+    value: -1,
+    payload: "seed"
+  });
+
+  await Promise.all([
+    ...Array.from({ length: 40 }, async (_value, index) => {
+      await writeJsonFile(filePath, {
+        value: index,
+        payload: `payload-${index}-`.repeat(200)
+      });
+    }),
+    ...Array.from({ length: 120 }, async () => {
+      const parsed = await readJsonFile<{ value: number; payload: string }>(filePath, {
+        value: -999,
+        payload: ""
+      });
+      assert.equal(typeof parsed.value, "number");
+      assert.equal(typeof parsed.payload, "string");
+    })
+  ]);
 });
 
 test("storage prunes run logs older than 30 days during initialization", async (t) => {

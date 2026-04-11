@@ -189,6 +189,7 @@ export const ProjectRecordSchema = z.object({
   slug: z.string(),
   companyName: z.string(),
   roleName: z.string().optional(),
+  deadline: z.string().optional(),
   overview: z.string().optional(),
   mainResponsibilities: z.string().optional(),
   qualifications: z.string().optional(),
@@ -243,6 +244,7 @@ export const RunRecordSchema = z.object({
   selectedDocumentIds: z.array(z.string()),
   status: RunStatusSchema,
   startedAt: z.string(),
+  lastResumedAt: z.string().optional(),
   finishedAt: z.string().optional()
 });
 

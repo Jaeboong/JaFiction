@@ -86,6 +86,29 @@ test("running deep feedback session keeps intervention queued without aborting t
   assert.deepEqual(manager.drainQueuedMessages(sessionId), ["다음 사이클에서 협업을 더 강조해줘"]);
 });
 
+test("round-complete session stays paused and intervention switches to continuation mode", () => {
+  const manager = new RunSessionManager();
+  const sessionId = manager.start("alpha", "realtime");
+  manager.setRunId(sessionId, "run-1");
+
+  manager.markRoundComplete(sessionId);
+
+  assert.equal(manager.snapshot().status, "paused");
+  assert.equal(manager.submitIntervention("run-1", "한 라운드 더 진행"), "continuation");
+  assert.equal(manager.snapshot().status, "paused");
+});
+
+test("finishAddressedRun closes the addressed active session", () => {
+  const manager = new RunSessionManager();
+  const sessionId = manager.start("alpha", "realtime");
+  manager.setRunId(sessionId, "run-1");
+
+  manager.markRoundComplete(sessionId);
+  manager.finishAddressedRun("run-1");
+
+  assert.deepEqual(manager.snapshot(), { status: "idle" });
+});
+
 test("stale tabs cannot resume a paused run that belongs to a different run id", async () => {
   const manager = new RunSessionManager();
   const sessionId = manager.start("alpha", "realtime");
@@ -169,4 +192,15 @@ test("aborting a running session aborts its active signal", () => {
   assert.equal(manager.snapshot().status, "aborting");
   assert.throws(() => manager.assertCanStart("alpha"), /aborting/i);
   assert.equal(signal.aborted, true);
+});
+
+test("aborting a round-complete paused session closes it immediately", () => {
+  const manager = new RunSessionManager();
+  const sessionId = manager.start("alpha", "realtime");
+  manager.setRunId(sessionId, "run-1");
+  manager.markRoundComplete(sessionId);
+
+  manager.abort("run-1");
+
+  assert.deepEqual(manager.snapshot(), { status: "idle" });
 });

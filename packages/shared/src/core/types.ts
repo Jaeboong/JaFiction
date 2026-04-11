@@ -149,6 +149,7 @@ export interface OpenDartCandidate {
 export interface ProjectInsightInput {
   companyName: string;
   roleName?: string;
+  deadline?: string;
   overview?: string;
   mainResponsibilities?: string;
   qualifications?: string;
@@ -176,6 +177,7 @@ export interface ProjectRecord {
   slug: string;
   companyName: string;
   roleName?: string;
+  deadline?: string;
   overview?: string;
   mainResponsibilities?: string;
   qualifications?: string;
@@ -230,6 +232,7 @@ export interface RunRecord {
   selectedDocumentIds: string[];
   status: RunStatus;
   startedAt: string;
+  lastResumedAt?: string;
   finishedAt?: string;
 }
 
@@ -392,6 +395,7 @@ export interface ProviderCommandResult {
 export interface ProviderRuntimeState extends ProviderStatus {
   command: string;
   hasApiKey: boolean;
+  hasNotionToken?: boolean;
   configuredModel?: string;
   configuredEffort?: string;
   capabilities: ProviderCapabilities;
@@ -409,6 +413,7 @@ export interface RunArtifacts {
 
 export interface RunRequest {
   projectSlug: string;
+  existingRunId?: string;
   projectQuestionIndex?: number;
   question: string;
   draft: string;

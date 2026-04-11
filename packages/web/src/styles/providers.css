@@ -56,6 +56,7 @@
 }
 
 .providers-sidebar-list {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -64,7 +65,19 @@
   overflow: auto;
 }
 
+.providers-sidebar-indicator {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 0;
+  border-radius: 6px;
+  background: #f3f4f6;
+  pointer-events: none;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), height 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .providers-sidebar-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -75,15 +88,15 @@
   border-radius: 6px;
   background: transparent;
   text-align: left;
+  z-index: 1;
 }
 
 .providers-sidebar-item:hover {
-  background: #f9fafb;
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .providers-sidebar-item.is-active {
   border-left-color: #111827;
-  background: #f3f4f6;
 }
 
 .providers-sidebar-dot {
@@ -222,7 +235,7 @@
   color: #374151;
 }
 
-.providers-secondary-button:hover {
+.providers-secondary-button:hover:not(:disabled) {
   background: #f9fafb;
 }
 
@@ -232,7 +245,7 @@
   color: #fff;
 }
 
-.providers-primary-button:hover {
+.providers-primary-button:hover:not(:disabled) {
   background: #1f2937;
 }
 
@@ -242,8 +255,15 @@
   color: #b91c1c;
 }
 
-.providers-danger-button:hover {
+.providers-danger-button:hover:not(:disabled) {
   background: #fee2e2;
+}
+
+.providers-secondary-button:disabled,
+.providers-primary-button:disabled,
+.providers-danger-button:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .providers-snapshot-grid {
@@ -360,28 +380,84 @@
 }
 
 .providers-field-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   font-size: 12px;
   font-weight: 500;
   color: #374151;
 }
 
-.providers-field input,
-.providers-field select {
+.providers-field-info {
+  display: inline-flex;
+  align-items: center;
+}
+
+.providers-field-info-icon {
+  font-size: 12px;
+  color: #9ca3af;
+  cursor: default;
+  user-select: none;
+  line-height: 1;
+  transition: color 0.1s;
+}
+
+.providers-field-info:hover .providers-field-info-icon {
+  color: #6b7280;
+}
+
+.providers-field-info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 240px;
+  padding: 10px 12px;
+  background: #1f2937;
+  color: #f9fafb;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.providers-field-info-card strong {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.providers-field-info-card a {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.providers-field-info-card a:hover {
+  text-decoration: underline;
+}
+
+.providers-field input {
   width: 100%;
   height: 32px;
   padding: 0 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
   font-size: 13px;
-  color: #111827;
-  box-shadow: none;
+  color: #0f172a;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.providers-field input:focus,
-.providers-field select:focus {
-  border-color: #111827;
-  box-shadow: 0 0 0 1px rgba(17, 24, 39, 0.06);
+.providers-field input:focus {
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.05);
+  outline: none;
+}
+
+.providers-field input::placeholder {
+  color: #94a3b8;
 }
 
 .providers-form-grid {
@@ -414,6 +490,11 @@
   align-items: center;
   gap: 8px;
   padding-top: 20px;
+  flex-shrink: 0;
+}
+
+.providers-api-key-actions .providers-icon-button {
+  margin-top: 0;
 }
 
 .providers-notion-copy {
@@ -434,6 +515,171 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.providers-notion-token-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.providers-notion-token-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.providers-notion-token-field:focus-within {
+  border-color: #111827;
+  box-shadow: 0 0 0 1px rgba(17, 24, 39, 0.06);
+}
+
+.providers-notion-token-field.status-saving {
+  border-color: #6b7280;
+  background: #f9fafb;
+}
+
+.providers-notion-token-field.status-ok {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.providers-notion-token-field.status-error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.providers-notion-token-input {
+  width: 180px;
+  height: 100%;
+  padding: 0 32px 0 10px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: #111827;
+  outline: none;
+}
+
+.providers-notion-token-input:disabled {
+  color: #6b7280;
+  cursor: default;
+}
+
+.providers-notion-token-indicator {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.providers-notion-token-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #d1d5db;
+  border-top-color: #374151;
+  border-radius: 50%;
+  animation: providers-notion-token-spin 0.7s linear infinite;
+}
+
+@keyframes providers-notion-token-spin {
+  to { transform: rotate(360deg); }
+}
+
+.providers-notion-token-check {
+  width: 16px;
+  height: 16px;
+  color: #16a34a;
+  animation: providers-notion-token-check-in 0.35s ease-out;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+}
+
+@keyframes providers-notion-token-check-in {
+  0% {
+    transform: scale(0.3);
+    stroke-dashoffset: 24;
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.providers-notion-token-bang {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ef4444;
+  line-height: 1;
+}
+
+.providers-notion-token-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.providers-notion-token-clear:hover:not(:disabled) {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.providers-notion-token-clear:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.providers-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.providers-icon-button svg {
+  width: 15px;
+  height: 15px;
+  transition: opacity 0.16s ease;
+}
+
+.providers-icon-button.is-busy svg {
+  opacity: 0.42;
+}
+
+.providers-icon-button:focus-visible {
+  outline: 2px solid #94a3b8;
+  outline-offset: 2px;
 }
 
 .providers-role-summary-section {

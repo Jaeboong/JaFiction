@@ -85,10 +85,11 @@ export function createRunsRouter(ctx: RunnerContext): Router {
       }
 
       const continuation = await ctx.storage().loadRunContinuationContext(projectSlug, runId);
+      if (continuation.record.status !== "completed") {
+        throw new Error("문항 완료는 라운드 종료 상태에서만 사용할 수 있습니다.");
+      }
       const project = await ctx.storage().getProject(projectSlug);
-      const questionIndex = typeof continuation.record.projectQuestionIndex === "number"
-        ? continuation.record.projectQuestionIndex
-        : (project.essayQuestions ?? []).findIndex((question) => question.trim() === continuation.record.question.trim());
+      const questionIndex = resolveRunQuestionIndex(project, continuation.record.projectQuestionIndex, continuation.record.question);
       if (questionIndex < 0) {
         throw new Error("현재 실행에 연결된 자소서 문항을 찾지 못했습니다.");
       }
@@ -105,11 +106,47 @@ export function createRunsRouter(ctx: RunnerContext): Router {
         answer,
         runId
       );
-      ctx.runSessions.submitIntervention(runId, "/done");
+      ctx.runSessions.finishAddressedRun(runId);
       ctx.stateStore.setRunState(ctx.runSessions.snapshot());
       await ctx.stateStore.refreshProjects(projectSlug);
       await ctx.pushState();
       response.json({ runId, questionIndex });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:runId/resume", async (request, response, next) => {
+    try {
+      const { projectSlug, runId } = request.params as { projectSlug: string; runId: string };
+      const continuation = await ctx.storage().loadRunContinuationContext(projectSlug, runId);
+      const project = await ctx.storage().getProject(projectSlug);
+      const questionIndex = resolveRunQuestionIndex(project, continuation.record.projectQuestionIndex, continuation.record.question);
+      if (questionIndex < 0) {
+        throw new Error("현재 실행에 연결된 자소서 문항을 찾지 못했습니다.");
+      }
+      const answerState = project.essayAnswerStates?.find((state) => state.questionIndex === questionIndex);
+      if (answerState?.status !== "completed" || answerState.lastRunId !== runId) {
+        throw new Error("재개 버튼은 고정된 문항에서만 사용할 수 있습니다.");
+      }
+
+      await ctx.storage().reopenEssayAnswer(projectSlug, questionIndex);
+
+      const runState = ctx.runSessions.snapshot();
+      if (runState.runId === runId && runState.projectSlug === projectSlug) {
+        ctx.runSessions.finishAddressedRun(runId);
+      }
+
+      const nextRunId = await resumeExistingRun(
+        ctx,
+        projectSlug,
+        runId,
+        typeof request.body?.message === "string" ? request.body.message : undefined
+      );
+
+      await ctx.stateStore.refreshProjects(projectSlug);
+      await ctx.pushState();
+      response.status(202).json({ runId: nextRunId, resumedFromRunId: runId, questionIndex });
     } catch (error) {
       next(error);
     }
@@ -124,7 +161,21 @@ export function createRunInterventionRouter(ctx: RunnerContext): Router {
   router.post("/:runId/intervention", async (request, response, next) => {
     try {
       const runId = String(request.params.runId);
-      const outcome = ctx.runSessions.submitIntervention(runId, String(request.body?.message ?? "").trim());
+      const message = typeof request.body?.message === "string" ? request.body.message : "";
+      const outcome = ctx.runSessions.submitIntervention(runId, message);
+      if (outcome === "continuation") {
+        const runState = ctx.runSessions.snapshot();
+        if (!runState.projectSlug) {
+          throw new Error("현재 실행된 지원서 정보를 확인할 수 없습니다.");
+        }
+        ctx.runSessions.finishAddressedRun(runId);
+        const nextRunId = await startContinuationRun(ctx, runState.projectSlug, runId, message);
+        ctx.stateStore.setRunState(ctx.runSessions.snapshot());
+        await ctx.stateStore.refreshProjects(runState.projectSlug);
+        await ctx.pushState();
+        response.json({ outcome, runId, nextRunId });
+        return;
+      }
       ctx.stateStore.setRunState(ctx.runSessions.snapshot());
       await ctx.pushState();
       response.json({ outcome, runId });
@@ -165,7 +216,10 @@ export function createRunInterventionRouter(ctx: RunnerContext): Router {
 }
 
 async function startRun(ctx: RunnerContext, request: RunRequest): Promise<string> {
-  const before = new Set((await ctx.storage().listRuns(request.projectSlug)).map((run) => run.id));
+  const existingRunId = request.existingRunId?.trim() || undefined;
+  const before = existingRunId
+    ? undefined
+    : new Set((await ctx.storage().listRuns(request.projectSlug)).map((run) => run.id));
   const bufferedEvents: RunEvent[] = [];
   const latestMessageIds = new Map<string, string>();
   let activeRunId: string | undefined;
@@ -209,10 +263,20 @@ async function startRun(ctx: RunnerContext, request: RunRequest): Promise<string
     await ctx.storage().saveRunLedgers(request.projectSlug, runId, [...persistedLedgers.values()]);
   };
 
+  if (existingRunId) {
+    activeRunId = existingRunId;
+    ctx.clearRunBuffer(existingRunId);
+    ctx.runSessions.setRunId(sessionId, existingRunId);
+    ctx.stateStore.setRunState(ctx.runSessions.snapshot());
+    await ctx.stateStore.refreshProjects(request.projectSlug);
+    await ctx.pushState();
+  }
+
   ctx.stateStore.setRunState(ctx.runSessions.snapshot());
   await ctx.pushState();
 
   void (async () => {
+    let shouldTearDownSession = false;
     try {
       const resolvedRoles = resolveRoleAssignments(
         request.roleAssignments,
@@ -228,6 +292,7 @@ async function startRun(ctx: RunnerContext, request: RunRequest): Promise<string
       await ctx.orchestrator().run(
         {
           ...request,
+          existingRunId,
           roleAssignments: resolvedRoles.all,
           coordinatorProvider: legacyParticipants.coordinatorProvider,
           reviewerProviders: legacyParticipants.reviewerProviders
@@ -251,8 +316,16 @@ async function startRun(ctx: RunnerContext, request: RunRequest): Promise<string
         ctx.runSessions.abortSignal(sessionId),
         (controller) => ctx.runSessions.bindExecutionAbortController(sessionId, controller)
       );
+      ctx.runSessions.markRoundComplete(sessionId);
+      ctx.stateStore.setRunState(ctx.runSessions.snapshot());
+      await ctx.pushState();
+    } catch (error) {
+      shouldTearDownSession = true;
+      throw error;
     } finally {
-      ctx.runSessions.finish(sessionId);
+      if (shouldTearDownSession || ctx.runSessions.snapshot().status === "aborting") {
+        ctx.runSessions.finish(sessionId);
+      }
       ctx.stateStore.setRunState(ctx.runSessions.snapshot());
       await ctx.stateStore.refreshProjects(request.projectSlug);
       await ctx.stateStore.refreshPreferences();
@@ -280,10 +353,14 @@ async function startRun(ctx: RunnerContext, request: RunRequest): Promise<string
     await ctx.pushState();
   });
 
+  if (existingRunId) {
+    return existingRunId;
+  }
+
   const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
     const current = await ctx.storage().listRuns(request.projectSlug);
-    const created = current.find((run) => !before.has(run.id));
+    const created = current.find((run) => !before?.has(run.id));
     if (created) {
       activeRunId = created.id;
       ctx.runSessions.setRunId(sessionId, activeRunId);
@@ -366,6 +443,43 @@ async function startContinuationRun(
   });
 }
 
+async function resumeExistingRun(
+  ctx: RunnerContext,
+  projectSlug: string,
+  runId: string,
+  continuationNote?: string
+): Promise<string> {
+  const continuation = await ctx.storage().loadRunContinuationContext(projectSlug, runId);
+  const resolvedRoles = resolveRoleAssignments(
+    continuation.record.roleAssignments,
+    continuation.record.coordinatorProvider,
+    continuation.record.reviewerProviders
+  );
+  const legacyParticipants = deriveLegacyParticipantsFromRoles(
+    resolvedRoles.all,
+    continuation.record.coordinatorProvider,
+    continuation.record.reviewerProviders
+  );
+
+  return startRun(ctx, {
+    existingRunId: continuation.record.id,
+    projectSlug,
+    projectQuestionIndex: continuation.record.projectQuestionIndex,
+    question: continuation.record.question,
+    draft: continuation.revisedDraft?.trim() || continuation.record.draft,
+    reviewMode: continuation.record.reviewMode,
+    notionRequest: "",
+    continuationFromRunId: continuation.record.id,
+    continuationNote: continuationNote?.trim() || "",
+    roleAssignments: resolvedRoles.all,
+    coordinatorProvider: legacyParticipants.coordinatorProvider,
+    reviewerProviders: legacyParticipants.reviewerProviders,
+    rounds: 1,
+    maxRoundsPerSection: continuation.record.maxRoundsPerSection ?? 1,
+    selectedDocumentIds: continuation.record.selectedDocumentIds
+  });
+}
+
 function normalizeMaxRoundsPerSection(value: unknown): number {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) {
@@ -373,6 +487,17 @@ function normalizeMaxRoundsPerSection(value: unknown): number {
   }
 
   return Math.min(10, Math.max(1, Math.trunc(parsed)));
+}
+
+function resolveRunQuestionIndex(
+  project: { essayQuestions?: string[] },
+  projectQuestionIndex: number | undefined,
+  question: string
+): number {
+  if (typeof projectQuestionIndex === "number") {
+    return projectQuestionIndex;
+  }
+  return (project.essayQuestions ?? []).findIndex((candidate) => candidate.trim() === question.trim());
 }
 
 function buildParticipantRoundKey(participantId?: string, round?: number): string {

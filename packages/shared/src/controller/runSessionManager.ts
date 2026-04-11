@@ -26,6 +26,10 @@ function abortingMessage(projectSlug: string): string {
   return `Stopping active run for ${projectSlug}.`;
 }
 
+function roundCompleteMessage(projectSlug: string): string {
+  return `Run completed a round for ${projectSlug}. Continue, pin, or abort.`;
+}
+
 export class AddressedRunMismatchError extends Error {
   constructor(readonly activeRunId?: string) {
     super("This run is no longer the active session.");
@@ -82,7 +86,13 @@ export class RunSessionManager {
   }
 
   setRunId(sessionId: string, runId: string): void {
-    if (!this.activeSession || this.activeSession.sessionId !== sessionId || this.activeSession.state.status !== "running") {
+    if (!this.activeSession || this.activeSession.sessionId !== sessionId) {
+      return;
+    }
+    if (this.activeSession.state.status !== "running" && this.activeSession.state.status !== "paused") {
+      return;
+    }
+    if (this.activeSession.state.runId) {
       return;
     }
     this.activeSession = {
@@ -140,6 +150,11 @@ export class RunSessionManager {
 
     this.assertAddressedRun(runId);
 
+    if (this.activeSession.state.status === "paused" && !this.activeSession.resolveIntervention) {
+      this.activeSession = undefined;
+      return;
+    }
+
     if (this.activeSession.resolveIntervention && this.activeSession.pendingInterventionRequest) {
       const { resolveIntervention } = this.activeSession;
       this.activeSession = {
@@ -169,7 +184,7 @@ export class RunSessionManager {
     this.activeSession.abortController.abort(new RunAbortedError());
   }
 
-  submitIntervention(addressedRunId: string | undefined, message: string | undefined): "queued" | "resumed" {
+  submitIntervention(addressedRunId: string | undefined, message: string | undefined): "queued" | "resumed" | "continuation" {
     if (!this.activeSession) {
       if (addressedRunId) {
         throw new AddressedRunMismatchError(undefined);
@@ -207,6 +222,13 @@ export class RunSessionManager {
       return "resumed";
     }
 
+    if (this.activeSession.state.status === "paused") {
+      if (!this.activeSession.state.runId) {
+        throw new Error("There is no active run to continue.");
+      }
+      return "continuation";
+    }
+
     if (this.activeSession.state.status !== "running") {
       throw new Error("There is no active session waiting for input.");
     }
@@ -229,6 +251,39 @@ export class RunSessionManager {
     const queued = [...this.activeSession.queuedMessages];
     this.activeSession.queuedMessages = [];
     return queued;
+  }
+
+  markRoundComplete(sessionId: string): void {
+    if (!this.activeSession || this.activeSession.sessionId !== sessionId) {
+      return;
+    }
+    if (this.activeSession.state.status === "aborting") {
+      return;
+    }
+
+    const projectSlug = this.activeSession.state.projectSlug ?? "";
+    this.activeSession = {
+      ...this.activeSession,
+      state: {
+        ...this.activeSession.state,
+        status: "paused",
+        message: roundCompleteMessage(projectSlug)
+      },
+      executionAbortController: undefined,
+      pendingInterventionRequest: undefined,
+      resolveIntervention: undefined
+    };
+  }
+
+  finishAddressedRun(addressedRunId?: string): void {
+    if (!this.activeSession) {
+      if (addressedRunId) {
+        throw new AddressedRunMismatchError(undefined);
+      }
+      throw new Error("There is no active session to finish.");
+    }
+    this.assertAddressedRun(addressedRunId);
+    this.activeSession = undefined;
   }
 
   finish(sessionId: string): void {

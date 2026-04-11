@@ -4,6 +4,7 @@ import http from "node:http";
 import cors from "cors";
 import express from "express";
 import { WebSocketServer } from "ws";
+import { resolveNodeRuntime } from "@jafiction/shared";
 import { createRunnerContext, type RunnerContext } from "./runnerContext";
 import { createInsightsRouter } from "./routes/insightsRouter";
 import { createConfigRouter } from "./routes/configRouter";
@@ -188,6 +189,15 @@ export async function createRunnerServer(ctx: RunnerContext): Promise<{
 }
 
 async function main(): Promise<void> {
+  // Resolve once at boot so getNodeRuntime() is always safe later.
+  // Exits immediately on failure — a broken Node runtime makes the runner inoperable.
+  try {
+    resolveNodeRuntime();
+  } catch (error) {
+    process.stderr.write(`[runner] Failed to resolve Node runtime: ${error instanceof Error ? error.message : String(error)}\n`);
+    process.exit(1);
+  }
+
   const ctx = await createRunnerContext();
   const { server, port } = await createRunnerServer(ctx);
   server.listen(port, () => {
@@ -220,3 +230,4 @@ function statusText(status?: number): string {
   }
   return "Error";
 }
+

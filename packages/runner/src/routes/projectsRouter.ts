@@ -323,6 +323,7 @@ function buildProjectInput(body: Record<string, unknown>) {
   const input: {
     companyName: string;
     roleName?: string;
+    deadline?: string;
     overview?: string;
     mainResponsibilities?: string;
     qualifications?: string;
@@ -342,6 +343,9 @@ function buildProjectInput(body: Record<string, unknown>) {
 
   if (hasField("roleName")) {
     input.roleName = asString(body.roleName);
+  }
+  if (hasField("deadline")) {
+    input.deadline = asString(body.deadline);
   }
   if (hasField("overview")) {
     input.overview = asString(body.overview);

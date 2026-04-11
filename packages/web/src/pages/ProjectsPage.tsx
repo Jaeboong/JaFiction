@@ -157,6 +157,7 @@ function CreateProjectWorkspace({
   const [jobPostingUrl, setJobPostingUrl] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [roleName, setRoleName] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [essayQuestions, setEssayQuestions] = useState([""]);
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "pending" | "ready" | "failed">("idle");
   const [analysisError, setAnalysisError] = useState<string | undefined>();
@@ -181,6 +182,7 @@ function CreateProjectWorkspace({
       setAnalysisResult(result);
       setCompanyName(result.companyName ?? "");
       setRoleName(result.roleName ?? "");
+      setDeadline(result.deadline ?? "");
       setAnalysisStatus("ready");
     } catch (error) {
       setAnalysisResult(undefined);
@@ -205,6 +207,7 @@ function CreateProjectWorkspace({
     setJobPostingUrl("");
     setCompanyName("");
     setRoleName("");
+    setDeadline("");
     setEssayQuestions([""]);
     setAnalysisStatus("idle");
     setAnalysisError(undefined);
@@ -319,6 +322,14 @@ function CreateProjectWorkspace({
                 <span>직무명</span>
                 <input value={roleName} onChange={(event) => setRoleName(event.target.value)} />
               </label>
+              <label className="projects-field">
+                <span>마감기한</span>
+                <input
+                  value={deadline}
+                  onChange={(event) => setDeadline(event.target.value)}
+                  placeholder="2026년 04월 19일, 23:59"
+                />
+              </label>
             </div>
           </section>
 
@@ -383,6 +394,7 @@ function CreateProjectWorkspace({
               void onCreateProject({
                 companyName,
                 roleName,
+                deadline: deadline || undefined,
                 jobPostingUrl,
                 overview: analysisResult?.overview,
                 mainResponsibilities: analysisResult?.mainResponsibilities,
@@ -446,6 +458,7 @@ function ProjectWorkspace({
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [editCompanyName, setEditCompanyName] = useState("");
   const [editRoleName, setEditRoleName] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
   const [editJobPostingUrl, setEditJobPostingUrl] = useState("");
   const [editEssayQuestions, setEditEssayQuestions] = useState<string[]>([""]);
   const [isSavingInfo, setIsSavingInfo] = useState(false);
@@ -529,6 +542,7 @@ function ProjectWorkspace({
   const handleStartEditInfo = () => {
     setEditCompanyName(project.record.companyName);
     setEditRoleName(project.record.roleName ?? "");
+    setEditDeadline(project.record.deadline ?? "");
     setEditJobPostingUrl(project.record.jobPostingUrl ?? "");
     setEditEssayQuestions(project.record.essayQuestions?.length ? [...project.record.essayQuestions] : [""]);
     setIsEditingInfo(true);
@@ -541,6 +555,7 @@ function ProjectWorkspace({
         ...project.record,
         companyName: editCompanyName,
         roleName: editRoleName || undefined,
+        deadline: editDeadline || undefined,
         jobPostingUrl: editJobPostingUrl || undefined,
         essayQuestions: editEssayQuestions.filter((q) => q.trim())
       });
@@ -740,7 +755,6 @@ function ProjectWorkspace({
             {isEditingInfo ? (
               <div className="projects-info-edit-form">
                 <div className="projects-info-grid">
-                  <InfoField label="지원서 슬러그" value={project.record.slug} mono />
                   <div className="projects-info-field">
                     <span>회사명</span>
                     <input
@@ -760,9 +774,18 @@ function ProjectWorkspace({
                     />
                   </div>
                   <div className="projects-info-field">
+                    <span>마감기한</span>
+                    <input
+                      className="projects-info-input"
+                      value={editDeadline}
+                      onChange={(e) => setEditDeadline(e.target.value)}
+                      placeholder="2026년 04월 19일, 23:59"
+                    />
+                  </div>
+                  <div className="projects-info-field">
                     <span>채용공고 URL</span>
                     <input
-                      className="projects-info-input projects-info-input-mono"
+                      className="projects-info-input"
                       value={editJobPostingUrl}
                       onChange={(e) => setEditJobPostingUrl(e.target.value)}
                       placeholder="https://..."
@@ -811,10 +834,24 @@ function ProjectWorkspace({
             ) : (
               <>
                 <div className="projects-info-grid">
-                  <InfoField label="지원서 슬러그" value={project.record.slug} mono />
                   <InfoField label="회사명" value={project.record.companyName} />
                   <InfoField label="직무명" value={project.record.roleName ?? "직무 미정"} />
-                  <InfoField label="채용공고 URL" value={project.record.jobPostingUrl ?? "연결된 공고 없음"} mono />
+                  <InfoField label="마감기한" value={project.record.deadline ?? "미정"} />
+                  <div className="projects-info-field">
+                    <span>채용공고 URL</span>
+                    {project.record.jobPostingUrl ? (
+                      <a
+                        className="projects-info-link"
+                        href={project.record.jobPostingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {project.record.jobPostingUrl}
+                      </a>
+                    ) : (
+                      <strong>연결된 공고 없음</strong>
+                    )}
+                  </div>
                   <InfoField label="생성 / 수정일" value={`${formatDate(project.record.createdAt)} | ${formatRelative(project.record.updatedAt)}`} />
                 </div>
 

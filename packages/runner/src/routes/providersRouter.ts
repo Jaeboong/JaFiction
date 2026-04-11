@@ -89,6 +89,37 @@ export function createProvidersRouter(ctx: RunnerContext): Router {
     }
   });
 
+  router.post("/:providerId/notion-token", async (request, response, next) => {
+    try {
+      const providerId = requireProviderId(String(request.params.providerId));
+      const token = String(request.body?.token ?? "").trim();
+
+      await ctx.runBusy("Notion Integration Token을 저장하는 중...", async () => {
+        await ctx.registry().saveNotionToken(token);
+        await ctx.stateStore.refreshProvider(providerId);
+      });
+
+      response.json(await ctx.registry().refreshRuntimeState(providerId));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:providerId/notion-token", async (request, response, next) => {
+    try {
+      const providerId = requireProviderId(String(request.params.providerId));
+
+      await ctx.runBusy("Notion Integration Token을 삭제하는 중...", async () => {
+        await ctx.registry().saveNotionToken("");
+        await ctx.stateStore.refreshProvider(providerId);
+      });
+
+      response.json(await ctx.registry().refreshRuntimeState(providerId));
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/:providerId/notion", async (request, response, next) => {
     try {
       const providerId = requireProviderId(String(request.params.providerId));

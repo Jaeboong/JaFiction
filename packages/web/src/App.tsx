@@ -5,7 +5,7 @@ import type {
   ProviderRuntimeState,
   SidebarState
 } from "@jafiction/shared";
-import { startTransition, useEffect, useRef, useState, type ReactNode } from "react";
+import { startTransition, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { RunnerClient } from "./api/client";
 import { OverviewPage } from "./pages/OverviewPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
@@ -34,6 +34,11 @@ interface ActionNoticeState extends ActionNotice {
   isLeaving: boolean;
 }
 
+interface TabIndicatorStyle {
+  left: number;
+  width: number;
+}
+
 const tabs: Array<{ id: AppTab; label: string }> = [
   { id: "overview", label: "개요" },
   { id: "providers", label: "프로바이더" },
@@ -60,6 +65,10 @@ export function App() {
   const nextActionNoticeIdRef = useRef(0);
   const noticeTimerRef = useRef<number | undefined>(undefined);
   const noticeExitTimerRef = useRef<number | undefined>(undefined);
+  const tabsRef = useRef<HTMLElement | null>(null);
+  const activeTabRef = useRef<HTMLButtonElement | null>(null);
+  const [tabIndicatorStyle, setTabIndicatorStyle] = useState<TabIndicatorStyle>({ left: 0, width: 0 });
+  const isAppReady = Boolean(client && state);
 
   const setActionNoticeState = (
     next: ActionNoticeState | undefined | ((current: ActionNoticeState | undefined) => ActionNoticeState | undefined)
@@ -158,6 +167,63 @@ export function App() {
     };
   }, []);
 
+  useLayoutEffect(() => {
+    const updateTabIndicator = () => {
+      const tabsElement = tabsRef.current;
+      const activeTabElement = activeTabRef.current;
+
+      if (!tabsElement || !activeTabElement) {
+        setTabIndicatorStyle((current) => current.width === 0 && current.left === 0 ? current : { left: 0, width: 0 });
+        return;
+      }
+
+      const tabsRect = tabsElement.getBoundingClientRect();
+      const activeTabRect = activeTabElement.getBoundingClientRect();
+      const nextStyle = {
+        left: activeTabRect.left - tabsRect.left,
+        width: activeTabRect.width
+      };
+
+      setTabIndicatorStyle((current) => (
+        current.left === nextStyle.left && current.width === nextStyle.width
+          ? current
+          : nextStyle
+      ));
+    };
+
+    updateTabIndicator();
+    window.addEventListener("resize", updateTabIndicator);
+
+    return () => {
+      window.removeEventListener("resize", updateTabIndicator);
+    };
+  }, [isAppReady, selectedTab]);
+
+  const renderTabNav = () => (
+    <nav className="app-tabs" aria-label="Main tabs" ref={tabsRef}>
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          ref={selectedTab === tab.id ? activeTabRef : undefined}
+          type="button"
+          className={`app-tab ${selectedTab === tab.id ? "is-active" : ""}`}
+          onClick={() => setSelectedTab(tab.id)}
+          aria-current={selectedTab === tab.id ? "page" : undefined}
+        >
+          {tab.label}
+        </button>
+      ))}
+      <div
+        className="app-tab-indicator"
+        aria-hidden="true"
+        style={{
+          width: `${tabIndicatorStyle.width}px`,
+          transform: `translateX(${tabIndicatorStyle.left}px)`
+        }}
+      />
+    </nav>
+  );
+
   useEffect(() => {
     if (!state?.projects.length) {
       setSelectedProjectSlug(undefined);
@@ -243,6 +309,17 @@ export function App() {
     }
   };
 
+  const refreshProviderState = async () => {
+    if (!client) {
+      return;
+    }
+    const nextState = await client.fetchState();
+    setLastUpdatedAt(Date.now());
+    startTransition(() => {
+      setState(nextState);
+    });
+  };
+
   if (!client || !state) {
     return (
       <main className="app-shell">
@@ -258,19 +335,7 @@ export function App() {
               <span className="app-brand-name">JaFiction</span>
             </div>
 
-            <nav className="app-tabs" aria-label="Main tabs">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`app-tab ${selectedTab === tab.id ? "is-active" : ""}`}
-                  onClick={() => setSelectedTab(tab.id)}
-                  aria-current={selectedTab === tab.id ? "page" : undefined}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
+            {renderTabNav()}
           </div>
 
           <div className="app-header-actions" aria-label="Header actions">
@@ -309,19 +374,7 @@ export function App() {
             <span className="app-brand-name">JaFiction</span>
           </div>
 
-          <nav className="app-tabs" aria-label="Main tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                className={`app-tab ${selectedTab === tab.id ? "is-active" : ""}`}
-                onClick={() => setSelectedTab(tab.id)}
-                aria-current={selectedTab === tab.id ? "page" : undefined}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+          {renderTabNav()}
         </div>
 
         <div className="app-header-actions" aria-label="Header actions">
@@ -452,6 +505,46 @@ export function App() {
                   success: { tone: "success", message: "API 키가 삭제되었습니다." },
                   failure: (error) => ({ tone: "error", message: "API 키 삭제에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.clearProviderApiKey(providerId).then(() => undefined));
+              }}
+              onSaveNotionToken={async (providerId, token) => {
+                await runAction({
+                  pending: { tone: "pending", message: "Notion Integration Token을 저장중입니다..." },
+                  success: { tone: "success", message: "Notion Integration Token이 저장되었습니다." },
+                  failure: (error) => ({ tone: "error", message: "Notion Integration Token 저장에 실패했습니다.", detail: getErrorMessage(error) })
+                }, async () => {
+                  const response = await fetch(`${client.baseUrl}/api/providers/${providerId}/notion-token`, {
+                    credentials: "include",
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ token })
+                  });
+                  if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    const message = typeof payload.message === "string" ? payload.message : `Request failed (${response.status})`;
+                    throw new Error(message);
+                  }
+                  await refreshProviderState();
+                });
+              }}
+              onDeleteNotionToken={async (providerId) => {
+                await runAction({
+                  pending: { tone: "pending", message: "Notion Integration Token을 삭제중입니다..." },
+                  success: { tone: "success", message: "Notion Integration Token이 삭제되었습니다." },
+                  failure: (error) => ({ tone: "error", message: "Notion Integration Token 삭제에 실패했습니다.", detail: getErrorMessage(error) })
+                }, async () => {
+                  const response = await fetch(`${client.baseUrl}/api/providers/${providerId}/notion-token`, {
+                    credentials: "include",
+                    method: "DELETE"
+                  });
+                  if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    const message = typeof payload.message === "string" ? payload.message : `Request failed (${response.status})`;
+                    throw new Error(message);
+                  }
+                  await refreshProviderState();
+                });
               }}
               onTest={async (providerId) => {
                 await runProviderAction(providerId, "test", {
@@ -593,7 +686,11 @@ export function App() {
                   pending: { tone: "pending", message: "개입 메시지를 전달중입니다..." },
                   success: { tone: "success", message: "개입 메시지를 전달했습니다." },
                   failure: (error) => ({ tone: "error", message: "개입 메시지 전달에 실패했습니다.", detail: getErrorMessage(error) })
-                }, () => client.submitIntervention(runId, message).then(() => undefined));
+                }, () => client.submitIntervention(runId, message).then((result) => {
+                  if (result.nextRunId) {
+                    setSelectedRunId(result.nextRunId);
+                  }
+                }));
               }}
               onAbortRun={async (runId) => {
                 const result = await runAction({
@@ -609,6 +706,15 @@ export function App() {
                   success: { tone: "success", message: "문항을 고정했습니다." },
                   failure: (error) => ({ tone: "error", message: "문항 완료 처리에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.completeRun(projectSlug, runId).then(() => undefined));
+              }}
+              onResumeRun={async (projectSlug, runId) => {
+                await runAction({
+                  pending: { tone: "pending", message: "문항 재개를 진행중입니다..." },
+                  success: { tone: "success", message: "문항을 다시 재개했습니다." },
+                  failure: (error) => ({ tone: "error", message: "문항 재개에 실패했습니다.", detail: getErrorMessage(error) })
+                }, () => client.resumeRun(projectSlug, runId).then((result) => {
+                  setSelectedRunId(result.runId);
+                }));
               }}
               onSaveDraft={async (projectSlug, questionIndex, draft) => {
                 await runAction({
@@ -707,7 +813,7 @@ function buildNotionCheckNotice(state: ProviderRuntimeState): ActionNotice {
     return { tone: "success", message: "Notion MCP가 연결되어 있습니다.", detail: state.notionMcpMessage };
   }
   if (state.notionMcpConfigured) {
-    return { tone: "error", message: "Notion MCP가 구성되어 있지만 연결되지 않았습니다.", detail: state.notionMcpMessage };
+    return { tone: "warning", message: "Notion MCP가 구성되어 있지만 인증이 필요합니다.", detail: state.notionMcpMessage };
   }
   return { tone: "error", message: "Notion MCP가 연결되어 있지 않습니다.", detail: state.notionMcpMessage };
 }
@@ -717,7 +823,7 @@ function buildNotionConnectNotice(state: ProviderRuntimeState): ActionNotice {
     return { tone: "success", message: "Notion MCP가 연결되었습니다.", detail: state.notionMcpMessage };
   }
   if (state.notionMcpConfigured) {
-    return { tone: "error", message: "Notion MCP 구성이 추가됐지만 연결 완료는 확인되지 않았습니다.", detail: state.notionMcpMessage };
+    return { tone: "warning", message: "Notion MCP 설정이 추가됐습니다. 인증은 해당 CLI를 직접 실행해 진행해 주세요.", detail: state.notionMcpMessage };
   }
   return { tone: "error", message: "Notion MCP 연결에 실패했습니다.", detail: state.notionMcpMessage };
 }

@@ -74,6 +74,7 @@ async function analyzeProjectInsights(
       ...baseProject,
       companyName: extraction.companyName || baseProject.companyName,
       roleName: extraction.roleName || baseProject.roleName,
+      deadline: extraction.deadline || baseProject.deadline,
       mainResponsibilities: extraction.mainResponsibilities || baseProject.mainResponsibilities,
       qualifications: extraction.qualifications || baseProject.qualifications,
       preferredQualifications: extraction.preferredQualifications || baseProject.preferredQualifications,
@@ -123,6 +124,7 @@ async function generateProjectInsights(
         ...project,
         companyName: extraction.companyName || project.companyName,
         roleName: extraction.roleName || project.roleName,
+        deadline: extraction.deadline || project.deadline,
         mainResponsibilities: extraction.mainResponsibilities || project.mainResponsibilities,
         qualifications: extraction.qualifications || project.qualifications,
         preferredQualifications: extraction.preferredQualifications || project.preferredQualifications,
@@ -273,6 +275,7 @@ function buildProjectInput(body: Record<string, unknown>) {
   const input: {
     companyName: string;
     roleName?: string;
+    deadline?: string;
     mainResponsibilities?: string;
     qualifications?: string;
     preferredQualifications?: string;
@@ -287,6 +290,9 @@ function buildProjectInput(body: Record<string, unknown>) {
 
   if (hasField("roleName")) {
     input.roleName = asString(body.roleName);
+  }
+  if (hasField("deadline")) {
+    input.deadline = asString(body.deadline);
   }
   if (hasField("mainResponsibilities")) {
     input.mainResponsibilities = asString(body.mainResponsibilities);

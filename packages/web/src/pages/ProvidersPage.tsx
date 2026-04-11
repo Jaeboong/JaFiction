@@ -1,5 +1,6 @@
 import type { AgentDefaults, ProviderId, ProviderRuntimeState } from "@jafiction/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { CustomSelect } from "../components/CustomSelect";
 import { AgentDefaultsSummary } from "../components/AgentDefaultsSummary";
 import { providerName, statusToneForAuthStatus } from "../formatters";
 import "../styles/providers.css";
@@ -14,14 +15,24 @@ interface ProvidersPageProps {
   onSaveConfig(providerId: ProviderId, payload: Record<string, unknown>): Promise<void>;
   onSaveApiKey(providerId: ProviderId, apiKey: string): Promise<void>;
   onClearApiKey(providerId: ProviderId): Promise<void>;
+  onSaveNotionToken(providerId: ProviderId, token: string): Promise<void>;
+  onDeleteNotionToken(providerId: ProviderId): Promise<void>;
   onTest(providerId: ProviderId): Promise<void>;
   onCheckNotion(providerId: ProviderId): Promise<void>;
   onConnectNotion(providerId: ProviderId): Promise<void>;
   onDisconnectNotion(providerId: ProviderId): Promise<void>;
 }
 
+interface SidebarIndicatorStyle {
+  top: number;
+  height: number;
+}
+
 export function ProvidersPage(props: ProvidersPageProps) {
   const [selectedProviderId, setSelectedProviderId] = useState<ProviderId | undefined>(props.providers[0]?.providerId);
+  const sidebarListRef = useRef<HTMLDivElement | null>(null);
+  const activeItemRef = useRef<HTMLButtonElement | null>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState<SidebarIndicatorStyle>({ top: 0, height: 0 });
 
   useEffect(() => {
     if (!props.providers.length) {
@@ -35,6 +46,27 @@ export function ProvidersPage(props: ProvidersPageProps) {
         : props.providers[0]?.providerId
     ));
   }, [props.providers]);
+
+  useLayoutEffect(() => {
+    const listEl = sidebarListRef.current;
+    const activeEl = activeItemRef.current;
+
+    if (!listEl || !activeEl) {
+      setIndicatorStyle((current) => current.height === 0 && current.top === 0 ? current : { top: 0, height: 0 });
+      return;
+    }
+
+    const listRect = listEl.getBoundingClientRect();
+    const activeRect = activeEl.getBoundingClientRect();
+    const next = {
+      top: activeRect.top - listRect.top + listEl.scrollTop,
+      height: activeRect.height
+    };
+
+    setIndicatorStyle((current) => (
+      current.top === next.top && current.height === next.height ? current : next
+    ));
+  }, [selectedProviderId, props.providers]);
 
   const selectedProvider = props.providers.find((provider) => provider.providerId === selectedProviderId) ?? props.providers[0];
 
@@ -67,10 +99,19 @@ export function ProvidersPage(props: ProvidersPageProps) {
           </button>
         </div>
 
-        <div className="providers-sidebar-list">
+        <div className="providers-sidebar-list" ref={sidebarListRef}>
+          <div
+            className="providers-sidebar-indicator"
+            aria-hidden="true"
+            style={{
+              height: `${indicatorStyle.height}px`,
+              transform: `translateY(${indicatorStyle.top}px)`
+            }}
+          />
           {props.providers.map((provider) => (
             <button
               key={provider.providerId}
+              ref={provider.providerId === selectedProvider.providerId ? activeItemRef : undefined}
               className={`providers-sidebar-item ${provider.providerId === selectedProvider.providerId ? "is-active" : ""}`}
               onClick={() => setSelectedProviderId(provider.providerId)}
             >
@@ -98,6 +139,8 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
     onSaveConfig,
     onSaveApiKey,
     onClearApiKey,
+    onSaveNotionToken,
+    onDeleteNotionToken,
     onTest,
     onCheckNotion,
     onConnectNotion,
@@ -109,6 +152,8 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
   const [effort, setEffort] = useState(provider.configuredEffort ?? "");
   const [apiKey, setApiKey] = useState("");
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
+  const [notionToken, setNotionToken] = useState("");
+  const [notionTokenStatus, setNotionTokenStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
 
   useEffect(() => {
     setCommand(provider.command);
@@ -117,13 +162,15 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
     setEffort(provider.configuredEffort ?? "");
     setApiKey("");
     setApiKeyVisible(false);
+    setNotionToken("");
+    setNotionTokenStatus("idle");
   }, [provider]);
 
   const notionStateLabel = provider.notionMcpConnected
-    ? "Connected"
+    ? "연결됨"
     : provider.notionMcpConfigured
-      ? "Configured"
-      : "Idle";
+      ? "설정됨"
+      : "미연결";
   const notionTone = provider.notionMcpConnected
     ? "positive"
     : provider.notionMcpConfigured
@@ -196,7 +243,7 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
               <span className="providers-snapshot-label">Notion MCP</span>
               <div className="providers-snapshot-value-row">
                 <strong>{notionStateLabel}</strong>
-                <span className={`providers-status-chip tone-${notionTone}`}>{provider.notionMcpConnected ? "Active" : "Idle"}</span>
+                <span className={`providers-status-chip tone-${notionTone}`}>{provider.notionMcpConnected ? "연결됨" : "미연결"}</span>
               </div>
             </article>
           </div>
@@ -213,26 +260,35 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
             </label>
 
             <div className="providers-form-grid">
-              <label className="providers-field">
+              <div className="providers-field">
                 <span className="providers-field-label">인증 방식</span>
-                <select value={authMode} onChange={(event) => setAuthMode(event.target.value as "cli" | "apiKey")}>
-                  <option value="cli">CLI</option>
-                  <option value="apiKey">API Key</option>
-                </select>
-              </label>
+                <CustomSelect<"cli" | "apiKey">
+                  value={authMode}
+                  options={[
+                    { value: "cli", label: "CLI" },
+                    { value: "apiKey", label: "API Key" },
+                  ]}
+                  onChange={setAuthMode}
+                  ariaLabel="인증 방식"
+                />
+              </div>
 
               {provider.capabilities.modelOptions.length > 0 ? (
-                <label className="providers-field">
+                <div className="providers-field">
                   <span className="providers-field-label">기본 모델</span>
-                  <select value={model} onChange={(event) => setModel(event.target.value)}>
-                    <option value="">기본값 사용</option>
-                    {provider.capabilities.modelOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <CustomSelect
+                    value={model}
+                    options={[
+                      { value: "", label: "기본값 사용" },
+                      ...provider.capabilities.modelOptions.map((option) => ({
+                        value: option.value,
+                        label: option.label,
+                      })),
+                    ]}
+                    onChange={setModel}
+                    ariaLabel="기본 모델"
+                  />
+                </div>
               ) : (
                 <label className="providers-field">
                   <span className="providers-field-label">기본 모델</span>
@@ -242,17 +298,21 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
             </div>
 
             {provider.capabilities.supportsEffort ? (
-              <label className="providers-field providers-field--half">
+              <div className="providers-field providers-field--half">
                 <span className="providers-field-label">기본 Effort 수준</span>
-                <select value={effort} onChange={(event) => setEffort(event.target.value)}>
-                  <option value="">기본값 사용</option>
-                  {provider.capabilities.effortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <CustomSelect
+                  value={effort}
+                  options={[
+                    { value: "", label: "기본값 사용" },
+                    ...provider.capabilities.effortOptions.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    })),
+                  ]}
+                  onChange={setEffort}
+                  ariaLabel="기본 Effort 수준"
+                />
+              </div>
             ) : null}
 
             <div className="providers-api-key-row">
@@ -267,11 +327,23 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
                 <span className="providers-api-key-hint">기본 환경변수 대신 사용할 특정 키가 있다면 입력하세요.</span>
               </label>
               <div className="providers-api-key-actions">
-                <button className="providers-secondary-button" onClick={() => setApiKeyVisible((current) => !current)}>
-                  {apiKeyVisible ? "Hide" : "Show"}
+                <button
+                  className="providers-secondary-button providers-icon-button"
+                  type="button"
+                  onClick={() => setApiKeyVisible((current) => !current)}
+                  aria-label={apiKeyVisible ? "API 키 숨기기" : "API 키 표시"}
+                  title={apiKeyVisible ? "API 키 숨기기" : "API 키 표시"}
+                >
+                  {apiKeyVisible ? <ApiKeyHideIcon /> : <ApiKeyShowIcon />}
                 </button>
-                <button className="providers-secondary-button" onClick={() => onClearApiKey(provider.providerId)}>
-                  Clear
+                <button
+                  className="providers-danger-button providers-icon-button"
+                  type="button"
+                  onClick={() => onClearApiKey(provider.providerId)}
+                  aria-label="API 키 삭제"
+                  title="API 키 삭제"
+                >
+                  <ApiKeyClearIcon />
                 </button>
               </div>
             </div>
@@ -287,17 +359,114 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
           </div>
           <div className="providers-notion-surface">
             <p className="providers-notion-copy">
-              Codex가 Notion 데이터베이스에 접근하여 문서를 읽고 쓸 수 있도록 허용합니다.
+              {providerDisplayName(provider.providerId)}가 Notion 데이터베이스에 접근하여 문서를 읽고 쓸 수 있도록 허용합니다.
             </p>
             <div className="providers-notion-actions">
-              <button className="providers-secondary-button" onClick={() => onCheckNotion(provider.providerId)} disabled={hasPendingProviderAction}>
-                {isCheckingNotion ? <ButtonBusyLabel label="권한 갱신중..." /> : "권한 갱신"}
+              {provider.providerId === "claude" ? (() => {
+                const displayStatus: "idle" | "saving" | "ok" | "error" =
+                  notionTokenStatus !== "idle"
+                    ? notionTokenStatus
+                    : provider.hasNotionToken && !notionToken
+                      ? "ok"
+                      : "idle";
+                const tokenSaved = displayStatus === "ok" && !notionToken;
+                return (
+                  <div className="providers-notion-token-row">
+                    <div className={`providers-notion-token-field status-${displayStatus}`}>
+                      <input
+                        className="providers-notion-token-input"
+                        type="password"
+                        placeholder={tokenSaved ? "저장된 토큰 사용 중" : "secret_..."}
+                        aria-label="Notion 인증 토큰"
+                        value={notionToken}
+                        onChange={(event) => {
+                          setNotionToken(event.target.value);
+                          if (notionTokenStatus !== "saving") setNotionTokenStatus("idle");
+                        }}
+                        onBlur={async () => {
+                          if (notionTokenStatus === "saving") return;
+                          const val = notionToken.trim();
+                          if (!val) return;
+                          if (!/^(secret_|ntn_)\S{10,}/.test(val)) {
+                            setNotionTokenStatus("error");
+                            return;
+                          }
+                          setNotionTokenStatus("saving");
+                          try {
+                            await onSaveNotionToken("claude", val);
+                            await onCheckNotion("claude");
+                            setNotionTokenStatus("ok");
+                            setTimeout(() => {
+                              setNotionToken("");
+                              setNotionTokenStatus("idle");
+                            }, 900);
+                          } catch {
+                            setNotionTokenStatus("error");
+                          }
+                        }}
+                        disabled={hasPendingProviderAction || notionTokenStatus === "saving"}
+                      />
+                      <span className="providers-notion-token-indicator" aria-hidden="true">
+                        {displayStatus === "saving" && <span className="providers-notion-token-spinner" />}
+                        {displayStatus === "ok" && (
+                          <svg className="providers-notion-token-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="5 12 10 17 19 7" />
+                          </svg>
+                        )}
+                        {displayStatus === "error" && <span className="providers-notion-token-bang">!</span>}
+                      </span>
+                    </div>
+                    {tokenSaved ? (
+                      <button
+                        className="providers-notion-token-clear"
+                        type="button"
+                        title="저장된 토큰 삭제"
+                        aria-label="저장된 토큰 삭제"
+                        onClick={async () => {
+                          await onDeleteNotionToken("claude");
+                          await onCheckNotion("claude");
+                        }}
+                        disabled={hasPendingProviderAction}
+                      >
+                        ×
+                      </button>
+                    ) : null}
+                    <NotionTokenInfoTooltip />
+                  </div>
+                );
+              })() : null}
+              <button
+                className={`providers-secondary-button providers-icon-button${isCheckingNotion ? " is-busy" : ""}`}
+                type="button"
+                onClick={() => onCheckNotion(provider.providerId)}
+                disabled={hasPendingProviderAction}
+                aria-label="연결 상태 확인"
+                title="연결 상태 확인"
+                aria-busy={isCheckingNotion}
+              >
+                <NotionRefreshIcon />
               </button>
-              <button className="providers-secondary-button" onClick={() => onConnectNotion(provider.providerId)} disabled={hasPendingProviderAction}>
-                {isConnectingNotion ? <ButtonBusyLabel label="설정중..." /> : "설정 열기"}
+              <button
+                className={`providers-secondary-button providers-icon-button${isConnectingNotion ? " is-busy" : ""}`}
+                type="button"
+                onClick={() => onConnectNotion(provider.providerId)}
+                disabled={hasPendingProviderAction}
+                aria-label="Notion 연결하기"
+                title="Notion 연결하기"
+                aria-busy={isConnectingNotion}
+              >
+                <NotionLinkIcon />
               </button>
-              <button className="providers-danger-button" onClick={() => onDisconnectNotion(provider.providerId)} disabled={hasPendingProviderAction}>
-                {isDisconnectingNotion ? <ButtonBusyLabel label="해제중..." /> : "연결 해제"}
+              <button
+                className={`providers-danger-button providers-icon-button${isDisconnectingNotion ? " is-busy" : ""}`}
+                type="button"
+                onClick={() => onDisconnectNotion(provider.providerId)}
+                disabled={hasPendingProviderAction}
+                aria-label="연결 해제"
+                title="연결 해제"
+                aria-busy={isDisconnectingNotion}
+              >
+                <NotionDisconnectIcon />
               </button>
             </div>
           </div>
@@ -311,6 +480,112 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
       </div>
     </main>
   );
+}
+
+function NotionRefreshIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 12a9 9 0 0 1 15.3-6.36" />
+      <path d="M21 12a9 9 0 0 1-15.3 6.36" />
+      <polyline points="18 2 18 6 14 6" />
+      <polyline points="6 22 6 18 10 18" />
+    </svg>
+  );
+}
+
+function ApiKeyShowIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function ApiKeyHideIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 3l18 18" />
+      <path d="M10.58 10.58a2 2 0 0 0 2.83 2.83" />
+      <path d="M9.88 5.09A10.94 10.94 0 0 1 12 5c6.5 0 10 7 10 7a20.79 20.79 0 0 1-3.03 3.8" />
+      <path d="M6.61 6.61C4.62 8.12 3.34 10 2 12c0 0 3.5 7 10 7 1.77 0 3.31-.52 4.62-1.3" />
+    </svg>
+  );
+}
+
+function ApiKeyClearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function NotionLinkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10.172 13.828a4 4 0 0 0 5.656 0l3-3a4 4 0 0 0-5.656-5.656l-1.5 1.5" />
+      <path d="M13.828 10.172a4 4 0 0 0-5.656 0l-3 3a4 4 0 1 0 5.656 5.656l1.5-1.5" />
+    </svg>
+  );
+}
+
+function NotionDisconnectIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="6" y1="6" x2="18" y2="18" />
+      <line x1="18" y1="6" x2="6" y2="18" />
+    </svg>
+  );
+}
+
+function NotionTokenInfoTooltip() {
+  const iconRef = useRef<HTMLSpanElement>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  function show() {
+    if (hideTimer.current) {
+      clearTimeout(hideTimer.current);
+      hideTimer.current = null;
+    }
+    if (!iconRef.current) return;
+    const rect = iconRef.current.getBoundingClientRect();
+    setPos({ top: rect.bottom + 6, left: rect.left });
+  }
+
+  function scheduleHide() {
+    hideTimer.current = setTimeout(() => setPos(null), 100);
+  }
+
+  return (
+    <span className="providers-field-info" onMouseEnter={show} onMouseLeave={scheduleHide}>
+      <span ref={iconRef} className="providers-field-info-icon" aria-hidden="true">ⓘ</span>
+      {pos !== null && (
+        <span
+          className="providers-field-info-card"
+          role="tooltip"
+          style={{ position: "fixed", top: pos.top, left: pos.left }}
+          onMouseEnter={show}
+          onMouseLeave={scheduleHide}
+        >
+          <strong>Notion Integration Token 발급</strong>
+          <span>notion.so → 설정 → 연결 → 통합 관리 → 새 통합 만들기</span>
+          <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener noreferrer">
+            통합 관리 페이지 열기 →
+          </a>
+        </span>
+      )}
+    </span>
+  );
+}
+
+function providerDisplayName(providerId: string): string {
+  if (providerId === "claude") return "Claude Code";
+  if (providerId === "gemini") return "Gemini";
+  if (providerId === "codex") return "Codex";
+  return providerId;
 }
 
 function ButtonBusyLabel({ label }: { label: string }) {

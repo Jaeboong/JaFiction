@@ -78,6 +78,47 @@ test("job posting extraction supports manual text fallback without fetch", async
   assert.match(result.qualifications || "", /Java 개발 경험/);
 });
 
+test("job posting extraction normalizes deadline with current year when year is omitted", () => {
+  const structured = extractStructuredJobPostingFields(
+    normalizeJobPostingText(`
+      지원 마감
+      04/19 23:59
+
+      주요 업무
+      운영 자동화 서비스 구현
+
+      자격 요건
+      Java 개발 경험
+    `),
+    {
+      pageTitle: "에코마케팅 | Java Backend Engineer"
+    }
+  );
+
+  const expectedYear = new Date().getFullYear();
+  assert.equal(structured.deadline, `${expectedYear}년 04월 19일, 23:59`);
+});
+
+test("job posting extraction normalizes deadline with '-' when time is omitted", () => {
+  const structured = extractStructuredJobPostingFields(
+    normalizeJobPostingText(`
+      모집 기간
+      2026년 4월 19일
+
+      담당 업무
+      운영 자동화 서비스 구현
+
+      지원 자격
+      Java 개발 경험
+    `),
+    {
+      pageTitle: "에코마케팅 | Java Backend Engineer"
+    }
+  );
+
+  assert.equal(structured.deadline, "2026년 04월 19일, -");
+});
+
 test("job posting extraction captures response diagnostics for non-ok responses", async () => {
   await assert.rejects(
     () => fetchAndExtractJobPosting(

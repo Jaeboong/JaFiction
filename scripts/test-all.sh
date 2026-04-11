@@ -7,12 +7,12 @@ echo "[jafiction] Running shared tests..."
 (
   cd "${ROOT_DIR}/packages/shared"
   "${ROOT_DIR}/scripts/with-node.sh" "${ROOT_DIR}/node_modules/typescript/lib/tsc.js" -p tsconfig.json
-  "${ROOT_DIR}/scripts/with-node.sh" --test dist/test/*.test.js
+  "${ROOT_DIR}/scripts/with-node.sh" --test --test-force-exit dist/test/*.test.js
 )
 
 echo "[jafiction] Running runner tests..."
 (
   cd "${ROOT_DIR}/packages/runner"
   "${ROOT_DIR}/scripts/with-node.sh" "${ROOT_DIR}/node_modules/typescript/lib/tsc.js" -p tsconfig.json
-  "${ROOT_DIR}/scripts/with-node.sh" --test dist/test/*.test.js
+  "${ROOT_DIR}/scripts/with-node.sh" --test --test-force-exit dist/test/*.test.js
 )

@@ -124,6 +124,7 @@ button:focus-visible {
 }
 
 .app-tabs {
+  position: relative;
   display: flex;
   block-size: 55.2px;
   align-items: center;
@@ -158,14 +159,14 @@ button:focus-visible {
   font-weight: 500;
 }
 
-.app-tab.is-active::after {
+.app-tab-indicator {
   position: absolute;
-  right: 0;
-  bottom: -1px;
+  bottom: 0;
   left: 0;
   height: 2px;
   background: #111827;
-  content: "";
+  pointer-events: none;
+  transition: transform 0.22s ease, width 0.22s ease;
 }
 
 .app-header-actions {

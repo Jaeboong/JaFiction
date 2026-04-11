@@ -8,7 +8,7 @@ import type {
   SidebarState
 } from "@jafiction/shared";
 import { Renderer, marked, type Tokens } from "marked";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   buildParticipantSelectionFromDefaults,
   buildRoleAssignmentsFromDefaults,
@@ -16,6 +16,7 @@ import {
   essayRoleLabels,
   materializeAgentDefaults
 } from "../agentDefaults";
+import { CustomSelect } from "../components/CustomSelect";
 import { ReviewerCard, parseReviewerCardContent } from "../components/ReviewerCard";
 import {
   formatRelative,
@@ -37,6 +38,7 @@ interface RunsPageProps {
   onSubmitIntervention(runId: string, message: string): Promise<void>;
   onAbortRun(runId: string): Promise<boolean>;
   onCompleteRun(projectSlug: string, runId: string): Promise<void>;
+  onResumeRun(projectSlug: string, runId: string): Promise<void>;
   onSaveDraft(projectSlug: string, questionIndex: number, draft: string): Promise<void>;
   onCreateRunSocket(runId: string): WebSocket;
   onGetRunMessages(projectSlug: string, runId: string): Promise<{ messages: RunChatMessage[]; ledgers: RunLedgerEntry[] }>;
@@ -82,6 +84,7 @@ export function RunsPage({
   onSubmitIntervention,
   onAbortRun,
   onCompleteRun,
+  onResumeRun,
   onSaveDraft,
   onCreateRunSocket,
   onGetRunMessages,
@@ -393,6 +396,7 @@ export function RunsPage({
               }}
               onAbortRun={onAbortRun}
               onCompleteRun={onCompleteRun}
+              onResumeRun={onResumeRun}
               onSubmitIntervention={onSubmitIntervention}
               onCreateRunSocket={onCreateRunSocket}
               onGetRunMessages={onGetRunMessages}
@@ -464,20 +468,28 @@ function RunComposerPanel({
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(-1);
   const [draftCache, setDraftCache] = useState<Record<number, string>>({});
   const [maxRoundsPerSection, setMaxRoundsPerSection] = useState("1");
-  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
-  const [isQuestionDropdownOpen, setIsQuestionDropdownOpen] = useState(false);
-  const [isRoundsDropdownOpen, setIsRoundsDropdownOpen] = useState(false);
   const [isStartingRun, setIsStartingRun] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const draftTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const projectDropdownRef = useRef<HTMLDivElement>(null);
-  const questionDropdownRef = useRef<HTMLDivElement>(null);
-  const roundsDropdownRef = useRef<HTMLDivElement>(null);
   const runStateRef = useRef(state.runState);
 
   useEffect(() => {
     runStateRef.current = state.runState;
   }, [state.runState]);
+
+  const adjustDraftTextareaHeight = () => {
+    const textarea = draftTextareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
+
+  useLayoutEffect(() => {
+    adjustDraftTextareaHeight();
+  }, [draft]);
 
   useEffect(() => {
     if (!onRegisterInsertDraft) {
@@ -498,39 +510,6 @@ function RunComposerPanel({
   useEffect(() => {
     setDraftCache({});
   }, [selectedProject.record.slug]);
-
-  useEffect(() => {
-    if (!isProjectDropdownOpen) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
-        setIsProjectDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isProjectDropdownOpen]);
-
-  useEffect(() => {
-    if (!isQuestionDropdownOpen) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (questionDropdownRef.current && !questionDropdownRef.current.contains(event.target as Node)) {
-        setIsQuestionDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isQuestionDropdownOpen]);
-
-  useEffect(() => {
-    if (!isRoundsDropdownOpen) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (roundsDropdownRef.current && !roundsDropdownRef.current.contains(event.target as Node)) {
-        setIsRoundsDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isRoundsDropdownOpen]);
 
   useEffect(() => {
     const initialQuestionIndex = resolveInitialSelectedQuestionIndex(
@@ -605,7 +584,6 @@ function RunComposerPanel({
 
   const handleQuestionSelection = (questionIndex: number) => {
     if (questionIndex === selectedQuestionIndex) {
-      setIsQuestionDropdownOpen(false);
       return;
     }
 
@@ -619,7 +597,6 @@ function RunComposerPanel({
     setSelectedQuestionIndex(questionIndex);
     setQuestion(essayQuestions[questionIndex] ?? "");
     setDraft(loadDraftForQuestion(questionIndex));
-    setIsQuestionDropdownOpen(false);
   };
 
   const startPayload = {
@@ -706,106 +683,34 @@ function RunComposerPanel({
       <div className="runs-composer-body">
         <div className="runs-field">
           <label className="runs-field-label" id="runs-project-select-label">대상 지원서</label>
-          <div
-            className={`runs-custom-select${isProjectDropdownOpen ? " is-open" : ""}`}
-            ref={projectDropdownRef}
-          >
-            <button
-              id="runs-project-select"
-              type="button"
-              className="runs-custom-select-trigger"
-              aria-haspopup="listbox"
-              aria-expanded={isProjectDropdownOpen}
-              aria-labelledby="runs-project-select-label"
-              onClick={() => setIsProjectDropdownOpen((prev) => !prev)}
-            >
-              <span className="runs-custom-select-value">
-                {selectedProject.record.companyName}{selectedProject.record.roleName ? ` - ${selectedProject.record.roleName}` : ""}
-              </span>
-              <span className="runs-custom-select-arrow" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </span>
-            </button>
-            {isProjectDropdownOpen && (
-              <ul
-                className="runs-custom-select-dropdown"
-                role="listbox"
-                aria-labelledby="runs-project-select-label"
-              >
-                {projects.map((project) => (
-                  <li
-                    key={project.record.slug}
-                    role="option"
-                    aria-selected={project.record.slug === selectedProject.record.slug}
-                    className={`runs-custom-select-option${project.record.slug === selectedProject.record.slug ? " is-selected" : ""}`}
-                    onClick={() => {
-                      onClearRunSelection();
-                      onSelectProject(project.record.slug);
-                      setIsProjectDropdownOpen(false);
-                    }}
-                  >
-                    {project.record.companyName}{project.record.roleName ? ` - ${project.record.roleName}` : ""}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <CustomSelect
+            value={selectedProject.record.slug}
+            options={projects.map((project) => ({
+              value: project.record.slug,
+              label: `${project.record.companyName}${project.record.roleName ? ` - ${project.record.roleName}` : ""}`,
+            }))}
+            onChange={(slug) => {
+              onClearRunSelection();
+              onSelectProject(slug);
+            }}
+            ariaLabel="대상 지원서"
+          />
         </div>
 
         <div className="runs-field">
           <label className="runs-field-label" id="runs-question-select-label">문항 선택</label>
-          <div
-            className={`runs-custom-select${isQuestionDropdownOpen ? " is-open" : ""}`}
-            ref={questionDropdownRef}
-          >
-            <button
-              id="runs-question-select"
-              type="button"
-              className="runs-custom-select-trigger"
-              aria-haspopup="listbox"
-              aria-expanded={isQuestionDropdownOpen}
-              aria-labelledby="runs-question-select-label"
-              disabled={!essayQuestions.length}
-              onClick={() => {
-                if (!essayQuestions.length) {
-                  return;
-                }
-                setIsQuestionDropdownOpen((previous) => !previous);
-              }}
-            >
-              <span className="runs-custom-select-value">{questionDropdownLabel}</span>
-              <span className="runs-custom-select-arrow" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </span>
-            </button>
-            {isQuestionDropdownOpen && essayQuestions.length ? (
-              <ul
-                className="runs-custom-select-dropdown"
-                role="listbox"
-                aria-labelledby="runs-question-select-label"
-              >
-                {essayQuestions.map((essayQuestion, index) => (
-                  <li
-                    key={`${selectedProject.record.slug}-question-${index}`}
-                    role="option"
-                    aria-selected={index === selectedQuestionIndex}
-                    className={`runs-custom-select-option${index === selectedQuestionIndex ? " is-selected" : ""}`}
-                    onClick={() => {
-                      handleQuestionSelection(index);
-                    }}
-                  >
-                    <span className="runs-custom-select-value" title={essayQuestion}>
-                      {buildEssayQuestionOptionLabel(index, essayQuestion)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
+          <CustomSelect
+            value={selectedQuestionIndex}
+            options={essayQuestions.map((essayQuestion, index) => ({
+              value: index,
+              label: buildEssayQuestionOptionLabel(index, essayQuestion),
+              title: essayQuestion,
+            }))}
+            onChange={handleQuestionSelection}
+            placeholder={essayQuestions.length ? "문항을 찾을 수 없습니다." : "문항이 없습니다."}
+            disabled={!essayQuestions.length}
+            ariaLabel="문항 선택"
+          />
         </div>
 
         <div className="runs-field">
@@ -864,52 +769,13 @@ function RunComposerPanel({
             <label className="runs-field-label">역할 할당 (Role Assignment)</label>
             <div className="runs-field-label runs-rounds-label">
               최대
-              <div
-                className={`runs-custom-select runs-rounds-custom-select${isRoundsDropdownOpen ? " is-open" : ""}`}
-                ref={roundsDropdownRef}
-              >
-                <button
-                  id="runs-max-rounds-input"
-                  type="button"
-                  className="runs-custom-select-trigger"
-                  aria-haspopup="listbox"
-                  aria-expanded={isRoundsDropdownOpen}
-                  aria-label="최대 라운드 수"
-                  onClick={() => setIsRoundsDropdownOpen((prev) => !prev)}
-                >
-                  <span className="runs-custom-select-value">{maxRoundsPerSection}</span>
-                  <span className="runs-custom-select-arrow" aria-hidden="true">
-                    <svg viewBox="0 0 24 24">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </span>
-                </button>
-                {isRoundsDropdownOpen && (
-                  <ul
-                    className="runs-custom-select-dropdown"
-                    role="listbox"
-                    aria-label="최대 라운드 수"
-                  >
-                    {[1, 2, 3, 4, 5].map((n) => {
-                      const value = String(n);
-                      return (
-                        <li
-                          key={value}
-                          role="option"
-                          aria-selected={value === maxRoundsPerSection}
-                          className={`runs-custom-select-option${value === maxRoundsPerSection ? " is-selected" : ""}`}
-                          onClick={() => {
-                            setMaxRoundsPerSection(value);
-                            setIsRoundsDropdownOpen(false);
-                          }}
-                        >
-                          {value}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
+              <CustomSelect
+                value={maxRoundsPerSection}
+                options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
+                onChange={setMaxRoundsPerSection}
+                className="runs-rounds-custom-select"
+                ariaLabel="최대 라운드 수"
+              />
               라운드
             </div>
           </div>
@@ -1017,6 +883,7 @@ function RunControlPanel({
   onStartRun,
   onAbortRun,
   onCompleteRun,
+  onResumeRun,
   onSubmitIntervention,
   onCreateRunSocket,
   onGetRunMessages,
@@ -1038,20 +905,67 @@ function RunControlPanel({
   onStartRun(): void;
   onAbortRun(runId: string): Promise<boolean>;
   onCompleteRun(projectSlug: string, runId: string): Promise<void>;
+  onResumeRun(projectSlug: string, runId: string): Promise<void>;
   onSubmitIntervention(runId: string, message: string): Promise<void>;
   onCreateRunSocket(runId: string): WebSocket;
   onGetRunMessages(projectSlug: string, runId: string): Promise<{ messages: RunChatMessage[]; ledgers: RunLedgerEntry[] }>;
   onInsertFinalDraft?(text: string): void;
 }) {
   const [message, setMessage] = useState("");
+  const interventionInputRef = useRef<HTMLTextAreaElement>(null);
   const isCurrentRunLive = currentRunId !== undefined && currentRunId === liveRunId;
-  const canIntervene = isCurrentRunLive && (runState.status === "running" || runState.status === "paused");
+  const hasActiveRunSession = runState.status !== "idle" && runState.status !== "aborting" && Boolean(liveRunId);
+  const canIntervene = Boolean(currentRunId) && isCurrentRunLive && hasActiveRunSession;
+  const canSubmitIntervention = canIntervene && (runState.status === "paused" || Boolean(message.trim()));
   const shouldShowHeaderGuide = !hasRunHistory && selectedRunItem === undefined && runState.status === "idle";
   const projectSlug = selectedRunItem?.project.record.slug;
   const runQuestion = selectedRunItem?.run.record.question;
-  const shouldShowStartAction = isNewRunMode || !selectedProjectHasLiveRun;
+  const shouldShowStartAction = isNewRunMode;
   const shouldShowAbortAction = !isNewRunMode && selectedProjectHasLiveRun && runState.status === "running";
-  const shouldShowCompleteAction = !isNewRunMode && selectedProjectHasLiveRun && runState.status === "paused";
+  const isCurrentRunPinned = Boolean(
+    selectedRunItem && isQuestionFixedForRun(selectedRunItem.project, selectedRunItem.run.record.id)
+  );
+  const shouldShowCompleteAction = !isNewRunMode
+    && selectedProjectHasLiveRun
+    && runState.status === "paused"
+    && currentRunVisualState === "round-complete"
+    && !isCurrentRunPinned;
+  const shouldShowResumeAction = !isNewRunMode && isCurrentRunPinned && Boolean(selectedRunItem);
+
+  const resizeInterventionInput = () => {
+    const input = interventionInputRef.current;
+    if (!input) {
+      return;
+    }
+    input.style.height = "auto";
+    input.style.height = `${input.scrollHeight}px`;
+  };
+
+  const submitIntervention = () => {
+    if (!currentRunId || !canSubmitIntervention) {
+      return;
+    }
+    void onSubmitIntervention(currentRunId, message);
+    setMessage("");
+  };
+
+  const handleInterventionKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+    if (event.nativeEvent.isComposing || event.keyCode === 229) {
+      return;
+    }
+    if (event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
+    event.preventDefault();
+    submitIntervention();
+  };
+
+  useEffect(() => {
+    resizeInterventionInput();
+  }, [message]);
 
   return (
     <section className="runs-control-card">
@@ -1073,6 +987,51 @@ function RunControlPanel({
               <span className="runs-live-dot" />
               <span className="runs-live-label">{currentRunVisualLabel}</span>
             </div>
+          ) : null}
+          {shouldShowResumeAction ? (
+            <button
+              type="button"
+              className="runs-header-action-btn is-neutral"
+              disabled={!selectedRunItem || !canStartThisProject}
+              onClick={() => {
+                if (!selectedRunItem) {
+                  return;
+                }
+                void onResumeRun(selectedRunItem.project.record.slug, selectedRunItem.run.record.id);
+              }}
+              aria-label="재개"
+              title="재개"
+            >
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                <path d="M7 7h6" />
+                <path d="M7 7v6" />
+                <path d="M7 7l10 10" />
+                <polygon points="11 10 18 14 11 18 11 10" />
+              </svg>
+            </button>
+          ) : null}
+          {shouldShowCompleteAction ? (
+            <button
+              type="button"
+              className="runs-header-action-btn is-success"
+              disabled={!liveRunItem || !liveRunCanComplete}
+              onClick={() => {
+                if (!liveRunItem) {
+                  return;
+                }
+                void onCompleteRun(selectedProjectSlug, liveRunItem.run.record.id);
+              }}
+              aria-label="문항 고정"
+              title="문항 고정"
+            >
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                <path d="M12 17v5" />
+                <path d="M6 9V4l6-2 6 2v5" />
+                <path d="M6 9l6 4 6-4" />
+                <path d="M8 13v4" />
+                <path d="M16 13v4" />
+              </svg>
+            </button>
           ) : null}
           {shouldShowStartAction ? (
             <button
@@ -1107,25 +1066,6 @@ function RunControlPanel({
               </svg>
             </button>
           ) : null}
-          {shouldShowCompleteAction ? (
-            <button
-              type="button"
-              className="runs-header-action-btn is-success"
-              disabled={!liveRunItem || !liveRunCanComplete}
-              onClick={() => {
-                if (!liveRunItem) {
-                  return;
-                }
-                void onCompleteRun(selectedProjectSlug, liveRunItem.run.record.id);
-              }}
-              aria-label="완료"
-              title="완료"
-            >
-              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                <polyline points="20 6 10 16 5 11" />
-              </svg>
-            </button>
-          ) : null}
         </div>
       </div>
 
@@ -1140,23 +1080,19 @@ function RunControlPanel({
       />
 
       <div className="runs-intervention-bar">
-        <input
-          type="text"
+        <textarea
+          ref={interventionInputRef}
+          rows={1}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
+          onKeyDown={handleInterventionKeyDown}
           disabled={!canIntervene}
-          placeholder="실행 중인 세션에 개입 메시지를 보냅니다 (예: '조금 더 구체적인 사례를 강조해줘')"
+          placeholder="실행 중인 세션에 개입 메시지를 보냅니다 (Enter 전송, Shift+Enter/Alt+Enter 줄바꿈)"
         />
         <button
           className="runs-send-button"
-          disabled={!canIntervene || !message.trim()}
-          onClick={() => {
-            if (!currentRunId) {
-              return;
-            }
-            void onSubmitIntervention(currentRunId, message);
-            setMessage("");
-          }}
+          disabled={!canSubmitIntervention}
+          onClick={submitIntervention}
           aria-label="메시지 전송"
           title="메시지 전송"
         >
@@ -1768,6 +1704,7 @@ function RunFeedMessage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const hasFinalDraftMarker = message.content.includes("## Final Draft");
   const hasVisibleContent = displayed.trim().length > 0;
   const html = hasVisibleContent ? renderMarkdown(displayed) : "";
   const reviewerCard = message.status === "completed" && isReviewerCardRole
@@ -1795,7 +1732,7 @@ function RunFeedMessage({
       ) : isFinalizer ? (
         <FinalDraftCard
           color={color}
-          question={runQuestion}
+          question={hasFinalDraftMarker ? runQuestion : undefined}
           body={displayed}
           isStreaming={isStreaming}
           onInsert={onInsertFinalDraft}

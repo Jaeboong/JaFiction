@@ -139,6 +139,14 @@ export class RunRepository {
     await writeJsonFile(path.join(this.paths.runDir(projectSlug, runId), "review-turns.json"), turns);
   }
 
+  async loadReviewTurns(projectSlug: string, runId: string): Promise<ReviewTurn[] | undefined> {
+    const raw = await this.readOptionalRunArtifact(projectSlug, runId, "review-turns.json");
+    if (!raw) {
+      return undefined;
+    }
+    return ReviewTurnSchema.array().parse(JSON.parse(raw));
+  }
+
   async saveRunChatMessages(projectSlug: string, runId: string, messages: RunChatMessage[]): Promise<void> {
     RunChatMessageSchema.array().parse(messages);
     await writeJsonFile(path.join(this.paths.runDir(projectSlug, runId), "chat-messages.json"), messages);

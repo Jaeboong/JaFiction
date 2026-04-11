@@ -14,6 +14,7 @@ export * from "./core/notionMcp";
 export * from "./core/openDart";
 export * from "./core/orchestrator";
 export { parseReviewerCardContent, type ReviewerCardContent } from "./core/reviewerCard";
+export * from "./core/nodeRuntimeResolver";
 export * from "./core/providerCommandResolver";
 export * from "./core/providerOptions";
 export * from "./core/providerStreaming";
