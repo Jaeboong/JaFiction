@@ -649,6 +649,96 @@ export type DeleteRunPayload = z.infer<typeof DeleteRunPayloadSchema>;
 export type DeleteRunResult = z.infer<typeof DeleteRunResultSchema>;
 
 // ---------------------------------------------------------------------------
+// Stage 11.8 — profile document hosted parity
+//
+// Mirrors the deleted packages/runner/src/routes/profileRouter.ts. The runner
+// previously exposed five REST endpoints for profile documents; we restore
+// each as a typed RPC op so hosted web can create/upload/edit/pin/preview.
+// ---------------------------------------------------------------------------
+
+// profile_list_documents
+export const ProfileListDocumentsPayloadSchema = z.object({}).strict();
+export const ProfileListDocumentsResultSchema = z.object({
+  documents: z.array(ContextDocumentSchema)
+}).strict();
+export type ProfileListDocumentsPayload = z.infer<typeof ProfileListDocumentsPayloadSchema>;
+export type ProfileListDocumentsResult = z.infer<typeof ProfileListDocumentsResultSchema>;
+
+// profile_save_text_document
+export const ProfileSaveTextDocumentPayloadSchema = z.object({
+  title: z.string().trim().min(1),
+  content: z.string(),
+  note: z.string().optional(),
+  pinnedByDefault: z.boolean().optional()
+}).strict();
+export const ProfileSaveTextDocumentResultSchema = z.object({
+  document: ContextDocumentSchema
+}).strict();
+export type ProfileSaveTextDocumentPayload = z.infer<typeof ProfileSaveTextDocumentPayloadSchema>;
+export type ProfileSaveTextDocumentResult = z.infer<typeof ProfileSaveTextDocumentResultSchema>;
+
+// profile_upload_document_chunk — mirrors upload_document_chunk but scoped to
+// the profile manifest instead of a project slug. Reuses the same 1MB chunk
+// size + 100MB total cap constants defined above.
+export const ProfileUploadDocumentChunkPayloadSchema = z.object({
+  uploadId: z.string().min(1),
+  fileName: z.string().min(1),
+  chunkIndex: z.number().int().min(0),
+  totalChunks: z.number().int().min(1),
+  totalBytes: z.number().int().min(0),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  chunkBase64: z.string(),
+  pinnedByDefault: z.boolean().optional(),
+  note: z.string().optional()
+}).strict();
+export const ProfileUploadDocumentChunkResultSchema = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("accepted"),
+    uploadId: z.string(),
+    nextChunkIndex: z.number().int().min(0)
+  }).strict(),
+  z.object({
+    status: z.literal("completed"),
+    uploadId: z.string(),
+    document: ContextDocumentSchema
+  }).strict()
+]);
+export type ProfileUploadDocumentChunkPayload = z.infer<typeof ProfileUploadDocumentChunkPayloadSchema>;
+export type ProfileUploadDocumentChunkResult = z.infer<typeof ProfileUploadDocumentChunkResultSchema>;
+
+// profile_set_document_pinned
+export const ProfileSetDocumentPinnedPayloadSchema = z.object({
+  documentId: z.string().min(1),
+  pinned: z.boolean()
+}).strict();
+export const ProfileSetDocumentPinnedResultSchema = z.object({
+  document: ContextDocumentSchema
+}).strict();
+export type ProfileSetDocumentPinnedPayload = z.infer<typeof ProfileSetDocumentPinnedPayloadSchema>;
+export type ProfileSetDocumentPinnedResult = z.infer<typeof ProfileSetDocumentPinnedResultSchema>;
+
+// profile_get_document_preview — mirrors GET /documents/:id/preview response
+// from the deleted profileRouter. The runner storage layer returns a richer
+// shape than the original REST route (normalized vs raw source marker); we
+// surface all of it since the schema is additive.
+export const ProfileGetDocumentPreviewPayloadSchema = z.object({
+  documentId: z.string().min(1)
+}).strict();
+export const ProfileGetDocumentPreviewResultSchema = z.object({
+  documentId: z.string(),
+  title: z.string(),
+  note: z.string(),
+  sourceType: z.string(),
+  extractionStatus: z.string(),
+  rawPath: z.string(),
+  normalizedPath: z.string(),
+  previewSource: z.enum(["normalized", "raw", "none"]),
+  content: z.string()
+}).strict();
+export type ProfileGetDocumentPreviewPayload = z.infer<typeof ProfileGetDocumentPreviewPayloadSchema>;
+export type ProfileGetDocumentPreviewResult = z.infer<typeof ProfileGetDocumentPreviewResultSchema>;
+
+// ---------------------------------------------------------------------------
 // Exhaustive op name list
 // ---------------------------------------------------------------------------
 export const OP_NAMES = [
@@ -689,7 +779,12 @@ export const OP_NAMES = [
   "notion_check",
   "opendart_delete_key",
   "save_agent_defaults",
-  "delete_run"
+  "delete_run",
+  "profile_list_documents",
+  "profile_save_text_document",
+  "profile_upload_document_chunk",
+  "profile_set_document_pinned",
+  "profile_get_document_preview"
 ] as const satisfies readonly [string, ...string[]];
 
 // Hard cap for chunked upload assembly (server-enforced in handler).
@@ -745,7 +840,12 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("notion_check"), payload: NotionCheckPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("opendart_delete_key"), payload: OpendartDeleteKeyPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("save_agent_defaults"), payload: SaveAgentDefaultsPayloadSchema }).strict(),
-  RpcRequestBaseSchema.extend({ op: z.literal("delete_run"), payload: DeleteRunPayloadSchema }).strict()
+  RpcRequestBaseSchema.extend({ op: z.literal("delete_run"), payload: DeleteRunPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("profile_list_documents"), payload: ProfileListDocumentsPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("profile_save_text_document"), payload: ProfileSaveTextDocumentPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("profile_upload_document_chunk"), payload: ProfileUploadDocumentChunkPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("profile_set_document_pinned"), payload: ProfileSetDocumentPinnedPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("profile_get_document_preview"), payload: ProfileGetDocumentPreviewPayloadSchema }).strict()
 ]);
 
 export type RpcRequest = z.infer<typeof RpcRequestSchema>;

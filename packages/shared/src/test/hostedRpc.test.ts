@@ -813,6 +813,118 @@ test("submit_intervention: result outcome union, runId required, nextRunId optio
 });
 
 // ---------------------------------------------------------------------------
+// Stage 11.8 — profile document hosted parity
+// ---------------------------------------------------------------------------
+
+const MINIMAL_PROFILE_DOCUMENT = {
+  id: "doc-1",
+  scope: "profile",
+  title: "이력서",
+  sourceType: "text",
+  rawPath: ".jasojeon/profile/raw/doc-1.md",
+  pinnedByDefault: false,
+  extractionStatus: "normalized",
+  createdAt: "2026-04-11T00:00:00.000Z"
+};
+
+test("profile_list_documents: empty payload accepted; extra field rejected", () => {
+  const { ProfileListDocumentsPayloadSchema, ProfileListDocumentsResultSchema } = require("../core/hostedRpc");
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-pl", op: "profile_list_documents", payload: {}
+  });
+  assert.equal(ok.success, true);
+  const extra = ProfileListDocumentsPayloadSchema.safeParse({ extra: true });
+  assert.equal(extra.success, false);
+  const result = ProfileListDocumentsResultSchema.parse({ documents: [MINIMAL_PROFILE_DOCUMENT] });
+  assert.equal(result.documents.length, 1);
+  assert.equal(result.documents[0].title, "이력서");
+});
+
+test("profile_save_text_document: requires non-empty title", () => {
+  const { ProfileSaveTextDocumentPayloadSchema, ProfileSaveTextDocumentResultSchema } = require("../core/hostedRpc");
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-ps", op: "profile_save_text_document",
+    payload: { title: "경력기술서", content: "내용" }
+  });
+  assert.equal(ok.success, true);
+  const empty = ProfileSaveTextDocumentPayloadSchema.safeParse({ title: "   ", content: "x" });
+  assert.equal(empty.success, false);
+  const result = ProfileSaveTextDocumentResultSchema.parse({ document: MINIMAL_PROFILE_DOCUMENT });
+  assert.equal(result.document.id, "doc-1");
+});
+
+test("profile_upload_document_chunk: full envelope + discriminated result", () => {
+  const { ProfileUploadDocumentChunkPayloadSchema, ProfileUploadDocumentChunkResultSchema } = require("../core/hostedRpc");
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-puc", op: "profile_upload_document_chunk",
+    payload: {
+      uploadId: "upl-p1",
+      fileName: "resume.pdf",
+      chunkIndex: 0,
+      totalChunks: 2,
+      totalBytes: 2000,
+      sha256: "a".repeat(64),
+      chunkBase64: "AAAA"
+    }
+  });
+  assert.equal(ok.success, true);
+  const badHash = ProfileUploadDocumentChunkPayloadSchema.safeParse({
+    uploadId: "upl-p1", fileName: "f", chunkIndex: 0, totalChunks: 1, totalBytes: 1,
+    sha256: "not-hex", chunkBase64: "A"
+  });
+  assert.equal(badHash.success, false);
+  const accepted = ProfileUploadDocumentChunkResultSchema.parse({
+    status: "accepted", uploadId: "upl-p1", nextChunkIndex: 1
+  });
+  assert.equal(accepted.status, "accepted");
+  const completed = ProfileUploadDocumentChunkResultSchema.parse({
+    status: "completed", uploadId: "upl-p1", document: MINIMAL_PROFILE_DOCUMENT
+  });
+  assert.equal(completed.status, "completed");
+});
+
+test("profile_set_document_pinned: requires documentId + pinned", () => {
+  const { ProfileSetDocumentPinnedPayloadSchema, ProfileSetDocumentPinnedResultSchema } = require("../core/hostedRpc");
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-psp", op: "profile_set_document_pinned",
+    payload: { documentId: "doc-1", pinned: true }
+  });
+  assert.equal(ok.success, true);
+  const missing = ProfileSetDocumentPinnedPayloadSchema.safeParse({ documentId: "doc-1" });
+  assert.equal(missing.success, false);
+  const result = ProfileSetDocumentPinnedResultSchema.parse({ document: MINIMAL_PROFILE_DOCUMENT });
+  assert.equal(result.document.id, "doc-1");
+});
+
+test("profile_get_document_preview: requires documentId, preview result shape", () => {
+  const { ProfileGetDocumentPreviewPayloadSchema, ProfileGetDocumentPreviewResultSchema } = require("../core/hostedRpc");
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-pgp", op: "profile_get_document_preview",
+    payload: { documentId: "doc-1" }
+  });
+  assert.equal(ok.success, true);
+  const missing = ProfileGetDocumentPreviewPayloadSchema.safeParse({});
+  assert.equal(missing.success, false);
+  const result = ProfileGetDocumentPreviewResultSchema.parse({
+    documentId: "doc-1",
+    title: "이력서",
+    note: "",
+    sourceType: "text",
+    extractionStatus: "normalized",
+    rawPath: ".jasojeon/profile/raw/doc-1.md",
+    normalizedPath: "",
+    previewSource: "normalized",
+    content: "hello"
+  });
+  assert.equal(result.previewSource, "normalized");
+  const badPreviewSource = ProfileGetDocumentPreviewResultSchema.safeParse({
+    documentId: "doc-1", title: "t", note: "", sourceType: "text", extractionStatus: "normalized",
+    rawPath: "x", normalizedPath: "", previewSource: "bogus", content: ""
+  });
+  assert.equal(badPreviewSource.success, false);
+});
+
+// ---------------------------------------------------------------------------
 // Event envelope round-trips
 // ---------------------------------------------------------------------------
 
@@ -951,12 +1063,17 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "opendart_delete_key": return acc + 1;
       case "save_agent_defaults": return acc + 1;
       case "delete_run": return acc + 1;
+      case "profile_list_documents": return acc + 1;
+      case "profile_save_text_document": return acc + 1;
+      case "profile_upload_document_chunk": return acc + 1;
+      case "profile_set_document_pinned": return acc + 1;
+      case "profile_get_document_preview": return acc + 1;
       default: return assertNever(op);
     }
   }, 0);
 
-  assert.equal(count, 38);
-  assert.equal(OP_NAMES.length, 38);
+  assert.equal(count, 43);
+  assert.equal(OP_NAMES.length, 43);
 });
 
 test("EVENT_NAMES exhaustiveness via switch", () => {
