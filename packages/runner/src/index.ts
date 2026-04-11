@@ -17,6 +17,8 @@ import { createSessionAuth } from "./security/sessionAuth";
 import { loadDeviceToken, saveDeviceToken } from "./hosted/deviceTokenStore";
 import { startHostedOutboundClient } from "./hosted/outboundClient";
 import { claimPairingCode } from "./hosted/pairingClient";
+import { createRpcDispatcher } from "./hosted/rpcDispatcher";
+import { startEventForwarding } from "./hosted/eventForwarder";
 
 export async function createRunnerServer(ctx: RunnerContext): Promise<{
   app: express.Express;
@@ -275,25 +277,31 @@ async function mainHosted(): Promise<void> {
     process.exit(1);
   }
 
+  const logger = {
+    info: (msg: string, meta?: Record<string, unknown>) => console.log(msg, meta ?? ""),
+    warn: (msg: string, meta?: Record<string, unknown>) => console.warn(msg, meta ?? ""),
+    error: (msg: string, meta?: Record<string, unknown>) => console.error(msg, meta ?? "")
+  };
+
   const ctx = await createRunnerContext();
+
+  const dispatcher = createRpcDispatcher({ runnerContext: ctx, logger });
 
   const client = startHostedOutboundClient({
     backendUrl,
     deviceToken,
     runnerContext: ctx,
-    // onRpc is intentionally undefined here — Phase 3 will wire a real dispatcher.
-    onRpc: undefined,
-    logger: {
-      info: (msg, meta) => console.log(msg, meta ?? ""),
-      warn: (msg, meta) => console.warn(msg, meta ?? ""),
-      error: (msg, meta) => console.error(msg, meta ?? "")
-    }
+    onRpc: dispatcher,
+    logger
   });
+
+  const disposeForwarding = startEventForwarding(client, ctx);
 
   console.log(`[runner] hosted mode — connecting to ${backendUrl}`);
 
   process.on("SIGINT", () => {
     console.log("[runner] SIGINT received — shutting down");
+    disposeForwarding();
     void client.close().then(() => process.exit(0));
   });
 }

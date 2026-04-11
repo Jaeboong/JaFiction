@@ -193,6 +193,146 @@ export function makeInMemorySessionStore(
 }
 
 // ---------------------------------------------------------------------------
+// FakeRedis pub/sub extension
+// ---------------------------------------------------------------------------
+
+/**
+ * FakePubSubRedis combines the base FakeRedis KV operations with
+ * in-memory pub/sub for testing. It intentionally does NOT extend the
+ * ioredis `Redis` type to avoid type conflicts with ioredis's complex
+ * `subscribe` overload signatures.
+ *
+ * Cast to `Redis` where the full ioredis type is required (e.g. healthz check).
+ */
+export interface FakePubSubRedis {
+  // KV operations from base FakeRedis
+  ping(): Promise<string>;
+  connect(): Promise<void>;
+  quit(): Promise<string>;
+  disconnect(): void;
+  set(...args: unknown[]): Promise<"OK">;
+  get(key: unknown): Promise<string | null>;
+  del(...keys: unknown[]): Promise<number>;
+  incr(key: unknown): Promise<number>;
+  expire(key: unknown, seconds: unknown): Promise<number>;
+  advanceTime(ms: number): void;
+  // Pub/sub
+  publish(channel: string, message: string): Promise<number>;
+  subscribe(channel: string, handler: (message: string) => void): Promise<void>;
+  unsubscribe(channel: string, handler: (message: string) => void): Promise<void>;
+}
+
+export function makeFakePubSubRedis(opts: { failPing?: boolean } = {}): FakePubSubRedis {
+  const base = makeFakeRedis(opts);
+  const channelHandlers = new Map<string, Set<(message: string) => void>>();
+
+  return {
+    ping: () => base.ping!() as Promise<string>,
+    connect: () => base.connect!() as unknown as Promise<void>,
+    quit: () => base.quit!() as unknown as Promise<string>,
+    disconnect: () => base.disconnect!(),
+    set: (...args: unknown[]) => (base as unknown as { set(...a: unknown[]): Promise<"OK"> }).set(...args),
+    get: (key: unknown) => (base as unknown as { get(k: unknown): Promise<string | null> }).get(key),
+    del: (...keys: unknown[]) => (base as unknown as { del(...k: unknown[]): Promise<number> }).del(...keys),
+    incr: (key: unknown) => (base as unknown as { incr(k: unknown): Promise<number> }).incr(key),
+    expire: (key: unknown, seconds: unknown) => (base as unknown as { expire(k: unknown, s: unknown): Promise<number> }).expire(key, seconds),
+    advanceTime: (ms: number) => base.advanceTime(ms),
+
+    async publish(channel: string, message: string): Promise<number> {
+      const handlers = channelHandlers.get(channel);
+      if (!handlers || handlers.size === 0) return 0;
+      let count = 0;
+      for (const handler of handlers) {
+        handler(message);
+        count++;
+      }
+      return count;
+    },
+
+    async subscribe(channel: string, handler: (message: string) => void): Promise<void> {
+      const existing = channelHandlers.get(channel) ?? new Set();
+      existing.add(handler);
+      channelHandlers.set(channel, existing);
+    },
+
+    async unsubscribe(channel: string, handler: (message: string) => void): Promise<void> {
+      const handlers = channelHandlers.get(channel);
+      if (handlers) {
+        handlers.delete(handler);
+        if (handlers.size === 0) channelHandlers.delete(channel);
+      }
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// FakeWebSocket pair — in-memory WS-like duplex for deviceHub tests
+// ---------------------------------------------------------------------------
+import { EventEmitter } from "node:events";
+
+export interface FakeWebSocket extends EventEmitter {
+  readonly readyState: number;
+  send(data: string): void;
+  close(): void;
+  /** Internal: inject a message frame as if received from the remote side. */
+  _inject(data: string): void;
+}
+
+export const WS_OPEN = 1;
+export const WS_CLOSED = 3;
+
+/**
+ * Create a connected pair of fake WebSocket objects.
+ * Data sent on `client` appears as a message event on `server` and vice versa.
+ */
+export function makeWsPair(): { client: FakeWebSocket; server: FakeWebSocket } {
+  class FakeWs extends EventEmitter implements FakeWebSocket {
+    private _state: number = WS_OPEN;
+    private _peer: FakeWs | undefined;
+
+    get readyState(): number {
+      return this._state;
+    }
+
+    _setPeer(peer: FakeWs): void {
+      this._peer = peer;
+    }
+
+    send(data: string): void {
+      if (this._state !== WS_OPEN) {
+        throw new Error("WebSocket is not open");
+      }
+      // Deliver to peer's message listeners synchronously (test-friendly).
+      this._peer?.emit("message", Buffer.from(data));
+    }
+
+    close(): void {
+      if (this._state === WS_CLOSED) return;
+      this._state = WS_CLOSED;
+      this.emit("close", 1000, Buffer.from(""));
+      this._peer?._handlePeerClose();
+    }
+
+    _handlePeerClose(): void {
+      if (this._state === WS_CLOSED) return;
+      this._state = WS_CLOSED;
+      this.emit("close", 1000, Buffer.from(""));
+    }
+
+    _inject(data: string): void {
+      this.emit("message", Buffer.from(data));
+    }
+  }
+
+  const client = new FakeWs();
+  const server = new FakeWs();
+  client._setPeer(server);
+  server._setPeer(client);
+
+  return { client, server };
+}
+
+// ---------------------------------------------------------------------------
 // InMemoryDeviceStore — implements DeviceStore from routes/pairing.ts
 // ---------------------------------------------------------------------------
 import type { DeviceStore } from "../routes/pairing";

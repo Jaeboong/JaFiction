@@ -25,6 +25,10 @@ export interface RunnerContext {
   readonly stateStore: SidebarStateStore;
   readonly runSessions: RunSessionManager;
   readonly sessionToken: string;
+  /** Exposed for hosted event forwarding — subscribe with onSnapshot/onEvent. */
+  readonly stateHub: StateHub;
+  /** Exposed for hosted event forwarding — subscribe with onEvent. */
+  readonly runHub: RunHub;
   storage(): ForJobStorage;
   registry(): ProviderRegistry;
   orchestrator(): ReviewOrchestrator;
@@ -67,6 +71,8 @@ export async function createRunnerContext(): Promise<RunnerContext> {
     storageRoot,
     stateStore,
     runSessions,
+    stateHub,
+    runHub,
     sessionToken: crypto.randomBytes(48).toString("hex"),
     storage: () => storage,
     registry: () => registry,

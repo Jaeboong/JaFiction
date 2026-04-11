@@ -4,6 +4,16 @@ import { WebSocket } from "ws";
 export class RunHub {
   private readonly clients = new Map<string, Set<WebSocket>>();
   private readonly eventBuffer = new Map<string, string[]>();
+  private readonly observers = new Set<(runId: string, event: RunEvent) => void>();
+
+  /**
+   * Subscribe to all run events across all runs. Returns an unsubscribe function.
+   * Does not affect existing WebSocket clients.
+   */
+  onEvent(handler: (runId: string, event: RunEvent) => void): () => void {
+    this.observers.add(handler);
+    return () => { this.observers.delete(handler); };
+  }
 
   addClient(runId: string, socket: WebSocket): void {
     const bucket = this.clients.get(runId) ?? new Set<WebSocket>();
@@ -45,6 +55,10 @@ export class RunHub {
       if (client.readyState === WebSocket.OPEN) {
         client.send(payload);
       }
+    }
+
+    for (const observer of this.observers) {
+      observer(runId, event);
     }
   }
 

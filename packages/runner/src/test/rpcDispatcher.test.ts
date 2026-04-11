@@ -127,7 +127,9 @@ async function makeHarness(opts: HarnessOpts = {}): Promise<Harness> {
     emitRunEvent: () => undefined,
     clearRunBuffer: () => undefined,
     runBusy: async (_msg: string, work: () => Promise<void>) => { await work(); },
-    refreshAll: async () => undefined
+    refreshAll: async () => undefined,
+    stateHub: { onSnapshot: () => () => undefined, broadcast: () => undefined, addClient: () => undefined } as unknown as RunnerContext["stateHub"],
+    runHub: { onEvent: () => () => undefined, emit: () => undefined, addClient: () => undefined, clearBuffer: () => undefined } as unknown as RunnerContext["runHub"]
   };
 
   const dispatch = createRpcDispatcher({ runnerContext: ctx, logger });
