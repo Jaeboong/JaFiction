@@ -482,6 +482,21 @@ export type ApproveDeviceClaimResult =
 export class BackendClient {
   constructor(readonly baseUrl: string) {}
 
+  async fetchCurrentUser(): Promise<{ readonly id: string; readonly email: string }> {
+    const response = await fetch(`${this.baseUrl}/auth/me`, { credentials: "include" });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch current user (${response.status})`);
+    }
+    return response.json() as Promise<{ id: string; email: string }>;
+  }
+
+  async logout(): Promise<void> {
+    await fetch(`${this.baseUrl}/auth/logout`, {
+      credentials: "include",
+      method: "POST",
+    });
+  }
+
   async approveDeviceClaim(claimId?: string): Promise<ApproveDeviceClaimResult> {
     return this.request<ApproveDeviceClaimResult>("/api/device-claim/approve", {
       method: "POST",

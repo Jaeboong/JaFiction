@@ -126,6 +126,12 @@ export async function registerAuth(
     await reply.redirect(env.PUBLIC_BASE_URL);
   });
 
+  // /auth/me — return the authenticated user's basic profile
+  app.get("/auth/me", { preHandler: requireSession }, async (request, reply) => {
+    const { user } = (request as AuthenticatedRequest).sessionData;
+    await reply.send({ id: user.id, email: user.email });
+  });
+
   // /auth/logout
   app.post("/auth/logout", { preHandler: requireSession }, async (request, reply) => {
     const raw = request.cookies[SESSION_COOKIE];
