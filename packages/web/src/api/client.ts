@@ -476,6 +476,7 @@ export interface DeviceInfo {
 
 export type ApproveDeviceClaimResult =
   | { readonly status: "approved"; readonly deviceId: string; readonly label: string }
+  | { readonly status: "authorized"; readonly deviceId: string }
   | { readonly status: "no_claim" }
   | { readonly status: "multiple_claims"; readonly claims: ReadonlyArray<{ readonly claimId: string; readonly hostname: string; readonly os: string }> };
 

@@ -15,6 +15,13 @@
       "when": 1775921538916,
       "tag": "0001_square_diamondback",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775924758306,
+      "tag": "0002_groovy_killer_shrike",
+      "breakpoints": true
     }
   ]
 }

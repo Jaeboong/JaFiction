@@ -485,12 +485,20 @@ button:focus-visible {
   display: inline-block;
 }
 
+/* Login shell — 헤더 없이 풀스크린 */
+.app-shell-login {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
 /* Login page — two-column layout */
 .login-page {
-  position: fixed;
-  inset: 0;
   display: flex;
-  z-index: 100;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
 }
 
 .login-brand-panel {

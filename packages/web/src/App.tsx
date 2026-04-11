@@ -352,6 +352,22 @@ export function App() {
     // selected by the bootstrap error reason; the "still pending" case
     // (no reason yet) falls back to the legacy loading card.
     const retryBootstrap = () => setBootstrapRetryNonce((n) => n + 1);
+
+    // 로그인 화면은 헤더 없이 풀스크린
+    if (bootstrapErrorReason === "auth_required") {
+      return (
+        <main className="app-shell app-shell-login">
+          <BootstrapGate
+            reason={bootstrapErrorReason}
+            errorMessage={errorMessage}
+            runnerBaseUrl={runnerBaseUrl}
+            backendClient={backendClient}
+            onRetry={retryBootstrap}
+          />
+        </main>
+      );
+    }
+
     return (
       <main className="app-shell" data-bootstrap-state={bootstrapErrorReason ?? "pending"}>
         <header className="app-header" aria-label="Main navigation">

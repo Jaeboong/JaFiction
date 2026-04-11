@@ -57,6 +57,14 @@ export function ConnectConsentModal({ backendClient, runnerClient }: ConnectCons
       return;
     }
 
+    if (result.status !== "approved" && result.status !== "authorized") {
+      setModalState({
+        phase: "error",
+        message: "연결 승인 응답을 처리하지 못했습니다.",
+      });
+      return;
+    }
+
     const deadline = Date.now() + POLL_STATE_TIMEOUT_MS;
     while (Date.now() < deadline) {
       await new Promise<void>((resolve) => setTimeout(resolve, POLL_STATE_INTERVAL_MS));

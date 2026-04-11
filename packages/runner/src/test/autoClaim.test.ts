@@ -1,17 +1,23 @@
 /**
- * autoClaim.test.ts — Stage 11.9
+ * autoClaim.test.ts — Stage 11.10
  *
- * Tests autoClaimDevice via dependency-injected fetch mocks.
+ * Tests claim registration, polling, and existing-device authorization flows
+ * via dependency-injected fetch mocks.
  */
 import * as assert from "node:assert/strict";
 import test from "node:test";
-import { autoClaimDevice, AutoClaimError } from "../hosted/pairingClient";
-
-// ---------------------------------------------------------------------------
-// Mock fetch helpers
-// ---------------------------------------------------------------------------
+import {
+  autoClaimDevice,
+  AutoClaimError,
+  pollClaimNonBlocking,
+  registerClaim,
+} from "../hosted/pairingClient";
 
 type FetchCall = { url: string; init?: RequestInit };
+
+function immediateSleep(): Promise<void> {
+  return Promise.resolve();
+}
 
 function makeMockFetch(
   responses: Array<{ ok: boolean; status: number; body: unknown }>
@@ -22,12 +28,12 @@ function makeMockFetch(
   const fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : String(input);
     calls.push({ url, init });
-    const resp = responses[index] ?? responses[responses.length - 1];
+    const response = responses[index] ?? responses[responses.length - 1];
     index++;
     return {
-      ok: resp.ok,
-      status: resp.status,
-      json: async () => resp.body,
+      ok: response.ok,
+      status: response.status,
+      json: async () => response.body,
     } as Response;
   };
 
@@ -40,33 +46,59 @@ function makeNetworkErrorFetch(): typeof globalThis.fetch {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+test("registerClaim includes deviceId when present", async () => {
+  const { fetch: mockFetch, calls } = makeMockFetch([
+    {
+      ok: true,
+      status: 200,
+      body: {
+        claimId: "claim-uuid-1234",
+        pollToken: "poll-token-abcd",
+        expiresAt: new Date(Date.now() + 600_000).toISOString(),
+      },
+    },
+  ]);
+
+  const result = await registerClaim(
+    { backendUrl: "http://localhost:4000", deviceId: "device-uuid-1" },
+    { fetch: mockFetch }
+  );
+
+  assert.equal(result.claimId, "claim-uuid-1234");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "http://localhost:4000/auth/device-claim");
+  assert.ok(calls[0].init?.body, "expected request body");
+  const body = JSON.parse(String(calls[0].init?.body)) as { deviceId?: string };
+  assert.equal(body.deviceId, "device-uuid-1");
+});
 
 test("happy path: register → pending poll → approved poll returns token", async () => {
-  const registerBody = {
-    claimId: "claim-uuid-1234",
-    pollToken: "poll-token-abcd",
-    expiresAt: new Date(Date.now() + 600_000).toISOString(),
-  };
-  const pendingBody = { status: "pending" };
-  const approvedBody = {
-    status: "approved",
-    token: "a".repeat(64),
-    deviceId: "device-uuid-1",
-    userId: "user-uuid-2",
-  };
-
   const { fetch: mockFetch } = makeMockFetch([
-    { ok: true, status: 200, body: registerBody },
-    { ok: true, status: 200, body: pendingBody },
-    { ok: true, status: 200, body: approvedBody },
+    {
+      ok: true,
+      status: 200,
+      body: {
+        claimId: "claim-uuid-1234",
+        pollToken: "poll-token-abcd",
+        expiresAt: new Date(Date.now() + 600_000).toISOString(),
+      },
+    },
+    { ok: true, status: 200, body: { status: "pending" } },
+    {
+      ok: true,
+      status: 200,
+      body: {
+        status: "approved",
+        token: "a".repeat(64),
+        deviceId: "device-uuid-1",
+        userId: "user-uuid-2",
+      },
+    },
   ]);
 
   const result = await autoClaimDevice(
     { backendUrl: "http://localhost:4000" },
-    { fetch: mockFetch }
+    { fetch: mockFetch, sleep: immediateSleep }
   );
 
   assert.equal(result.token, "a".repeat(64));
@@ -74,14 +106,39 @@ test("happy path: register → pending poll → approved poll returns token", as
   assert.equal(result.userId, "user-uuid-2");
 });
 
+test("authorized status resolves without requiring token storage", async () => {
+  const { fetch: mockFetch } = makeMockFetch([
+    { ok: true, status: 200, body: { status: "authorized", deviceId: "device-uuid-1" } },
+  ]);
+
+  const result = await pollClaimNonBlocking(
+    {
+      backendUrl: "http://localhost:4000",
+      claimId: "claim-uuid-1234",
+      pollToken: "poll-token-abcd",
+    },
+    { fetch: mockFetch, sleep: immediateSleep }
+  );
+
+  assert.equal(result.status, "authorized");
+  assert.equal(result.deviceId, "device-uuid-1");
+});
+
 test("rejected status throws AutoClaimError with reason='rejected'", async () => {
   const { fetch: mockFetch } = makeMockFetch([
-    { ok: true, status: 200, body: { claimId: "cid", pollToken: "ptok", expiresAt: new Date(Date.now() + 600_000).toISOString() } },
     { ok: true, status: 200, body: { status: "rejected" } },
   ]);
 
   await assert.rejects(
-    async () => autoClaimDevice({ backendUrl: "http://localhost:4000" }, { fetch: mockFetch }),
+    async () =>
+      pollClaimNonBlocking(
+        {
+          backendUrl: "http://localhost:4000",
+          claimId: "cid",
+          pollToken: "ptok",
+        },
+        { fetch: mockFetch, sleep: immediateSleep }
+      ),
     (err: unknown) => {
       assert.ok(err instanceof AutoClaimError);
       assert.equal(err.reason, "rejected");
@@ -92,12 +149,19 @@ test("rejected status throws AutoClaimError with reason='rejected'", async () =>
 
 test("expired status throws AutoClaimError with reason='expired'", async () => {
   const { fetch: mockFetch } = makeMockFetch([
-    { ok: true, status: 200, body: { claimId: "cid", pollToken: "ptok", expiresAt: new Date(Date.now() + 600_000).toISOString() } },
     { ok: true, status: 200, body: { status: "expired" } },
   ]);
 
   await assert.rejects(
-    async () => autoClaimDevice({ backendUrl: "http://localhost:4000" }, { fetch: mockFetch }),
+    async () =>
+      pollClaimNonBlocking(
+        {
+          backendUrl: "http://localhost:4000",
+          claimId: "cid",
+          pollToken: "ptok",
+        },
+        { fetch: mockFetch, sleep: immediateSleep }
+      ),
     (err: unknown) => {
       assert.ok(err instanceof AutoClaimError);
       assert.equal(err.reason, "expired");
@@ -111,7 +175,7 @@ test("network error on register throws AutoClaimError with reason='network_error
     async () =>
       autoClaimDevice(
         { backendUrl: "http://localhost:4000" },
-        { fetch: makeNetworkErrorFetch() }
+        { fetch: makeNetworkErrorFetch(), sleep: immediateSleep }
       ),
     (err: unknown) => {
       assert.ok(err instanceof AutoClaimError);
@@ -124,10 +188,8 @@ test("network error on register throws AutoClaimError with reason='network_error
 test("3 consecutive network errors on poll throws AutoClaimError", async () => {
   let callIndex = 0;
   const fetch = async (input: RequestInfo | URL): Promise<Response> => {
-    const url = typeof input === "string" ? input : String(input);
     callIndex++;
     if (callIndex === 1) {
-      // Registration succeeds
       return {
         ok: true,
         status: 200,
@@ -138,13 +200,15 @@ test("3 consecutive network errors on poll throws AutoClaimError", async () => {
         }),
       } as Response;
     }
-    // All polls throw network error
-    throw new Error(`ECONNREFUSED polling ${url}`);
+    throw new Error(`ECONNREFUSED polling ${String(input)}`);
   };
 
   await assert.rejects(
     async () =>
-      autoClaimDevice({ backendUrl: "http://localhost:4000" }, { fetch: fetch as typeof globalThis.fetch }),
+      autoClaimDevice(
+        { backendUrl: "http://localhost:4000" },
+        { fetch: fetch as typeof globalThis.fetch, sleep: immediateSleep }
+      ),
     (err: unknown) => {
       assert.ok(err instanceof AutoClaimError);
       assert.equal(err.reason, "network_error");
@@ -160,7 +224,11 @@ test("non-200 registration response throws AutoClaimError", async () => {
   ]);
 
   await assert.rejects(
-    async () => autoClaimDevice({ backendUrl: "http://localhost:4000" }, { fetch: mockFetch }),
+    async () =>
+      autoClaimDevice(
+        { backendUrl: "http://localhost:4000" },
+        { fetch: mockFetch, sleep: immediateSleep }
+      ),
     (err: unknown) => {
       assert.ok(err instanceof AutoClaimError);
       assert.equal(err.reason, "network_error");
@@ -173,10 +241,9 @@ test("abort signal aborts the claim", async () => {
   const controller = new AbortController();
 
   let callIndex = 0;
-  const fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const fetch = async (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     callIndex++;
     if (callIndex === 1) {
-      // Registration succeeds
       return {
         ok: true,
         status: 200,
@@ -187,9 +254,10 @@ test("abort signal aborts the claim", async () => {
         }),
       } as Response;
     }
-    // Abort before second call
     controller.abort();
-    if (init?.signal?.aborted) throw new Error("aborted");
+    if (init?.signal?.aborted) {
+      throw new Error("aborted");
+    }
     return { ok: true, status: 200, json: async () => ({ status: "pending" }) } as Response;
   };
 
@@ -197,7 +265,7 @@ test("abort signal aborts the claim", async () => {
     async () =>
       autoClaimDevice(
         { backendUrl: "http://localhost:4000", abortSignal: controller.signal },
-        { fetch: fetch as typeof globalThis.fetch }
+        { fetch: fetch as typeof globalThis.fetch, sleep: immediateSleep }
       ),
     (err: unknown) => {
       assert.ok(err instanceof AutoClaimError || err instanceof Error);

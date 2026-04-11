@@ -71,6 +71,15 @@ async function registerClaim(
   });
 }
 
+function findUserIdByEmail(
+  deps: ReturnType<typeof makeTestDeps>,
+  email: string
+): string {
+  const entry = [...deps.userMap.values()].find((user) => user.email === email);
+  assert.ok(entry, `Expected seeded user for ${email}`);
+  return entry.id;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -291,8 +300,9 @@ test("approve existing device claim adds device_users membership without creatin
   assert.equal(secondBody.status, "authorized");
   assert.equal(secondBody.deviceId, firstBody.deviceId);
   assert.equal(deps.deviceStore.rows.size, 1, "existing device row should be reused");
+  const memberUserId = findUserIdByEmail(deps, "member@example.com");
   assert.ok(
-    deps.deviceStore.memberships.has(`${firstBody.deviceId}:${[...deps.userMap.keys()].find((key) => deps.userMap.get(key)?.email === "member@example.com")}`),
+    deps.deviceStore.memberships.has(`${firstBody.deviceId}:${memberUserId}`),
     "new user should be added to device_users"
   );
 
@@ -346,8 +356,9 @@ test("duplicate approval for same device_id + user_id is ignored without error",
   const secondBody = JSON.parse(secondApprove.body) as { status: string; deviceId: string };
   assert.equal(secondBody.status, "authorized");
   assert.equal(secondBody.deviceId, firstBody.deviceId);
+  const userId = findUserIdByEmail(deps, "dup@example.com");
   assert.equal(
-    [...deps.deviceStore.memberships].filter((entry) => entry === `${firstBody.deviceId}:${[...deps.userMap.keys()][0]}`).length,
+    [...deps.deviceStore.memberships].filter((entry) => entry === `${firstBody.deviceId}:${userId}`).length,
     1
   );
 
