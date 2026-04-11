@@ -111,9 +111,11 @@ button:focus-visible {
 }
 
 .app-brand-mark {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: contain;
 }
 
 .app-brand-name {
@@ -514,11 +516,12 @@ button:focus-visible {
   max-width: 360px;
 }
 
-.login-brand-mark svg {
-  width: 56px;
-  height: 56px;
+.login-brand-mark img {
+  width: 96px;
+  height: 96px;
   margin-bottom: 24px;
   display: block;
+  border-radius: 20px;
 }
 
 .login-brand-name {

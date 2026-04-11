@@ -11,17 +11,7 @@ export function LoginGate({ loginHref = DEFAULT_LOGIN_HREF }: LoginGateProps) {
       <div className="login-brand-panel">
         <div className="login-brand-inner">
           <div className="login-brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 48 48" fill="none">
-              <rect x="6" y="8" width="36" height="32" rx="3" fill="white" fillOpacity="0.15" />
-              <rect x="6" y="8" width="17" height="32" rx="3" fill="white" fillOpacity="0.25" />
-              <line x1="23" y1="8" x2="23" y2="40" stroke="white" strokeOpacity="0.5" strokeWidth="1.5" />
-              <line x1="12" y1="17" x2="20" y2="17" stroke="white" strokeOpacity="0.6" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="12" y1="22" x2="20" y2="22" stroke="white" strokeOpacity="0.6" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="12" y1="27" x2="18" y2="27" stroke="white" strokeOpacity="0.6" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="27" y1="17" x2="38" y2="17" stroke="white" strokeOpacity="0.4" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="27" y1="22" x2="38" y2="22" stroke="white" strokeOpacity="0.4" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="27" y1="27" x2="34" y2="27" stroke="white" strokeOpacity="0.4" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <img src="/jasojeon.png" alt="자소전 로고" />
           </div>
           <h1 className="login-brand-name">자소전</h1>
           <p className="login-brand-tagline">
