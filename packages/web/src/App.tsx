@@ -599,6 +599,7 @@ export function App() {
                   success: (result) => buildNotionCheckNotice(result),
                   failure: (error) => ({ tone: "error", message: "Notion MCP 상태 확인에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.checkNotion(providerId));
+                await refreshProviderState();
               }}
               onConnectNotion={async (providerId) => {
                 await runProviderAction(providerId, "notion-connect", {
@@ -606,6 +607,7 @@ export function App() {
                   success: (result) => buildNotionConnectNotice(result),
                   failure: (error) => ({ tone: "error", message: "Notion MCP 연결에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.connectNotion(providerId));
+                await refreshProviderState();
               }}
               onDisconnectNotion={async (providerId) => {
                 await runProviderAction(providerId, "notion-disconnect", {
@@ -613,6 +615,7 @@ export function App() {
                   success: (result) => buildNotionDisconnectNotice(result),
                   failure: (error) => ({ tone: "error", message: "Notion MCP 해제에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.disconnectNotion(providerId));
+                await refreshProviderState();
               }}
             />
           ) : null}
