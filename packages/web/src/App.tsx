@@ -666,6 +666,18 @@ export function App() {
                   failure: (error) => ({ tone: "error", message: "인사이트 생성 요청에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.generateInsights(projectSlug, payload));
               }}
+              onDeleteProject={async (projectSlug) => {
+                await runAction({
+                  pending: { tone: "pending", message: "프로젝트를 삭제하는 중입니다..." },
+                  success: { tone: "success", message: "프로젝트를 삭제했습니다." },
+                  failure: (error) => ({ tone: "error", message: "프로젝트 삭제에 실패했습니다.", detail: getErrorMessage(error) })
+                }, async () => {
+                  await client.deleteProject(projectSlug);
+                  if (selectedProject?.record.slug === projectSlug) {
+                    setSelectedProjectSlug(undefined);
+                  }
+                });
+              }}
             />
           ) : null}
 

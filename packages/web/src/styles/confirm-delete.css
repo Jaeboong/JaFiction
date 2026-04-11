@@ -1,0 +1,109 @@
+.confirm-delete-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.confirm-delete-modal {
+  width: min(480px, 100%);
+  padding: 24px 28px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  color: #0f172a;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.confirm-delete-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #991b1b;
+}
+
+.confirm-delete-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1e293b;
+}
+
+.confirm-delete-warning {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.confirm-delete-warning strong {
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.confirm-delete-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.confirm-delete-input:focus {
+  outline: 2px solid #991b1b;
+  outline-offset: 1px;
+  background: #ffffff;
+}
+
+.confirm-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.confirm-delete-cancel,
+.confirm-delete-confirm {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-delete-cancel {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.confirm-delete-cancel:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.confirm-delete-confirm {
+  background: #991b1b;
+  color: #ffffff;
+}
+
+.confirm-delete-confirm:hover:not(:disabled) {
+  background: #7f1d1d;
+}
+
+.confirm-delete-confirm:disabled,
+.confirm-delete-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

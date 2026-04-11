@@ -6,6 +6,7 @@ import type {
   ProjectViewModel
 } from "@jasojeon/shared";
 import { useEffect, useRef, useState } from "react";
+import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
 import { ProjectInsightModal } from "../components/ProjectInsightModal";
 import { hasInsightDocuments, isInsightDocumentTitle } from "../insightDocuments";
 import {
@@ -31,6 +32,7 @@ interface ProjectsPageProps {
   onUpdateProject(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onAnalyzeInsights(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onGenerateInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectInsightWorkspaceState | undefined>;
+  onDeleteProject(projectSlug: string): Promise<void>;
 }
 
 export function ProjectsPage({
@@ -45,7 +47,8 @@ export function ProjectsPage({
   onDeleteProjectDocument,
   onUpdateProject,
   onAnalyzeInsights,
-  onGenerateInsights
+  onGenerateInsights,
+  onDeleteProject
 }: ProjectsPageProps) {
   const [workspaceMode, setWorkspaceMode] = useState<"project" | "create">(projects.length ? "project" : "create");
   const selectedProject = projects.find((project) => project.record.slug === selectedProjectSlug) ?? projects[0];
@@ -138,6 +141,7 @@ export function ProjectsPage({
             onUpdateProject={onUpdateProject}
             onAnalyzeInsights={onAnalyzeInsights}
             onGenerateInsights={onGenerateInsights}
+            onDeleteProject={onDeleteProject}
           />
         )}
       </div>
@@ -432,7 +436,8 @@ function ProjectWorkspace({
   onDeleteProjectDocument,
   onUpdateProject,
   onAnalyzeInsights,
-  onGenerateInsights
+  onGenerateInsights,
+  onDeleteProject
 }: {
   project: ProjectViewModel;
   onFetchProjectInsights(projectSlug: string): Promise<ProjectInsightWorkspaceState>;
@@ -442,6 +447,7 @@ function ProjectWorkspace({
   onUpdateProject(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onAnalyzeInsights(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onGenerateInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectInsightWorkspaceState | undefined>;
+  onDeleteProject(projectSlug: string): Promise<void>;
 }) {
   const [title, setTitle] = useState("notes.md");
   const [content, setContent] = useState("");
@@ -462,6 +468,7 @@ function ProjectWorkspace({
   const [editJobPostingUrl, setEditJobPostingUrl] = useState("");
   const [editEssayQuestions, setEditEssayQuestions] = useState<string[]>([""]);
   const [isSavingInfo, setIsSavingInfo] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const projectHasInsightDocuments = hasInsightDocuments(project.documents);
@@ -646,6 +653,12 @@ function ProjectWorkspace({
 
             <div className="projects-header-actions">
               <div className="projects-header-action-row">
+                <button
+                  className="projects-secondary-button"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                >
+                  프로젝트 삭제
+                </button>
                 <button className="projects-secondary-button" onClick={() => void onAnalyzeInsights(project.record.slug, project.record)}>
                   공고 분석
                 </button>
@@ -1117,6 +1130,18 @@ function ProjectWorkspace({
           void handleRegenerateInsights();
         }}
         onSelectTab={setSelectedInsightTab}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        title="프로젝트 삭제"
+        message={`${project.record.companyName} 프로젝트와 관련된 모든 문서·실행 기록이 영구 삭제됩니다.`}
+        confirmPhrase={project.record.companyName}
+        onCancel={() => setIsDeleteModalOpen(false)}
+        onConfirm={async () => {
+          await onDeleteProject(project.record.slug);
+          setIsDeleteModalOpen(false);
+        }}
       />
     </>
   );

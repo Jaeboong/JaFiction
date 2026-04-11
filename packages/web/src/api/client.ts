@@ -1,9 +1,15 @@
 import type {
   AgentDefaults,
   AbortRunResult,
+  AnalyzeInsightsResult,
+  AnalyzePostingResult,
   CompleteRunResult,
+  CreateProjectResult,
   DeleteDocumentResult,
+  DeleteProjectResult,
+  GenerateInsightsResult,
   GetAgentDefaultsResult,
+  GetProjectInsightsResult,
   GetRunMessagesResult,
   JobPostingExtractionResult,
   ListProjectsResult,
@@ -13,6 +19,8 @@ import type {
   ProjectRecord,
   ProviderId,
   ProviderRuntimeState,
+  SaveDocumentResult,
+  SaveEssayDraftResult,
   SaveProjectResult,
   SidebarState,
   StartRunResult
@@ -125,26 +133,65 @@ export class RunnerClient {
     return this.request<ListProjectsResult>("/api/projects");
   }
 
-  // LOCAL-ONLY: no hosted op yet
-  createProject(payload: Record<string, unknown>): Promise<ProjectRecord> {
+  async createProject(payload: Record<string, unknown>): Promise<ProjectRecord> {
+    if (this.mode === "hosted") {
+      const result = await this.rpcCall<CreateProjectResult>("create_project", payload);
+      return result as ProjectRecord;
+    }
     return this.request<ProjectRecord>("/api/projects", { method: "POST", body: payload });
   }
 
-  // LOCAL-ONLY: no hosted op yet
-  saveProjectDocument(projectSlug: string, payload: Record<string, unknown>) {
-    return this.request(`/api/projects/${projectSlug}/documents`, { method: "POST", body: payload });
+  async deleteProject(projectSlug: string): Promise<void> {
+    if (this.mode === "hosted") {
+      await this.rpcCall<DeleteProjectResult>("delete_project", { slug: projectSlug });
+      return;
+    }
+    return this.request(`/api/projects/${projectSlug}`, { method: "DELETE" });
   }
 
-  // LOCAL-ONLY: no hosted op yet
-  saveEssayDraft(projectSlug: string, questionIndex: number, draft: string): Promise<{ questionIndex: number }> {
+  async saveProjectDocument(projectSlug: string, payload: Record<string, unknown>): Promise<void> {
+    if (this.mode === "hosted") {
+      await this.rpcCall<SaveDocumentResult>("save_document", {
+        slug: projectSlug,
+        title: String(payload.title ?? ""),
+        content: typeof payload.content === "string" ? payload.content : "",
+        note: typeof payload.note === "string" ? payload.note : undefined,
+        pinnedByDefault: typeof payload.pinnedByDefault === "boolean" ? payload.pinnedByDefault : undefined
+      });
+      return;
+    }
+    await this.request(`/api/projects/${projectSlug}/documents`, { method: "POST", body: payload });
+  }
+
+  async saveEssayDraft(projectSlug: string, questionIndex: number, draft: string): Promise<{ questionIndex: number }> {
+    if (this.mode === "hosted") {
+      const result = await this.rpcCall<SaveEssayDraftResult>("save_essay_draft", {
+        slug: projectSlug,
+        questionIndex,
+        draft
+      });
+      return result;
+    }
     return this.request(`/api/projects/${projectSlug}/essay-draft/${questionIndex}`, {
       method: "PUT",
       body: { draft }
     });
   }
 
-  // LOCAL-ONLY: no hosted op yet (upload_document exists but uses base64 payload, not multipart)
-  uploadProjectDocuments(projectSlug: string, files: File[]): Promise<void> {
+  async uploadProjectDocuments(projectSlug: string, files: File[]): Promise<void> {
+    if (this.mode === "hosted") {
+      // Dynamic import avoids pulling the chunked uploader into bundles that
+      // don't touch hosted mode.
+      const { uploadFileInChunks } = await import("./hostedUpload");
+      for (const file of files) {
+        await uploadFileInChunks({
+          client: this,
+          slug: projectSlug,
+          file
+        });
+      }
+      return;
+    }
     const body = new FormData();
     for (const file of files) {
       body.append("files", file);
@@ -167,13 +214,24 @@ export class RunnerClient {
     return this.request(`/api/projects/${projectSlug}/documents/${documentId}`, { method: "DELETE" });
   }
 
-  // LOCAL-ONLY: no hosted op yet
-  getProjectInsights(projectSlug: string): Promise<ProjectInsightWorkspaceState> {
+  async getProjectInsights(projectSlug: string): Promise<ProjectInsightWorkspaceState> {
+    if (this.mode === "hosted") {
+      const result = await this.rpcCall<GetProjectInsightsResult>("get_project_insights", { slug: projectSlug });
+      return result as ProjectInsightWorkspaceState;
+    }
     return this.request<ProjectInsightWorkspaceState>(`/api/projects/${projectSlug}/insights`);
   }
 
-  // LOCAL-ONLY: no hosted op yet
-  analyzeProjectPosting(payload: Record<string, unknown>): Promise<JobPostingExtractionResult> {
+  async analyzeProjectPosting(payload: Record<string, unknown>): Promise<JobPostingExtractionResult> {
+    if (this.mode === "hosted") {
+      const result = await this.rpcCall<AnalyzePostingResult>("analyze_posting", {
+        jobPostingUrl: typeof payload.jobPostingUrl === "string" ? payload.jobPostingUrl : undefined,
+        jobPostingText: typeof payload.jobPostingText === "string" ? payload.jobPostingText : undefined,
+        companyName: typeof payload.companyName === "string" ? payload.companyName : undefined,
+        roleName: typeof payload.roleName === "string" ? payload.roleName : undefined
+      });
+      return result as unknown as JobPostingExtractionResult;
+    }
     return this.request<JobPostingExtractionResult>("/api/projects/analyze-posting", { method: "POST", body: payload });
   }
 
@@ -288,11 +346,32 @@ export class RunnerClient {
     });
   }
 
-  analyzeInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectRecord> {
+  async analyzeInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectRecord | undefined> {
+    if (this.mode === "hosted") {
+      // Kickoff pattern: op returns {jobId} immediately. The final state
+      // arrives via a subsequent state_snapshot event that overwrites the
+      // sidebar. Return undefined — callers should not rely on a synchronous
+      // ProjectRecord from hosted analyze_insights.
+      await this.rpcCall<AnalyzeInsightsResult>("analyze_insights", {
+        slug: projectSlug,
+        patch: Object.keys(payload).length > 0 ? payload : undefined
+      });
+      return undefined;
+    }
     return this.request<ProjectRecord>(`/api/projects/${projectSlug}/insights/analyze`, { method: "POST", body: payload });
   }
 
-  generateInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectInsightWorkspaceState> {
+  async generateInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectInsightWorkspaceState> {
+    if (this.mode === "hosted") {
+      // Kickoff pattern: op returns {jobId}. We immediately return the
+      // *current* insights workspace so the UI can swap to a pending badge.
+      // A follow-up state_snapshot triggers the UI to refetch when ready.
+      await this.rpcCall<GenerateInsightsResult>("generate_insights", {
+        slug: projectSlug,
+        patch: Object.keys(payload).length > 0 ? payload : undefined
+      });
+      return this.getProjectInsights(projectSlug);
+    }
     return this.request<ProjectInsightWorkspaceState>(`/api/projects/${projectSlug}/insights/generate`, { method: "POST", body: payload });
   }
 
