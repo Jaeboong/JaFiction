@@ -606,7 +606,7 @@ function ProjectWorkspace({
     setIsGeneratingInsights(true);
 
     try {
-      const workspace = await onGenerateInsights(project.record.slug, project.record);
+      const workspace = await onGenerateInsights(project.record.slug, {});
       if (workspace) {
         applyInsightWorkspace(workspace, selectedInsightTab);
       }
@@ -623,7 +623,7 @@ function ProjectWorkspace({
     }
 
     try {
-      const workspace = await onGenerateInsights(project.record.slug, project.record);
+      const workspace = await onGenerateInsights(project.record.slug, {});
       if (workspace) {
         applyInsightWorkspace(workspace, selectedInsightTab);
         setIsInsightModalOpen(true);
@@ -659,7 +659,7 @@ function ProjectWorkspace({
                 >
                   프로젝트 삭제
                 </button>
-                <button className="projects-secondary-button" onClick={() => void onAnalyzeInsights(project.record.slug, project.record)}>
+                <button className="projects-secondary-button" onClick={() => void onAnalyzeInsights(project.record.slug, {})}>
                   공고 분석
                 </button>
                 {isInsightReady ? (

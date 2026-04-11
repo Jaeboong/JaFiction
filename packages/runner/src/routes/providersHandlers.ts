@@ -123,6 +123,7 @@ export async function notionConnect(
       await performGeminiNotionOAuth("notion");
     }
     await ctx.registry().connectNotionMcp(NOTION_PROVIDER);
+    await ctx.registry().checkNotionMcp(NOTION_PROVIDER);
     await ctx.stateStore.refreshProvider(NOTION_PROVIDER);
   });
   return { ok: true };

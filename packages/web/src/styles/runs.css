@@ -1737,6 +1737,32 @@
   animation-delay: 0.3s;
 }
 
+.runs-feed-intervention-prompt {
+  margin: 8px 12px;
+  padding: 10px 14px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+}
+
+.runs-feed-intervention-prompt-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.runs-feed-intervention-prompt-text {
+  margin: 0;
+  font-size: 13px;
+  color: #1c1917;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 @media (max-width: 1180px) {
   .runs-page {
     grid-template-columns: 1fr;

@@ -8,7 +8,7 @@ import type {
   SidebarState
 } from "@jasojeon/shared";
 import { renderMarkdown } from "../lib/markdown";
-import { decodeRunEventFrame } from "../lib/wsFrames";
+import { decodeInterventionRequestFrame, decodeRunEventFrame } from "../lib/wsFrames";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   buildParticipantSelectionFromDefaults,
@@ -181,7 +181,20 @@ export function RunsPage({
         return;
       }
 
-      const frame = decodeRunEventFrame(JSON.parse(ev.data as string));
+      const parsed = JSON.parse(ev.data as string) as unknown;
+
+      // intervention_request arrives as a hosted envelope — handle before run_event decode
+      const interventionFrame = decodeInterventionRequestFrame(parsed);
+      if (interventionFrame && interventionFrame.runId === liveRunId) {
+        if (awaitingUserInputNoticeRunIdRef.current !== liveRunId) {
+          awaitingUserInputNoticeRunIdRef.current = liveRunId;
+          onAwaitingUserInput();
+        }
+        updateLiveRunVisualState("waiting");
+        return;
+      }
+
+      const frame = decodeRunEventFrame(parsed);
       if (!frame || frame.runId !== liveRunId) {
         return;
       }
@@ -1343,6 +1356,7 @@ function RunFeed({
   const [messages, setMessages] = useState<RunChatMessage[]>([]);
   const [activeParticipants, setActiveParticipants] = useState<ActiveParticipants>(new Map());
   const [ledgerMap, setLedgerMap] = useState<ReadonlyMap<string, DiscussionLedger>>(new Map());
+  const [pendingPrompt, setPendingPrompt] = useState<string | undefined>(undefined);
   const messagesRef = useRef<RunChatMessage[]>([]);
   const activeParticipantsRef = useRef<ActiveParticipants>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1360,12 +1374,14 @@ function RunFeed({
       setMessages([]);
       setActiveParticipants(new Map());
       setLedgerMap(new Map());
+      setPendingPrompt(undefined);
       return;
     }
 
     activeParticipantsRef.current = new Map();
     setActiveParticipants(new Map());
     setLedgerMap(new Map());
+    setPendingPrompt(undefined);
     let disposed = false;
     let pendingClear = true;
     let receivedCount = 0;
@@ -1378,11 +1394,23 @@ function RunFeed({
       if (disposed) {
         return;
       }
-      const frame = decodeRunEventFrame(JSON.parse(ev.data as string));
+      const parsed = JSON.parse(ev.data as string) as unknown;
+
+      const interventionFrame = decodeInterventionRequestFrame(parsed);
+      if (interventionFrame && interventionFrame.runId === runId) {
+        setPendingPrompt(interventionFrame.prompt);
+        return;
+      }
+
+      const frame = decodeRunEventFrame(parsed);
       if (!frame || frame.runId !== runId) {
         return;
       }
       const { event } = frame;
+      // Clear any pending prompt when user input is received
+      if (event.type === "user-input-received") {
+        setPendingPrompt(undefined);
+      }
       receivedCount++;
 
       if (event.type === "discussion-ledger-updated" && event.discussionLedger) {
@@ -1521,6 +1549,12 @@ function RunFeed({
         })
       )}
       {typingRows}
+      {pendingPrompt ? (
+        <div className="runs-feed-intervention-prompt">
+          <span className="runs-feed-intervention-prompt-label">에이전트 질문</span>
+          <p className="runs-feed-intervention-prompt-text">{pendingPrompt}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

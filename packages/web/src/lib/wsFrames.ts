@@ -1,4 +1,4 @@
-import type { RunEvent, SidebarState } from "@jasojeon/shared";
+import type { InterventionRequestPayload, RunEvent, SidebarState } from "@jasojeon/shared";
 
 /**
  * Frame decoders that accept either the local WebSocket payload shape or the
@@ -44,6 +44,24 @@ export function decodeRunEventFrame(raw: unknown): RunEventFramePayload | undefi
   const event = frame["event"];
   if (typeof runId === "string" && event && typeof event === "object") {
     return { runId, event: event as RunEvent };
+  }
+  return undefined;
+}
+
+export function decodeInterventionRequestFrame(raw: unknown): InterventionRequestPayload | undefined {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  const frame = raw as Record<string, unknown>;
+
+  // Hosted envelope: { v, event: "intervention_request", payload: { runId, prompt } }
+  if (frame["event"] === "intervention_request" && frame["payload"] && typeof frame["payload"] === "object") {
+    const payload = frame["payload"] as Record<string, unknown>;
+    const runId = payload["runId"];
+    const prompt = payload["prompt"];
+    if (typeof runId === "string" && typeof prompt === "string") {
+      return { runId, prompt };
+    }
   }
   return undefined;
 }

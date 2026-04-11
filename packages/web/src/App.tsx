@@ -632,7 +632,11 @@ export function App() {
                   pending: { tone: "pending", message: "새 지원서를 만드는 중입니다..." },
                   success: { tone: "success", message: "새 지원서를 만들었습니다." },
                   failure: (error) => ({ tone: "error", message: "지원서 생성에 실패했습니다.", detail: getErrorMessage(error) })
-                }, () => client.createProject(payload));
+                }, async () => {
+                  const project = await client.createProject(payload);
+                  await refreshProviderState();
+                  return project;
+                });
               }}
               onSaveProjectDocument={async (projectSlug, payload) => {
                 showActionNotice({ tone: "pending", message: "지원서 문서를 저장중입니다..." });
@@ -730,10 +734,12 @@ export function App() {
                   pending: { tone: "pending", message: "새 실행을 시작중입니다..." },
                   success: { tone: "success", message: "새 실행을 시작했습니다." },
                   failure: (error) => ({ tone: "error", message: "실행 시작에 실패했습니다.", detail: getErrorMessage(error) })
-                }, () => client.startRun(projectSlug, payload).then((result) => {
-                  setSelectedRunId(result.runId);
-                  return result;
-                }));
+                }, async () => {
+                  const startResult = await client.startRun(projectSlug, payload);
+                  setSelectedRunId(startResult.runId);
+                  await refreshProviderState();
+                  return startResult;
+                });
                 return result?.runId;
               }}
               onSubmitIntervention={async (runId, message) => {
