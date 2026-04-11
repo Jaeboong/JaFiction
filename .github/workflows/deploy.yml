@@ -1,0 +1,51 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc -p packages/backend/tsconfig.json --noEmit
+
+      - name: Deploy to OCI
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/jasojeon
+
+            echo "=== git pull ==="
+            git pull origin main
+
+            echo "=== docker compose build ==="
+            docker compose --env-file .env.production build --no-cache
+
+            echo "=== docker compose up ==="
+            docker compose --env-file .env.production up -d
+
+            echo "=== cleanup ==="
+            docker image prune -f
+
+            echo "=== done ==="
