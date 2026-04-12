@@ -31,7 +31,7 @@ function parseBackendUrls(): string[] {
   return [];
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   try {
     resolveNodeRuntime();
   } catch (error) {

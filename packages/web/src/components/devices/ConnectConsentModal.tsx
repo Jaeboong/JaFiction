@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { BackendClient, ApproveDeviceClaimResult } from "../../api/client";
 import { RunnerClient } from "../../api/client";
 
@@ -11,7 +11,7 @@ export interface ConnectConsentModalProps {
 type ModalState =
   | { readonly phase: "consent" }
   | { readonly phase: "connecting" }
-  | { readonly phase: "no_runner" }
+  | { readonly phase: "no_runner"; readonly step: 1 | 2 | 3 }
   | {
       readonly phase: "multiple_claims";
       readonly claims: ReadonlyArray<{
@@ -25,10 +25,202 @@ type ModalState =
 
 const POLL_STATE_INTERVAL_MS = 500;
 const POLL_STATE_TIMEOUT_MS = 10_000;
+const POLL_CLAIM_INTERVAL_MS = 3_000;
+
+type DetectedOS = "windows" | "mac" | "linux";
+
+function detectOS(): DetectedOS {
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes("win")) return "windows";
+  if (ua.includes("mac")) return "mac";
+  return "linux";
+}
+
+function getDownloadUrl(backendBaseUrl: string, os: DetectedOS): string {
+  return `${backendBaseUrl}/api/runner/download?os=${os}`;
+}
+
+function triggerDownload(url: string): void {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+const OS_LABEL: Record<DetectedOS, string> = {
+  windows: "Windows",
+  mac: "macOS",
+  linux: "Linux",
+};
+
+const STEP_LABELS = ["소개", "설치", "연결"];
+
+interface StepIndicatorProps {
+  readonly current: 1 | 2 | 3;
+}
+
+function StepIndicator({ current }: StepIndicatorProps) {
+  return (
+    <div className="runner-install-steps">
+      {STEP_LABELS.map((label, i) => {
+        const num = (i + 1) as 1 | 2 | 3;
+        const isDone = num < current;
+        const isActive = num === current;
+        return (
+          <>
+            <div
+              key={num}
+              className={`runner-install-step-dot${isActive ? " active" : isDone ? " done" : ""}`}
+            >
+              <span>{isDone ? "✓" : num}</span>
+              <span>{label}</span>
+            </div>
+            {i < STEP_LABELS.length - 1 && (
+              <div key={`line-${num}`} className={`runner-install-step-line${isDone ? " done" : ""}`} />
+            )}
+          </>
+        );
+      })}
+    </div>
+  );
+}
+
+interface RunnerInstallGuideProps {
+  readonly step: 1 | 2 | 3;
+  readonly os: DetectedOS;
+  readonly downloadUrl: string;
+  readonly onNext: () => void;
+  readonly onConnected: () => void;
+  readonly backendClient: BackendClient;
+  readonly runnerClient: RunnerClient;
+}
+
+function RunnerInstallGuide({
+  step,
+  os,
+  downloadUrl,
+  onNext,
+  onConnected,
+  backendClient,
+  runnerClient,
+}: RunnerInstallGuideProps) {
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (step !== 3) return;
+
+    triggerDownload(downloadUrl);
+
+    pollingRef.current = setInterval(() => {
+      void (async () => {
+        let result: ApproveDeviceClaimResult;
+        try {
+          result = await backendClient.approveDeviceClaim();
+        } catch {
+          return;
+        }
+
+        if (result.status !== "approved" && result.status !== "authorized") return;
+
+        const deadline = Date.now() + POLL_STATE_TIMEOUT_MS;
+        while (Date.now() < deadline) {
+          await new Promise<void>((resolve) => setTimeout(resolve, POLL_STATE_INTERVAL_MS));
+          try {
+            await RunnerClient.bootstrap(runnerClient.baseUrl);
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            onConnected();
+            return;
+          } catch {
+            // still waiting
+          }
+        }
+      })();
+    }, POLL_CLAIM_INTERVAL_MS);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [step, downloadUrl, backendClient, runnerClient, onConnected]);
+
+  if (step === 1) {
+    return (
+      <>
+        <StepIndicator current={1} />
+        <img
+          src="/runner-step1.png"
+          alt="러너 소개"
+          className="runner-install-img"
+        />
+        <p className="app-gate-description">
+          자소전 러너는 이 컴퓨터의 파일을 읽고 쓸 수 있도록 백그라운드에서
+          실행되는 작은 프로그램입니다. 한 번 설치하면 PC를 켤 때마다 자동으로
+          실행됩니다.
+        </p>
+        <div className="runner-install-actions">
+          <button type="button" className="app-gate-cta" onClick={onNext}>
+            다음 →
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <>
+        <StepIndicator current={2} />
+        <img
+          src="/runner-step2.png"
+          alt="설치 방법"
+          className="runner-install-img"
+        />
+        <p className="app-gate-description">
+          다운로드된 파일을 실행하세요.
+          {os === "windows" && (
+            <> 파란 보안 경고창이 뜨면 <strong>추가 정보</strong>를 클릭한 뒤 <strong>실행</strong>을 선택하세요.</>
+          )}
+          {os === "mac" && (
+            <> 처음 실행 시 <strong>시스템 설정 → 개인정보 보호 및 보안</strong>에서 허용해 주세요.</>
+          )}
+        </p>
+        <div className="runner-install-actions">
+          <button type="button" className="app-gate-cta" onClick={onNext}>
+            다음 →
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <StepIndicator current={3} />
+      <img
+        src="/runner-step3.png"
+        alt="다운로드 및 연결"
+        className="runner-install-img"
+      />
+      <div className="runner-install-waiting">
+        <div className="runner-install-spinner" />
+        <span>러너를 실행하면 자동으로 연결됩니다…</span>
+      </div>
+      <p className="runner-install-fallback">
+        다운로드가 자동으로 시작되지 않으면{" "}
+        <a href={downloadUrl} download onClick={(e) => { e.preventDefault(); triggerDownload(downloadUrl); }}>
+          여기를 클릭하세요
+        </a>
+      </p>
+    </>
+  );
+}
 
 export function ConnectConsentModal({ backendClient, runnerClient, onConnected }: ConnectConsentModalProps) {
   const [consented, setConsented] = useState(false);
   const [modalState, setModalState] = useState<ModalState>({ phase: "consent" });
+  const os = detectOS();
+  const downloadUrl = getDownloadUrl(backendClient.baseUrl, os);
 
   async function handleConnect(claimId?: string) {
     setModalState({ phase: "connecting" });
@@ -45,7 +237,7 @@ export function ConnectConsentModal({ backendClient, runnerClient, onConnected }
     }
 
     if (result.status === "no_claim") {
-      setModalState({ phase: "no_runner" });
+      setModalState({ phase: "no_runner", step: 1 });
       return;
     }
 
@@ -126,7 +318,11 @@ export function ConnectConsentModal({ backendClient, runnerClient, onConnected }
   return (
     <section className="app-gate app-gate-device" aria-labelledby="consent-heading">
       <p className="app-gate-kicker">자소전</p>
-      <h1 id="consent-heading">로컬 환경에 연결</h1>
+      <h1 id="consent-heading">
+        {modalState.phase === "no_runner"
+          ? `로컬 러너 설치 (${OS_LABEL[os]})`
+          : "로컬 환경에 연결"}
+      </h1>
 
       {modalState.phase === "consent" && (
         <div className="app-gate-body" data-testid="device-onboarding-body">
@@ -164,21 +360,15 @@ export function ConnectConsentModal({ backendClient, runnerClient, onConnected }
 
       {modalState.phase === "no_runner" && (
         <div className="app-gate-body" data-testid="no-runner-body">
-          <p className="app-gate-description">
-            러너를 감지하지 못했습니다. 로컬에서 러너를 실행한 뒤 다시 시도해
-            주세요.
-          </p>
-          <button
-            type="button"
-            className="app-gate-cta"
-            onClick={() => {
-              setConsented(false);
-              setModalState({ phase: "consent" });
-            }}
-            data-testid="retry-button"
-          >
-            다시 시도
-          </button>
+          <RunnerInstallGuide
+            step={modalState.step}
+            os={os}
+            downloadUrl={downloadUrl}
+            onNext={() => setModalState({ phase: "no_runner", step: (modalState.step + 1) as 2 | 3 })}
+            onConnected={onConnected}
+            backendClient={backendClient}
+            runnerClient={runnerClient}
+          />
         </div>
       )}
 

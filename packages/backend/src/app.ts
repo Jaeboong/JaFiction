@@ -14,6 +14,7 @@ import { registerPairing, createDrizzleDeviceStore } from "./routes/pairing";
 import { registerRunnerSocket, createDrizzleRunnerSocketDeviceStore } from "./ws/runnerSocket";
 import { registerBrowserEvents } from "./ws/browserEvents";
 import { registerRpc, createDrizzleRpcDeviceStore } from "./routes/rpc";
+import { registerRunnerDownload } from "./routes/runnerDownload";
 import { createDeviceHub } from "./ws/deviceHub";
 import type { DeviceHub } from "./ws/deviceHub";
 import type { FetchGoogleUserInfo } from "./routes/auth";
@@ -129,6 +130,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     hub,
     deviceStore: createDrizzleRpcDeviceStore(deps.db)
   });
+
+  registerRunnerDownload(app);
 
   return app;
 }
