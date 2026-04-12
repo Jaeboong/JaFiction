@@ -10,6 +10,14 @@ const FILE_MAP: Readonly<Record<string, string>> = {
   linux: "jasojeon-runner-linux",
 };
 
+// 로컬 dev 환경에서는 localhost에 붙는 _local 바이너리를 제공.
+const LOCAL_FILE_MAP: Readonly<Record<string, string>> = {
+  windows: "jasojeon-runner-windows-local.exe",
+  "mac-arm64": "jasojeon-runner-mac-arm64-local",
+  "mac-x64": "jasojeon-runner-mac-x64-local",
+  linux: "jasojeon-runner-linux-local",
+};
+
 export function registerRunnerDownload(app: FastifyInstance): void {
   app.get("/api/runner/download", async (request, reply) => {
     const { os } = request.query as { os?: string };
@@ -21,9 +29,10 @@ export function registerRunnerDownload(app: FastifyInstance): void {
       });
     }
 
-    const baseUrl =
-      process.env["RUNNER_DOWNLOAD_BASE_URL"] ?? DEFAULT_BASE_URL;
-    const filename = FILE_MAP[os];
+    const isLocal = process.env["NODE_ENV"] !== "production";
+    const map = isLocal ? LOCAL_FILE_MAP : FILE_MAP;
+    const baseUrl = process.env["RUNNER_DOWNLOAD_BASE_URL"] ?? DEFAULT_BASE_URL;
+    const filename = map[os];
     const url = `${baseUrl}/${filename}`;
 
     return reply.redirect(302, url);

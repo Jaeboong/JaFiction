@@ -507,6 +507,10 @@ export class BackendClient {
     await this.request(`/api/devices/${id}/revoke`, { method: "POST" });
   }
 
+  async deleteAccount(): Promise<void> {
+    await this.request("/api/me", { method: "DELETE" });
+  }
+
   private async request<T = unknown>(
     pathname: string,
     init: { method?: string; body?: unknown } = {}

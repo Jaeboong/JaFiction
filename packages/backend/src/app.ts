@@ -96,7 +96,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     fetchGoogleUserInfo: deps.fetchGoogleUserInfo,
   });
 
-  await registerMe(app, { store: deps.store, env: deps.env });
+  await registerMe(app, { store: deps.store, env: deps.env, db: deps.db });
 
   await registerPairing(app, {
     deviceStore: createDrizzleDeviceStore(deps.db),

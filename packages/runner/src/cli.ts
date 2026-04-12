@@ -1,6 +1,10 @@
 import { main } from "./index";
 
-const DEFAULT_BACKEND_URL = "https://xn--9l4b13i8j.com";
+// build.ts --local 플래그로 빌드 시 --define으로 주입됨. 기본값은 prod URL.
+const DEFAULT_BACKEND_URL =
+  (typeof process.env["JASOJEON_DEFAULT_BACKEND_URL"] === "string" && process.env["JASOJEON_DEFAULT_BACKEND_URL"])
+    ? process.env["JASOJEON_DEFAULT_BACKEND_URL"]
+    : "https://xn--9l4b13i8j.com";
 
 const subcommand = process.argv[2] ?? "start";
 

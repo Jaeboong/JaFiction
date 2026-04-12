@@ -2,6 +2,7 @@
 
 > Claude Code reads this file automatically. For other agents, see `AGENTS.md`.
 > On conflict: `CLAUDE.md` > `AGENTS.md` > `docs/development/ARCHITECTURE.md` > `docs/development/OPERATING_RULES.md`
+> 로컬 환경 세팅, 포트 구조, .env.dev, OCI SSH, 자주 발생하는 에러 → `docs/development/LOCAL_SETUP.md` 먼저 읽을 것.
 
 ---
 
