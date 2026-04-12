@@ -43,7 +43,6 @@ function getDownloadUrl(backendBaseUrl: string, os: DetectedOS): string {
 function triggerDownload(url: string): void {
   const a = document.createElement("a");
   a.href = url;
-  a.download = "";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -92,6 +91,7 @@ interface RunnerInstallGuideProps {
   readonly os: DetectedOS;
   readonly downloadUrl: string;
   readonly onNext: () => void;
+  readonly onBack: () => void;
   readonly onConnected: () => void;
   readonly backendClient: BackendClient;
   readonly runnerClient: RunnerClient;
@@ -102,16 +102,23 @@ function RunnerInstallGuide({
   os,
   downloadUrl,
   onNext,
+  onBack,
   onConnected,
   backendClient,
   runnerClient,
 }: RunnerInstallGuideProps) {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasDownloadedRef = useRef(false);
+  const onConnectedRef = useRef(onConnected);
+  onConnectedRef.current = onConnected;
 
   useEffect(() => {
     if (step !== 3) return;
 
-    triggerDownload(downloadUrl);
+    if (!hasDownloadedRef.current) {
+      hasDownloadedRef.current = true;
+      triggerDownload(downloadUrl);
+    }
 
     pollingRef.current = setInterval(() => {
       void (async () => {
@@ -130,7 +137,7 @@ function RunnerInstallGuide({
           try {
             await RunnerClient.bootstrap(runnerClient.baseUrl);
             if (pollingRef.current) clearInterval(pollingRef.current);
-            onConnected();
+            onConnectedRef.current();
             return;
           } catch {
             // still waiting
@@ -142,7 +149,7 @@ function RunnerInstallGuide({
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [step, downloadUrl, backendClient, runnerClient, onConnected]);
+  }, [step, downloadUrl, backendClient, runnerClient]);
 
   if (step === 1) {
     return (
@@ -159,7 +166,10 @@ function RunnerInstallGuide({
           실행됩니다.
         </p>
         <div className="runner-install-actions">
-          <button type="button" className="app-gate-cta" onClick={onNext}>
+          <button type="button" className="runner-install-btn runner-install-btn-prev" onClick={onBack}>
+            ← 이전
+          </button>
+          <button type="button" className="runner-install-btn runner-install-btn-next" onClick={onNext}>
             다음 →
           </button>
         </div>
@@ -186,7 +196,10 @@ function RunnerInstallGuide({
           )}
         </p>
         <div className="runner-install-actions">
-          <button type="button" className="app-gate-cta" onClick={onNext}>
+          <button type="button" className="runner-install-btn runner-install-btn-prev" onClick={onBack}>
+            ← 이전
+          </button>
+          <button type="button" className="runner-install-btn runner-install-btn-next" onClick={onNext}>
             다음 →
           </button>
         </div>
@@ -208,10 +221,15 @@ function RunnerInstallGuide({
       </div>
       <p className="runner-install-fallback">
         다운로드가 자동으로 시작되지 않으면{" "}
-        <a href={downloadUrl} download onClick={(e) => { e.preventDefault(); triggerDownload(downloadUrl); }}>
+        <a href={downloadUrl} onClick={(e) => { e.preventDefault(); triggerDownload(downloadUrl); }}>
           여기를 클릭하세요
         </a>
       </p>
+      <div className="runner-install-actions">
+        <button type="button" className="runner-install-btn runner-install-btn-prev" onClick={onBack}>
+          ← 이전
+        </button>
+      </div>
     </>
   );
 }
@@ -365,6 +383,14 @@ export function ConnectConsentModal({ backendClient, runnerClient, onConnected }
             os={os}
             downloadUrl={downloadUrl}
             onNext={() => setModalState({ phase: "no_runner", step: (modalState.step + 1) as 2 | 3 })}
+            onBack={() => {
+              if (modalState.step === 1) {
+                setConsented(false);
+                setModalState({ phase: "consent" });
+              } else {
+                setModalState({ phase: "no_runner", step: (modalState.step - 1) as 1 | 2 });
+              }
+            }}
             onConnected={onConnected}
             backendClient={backendClient}
             runnerClient={runnerClient}

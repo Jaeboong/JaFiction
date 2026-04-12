@@ -236,6 +236,11 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
                 <strong>{installationLabel}</strong>
                 <span className={`providers-status-chip tone-${installationTone}`}>{provider.installed ? "Installed" : "Missing"}</span>
               </div>
+              {!provider.installed && provider.lastError && (
+                <div className="providers-install-guide">
+                  <span className="providers-install-error">{provider.lastError}</span>
+                </div>
+              )}
             </article>
 
             <article className="providers-snapshot-card">
@@ -594,6 +599,7 @@ function providerDisplayName(providerId: string): string {
   if (providerId === "codex") return "Codex";
   return providerId;
 }
+
 
 function ButtonBusyLabel({ label }: { label: string }) {
   return (

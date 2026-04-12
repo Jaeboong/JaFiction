@@ -144,14 +144,15 @@ export class ProviderRegistry {
       await this.execute(providerId, "Reply with the single word OK.", {
         cwd: this.storage.storageRoot,
         authMode,
-        apiKey
+        apiKey,
+        abortSignal: AbortSignal.timeout(10_000)
       }, true);
       status = { ...status, authStatus: "healthy", lastError: undefined };
     } catch (error) {
       status = {
         ...status,
         authStatus: "unhealthy",
-        lastError: error instanceof Error ? error.message : String(error)
+        lastError: isAbortError(error) ? "인증 테스트 시간 초과" : error instanceof Error ? error.message : String(error)
       };
     }
 

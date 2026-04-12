@@ -75,7 +75,7 @@ setsid bash -lc '
     --label backend \
     --pidfile "$4" \
     --logfile "$5" \
-    -- "$6" "$7" "$8"
+    -- "$6" "$7" --watch "$8"
 ' _ \
   "${ENV_DEV}" \
   "${ROOT_DIR}/scripts/with-node.sh" \

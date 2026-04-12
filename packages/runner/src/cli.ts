@@ -1,12 +1,13 @@
 import { main } from "./index";
 
 // build.ts --local 플래그로 빌드 시 --define으로 주입됨. 기본값은 prod URL.
+// bun --define 은 dot notation만 치환하므로 반드시 dot 접근으로 작성.
 const DEFAULT_BACKEND_URL =
-  (typeof process.env["JASOJEON_DEFAULT_BACKEND_URL"] === "string" && process.env["JASOJEON_DEFAULT_BACKEND_URL"])
-    ? process.env["JASOJEON_DEFAULT_BACKEND_URL"]
+  (typeof process.env.JASOJEON_DEFAULT_BACKEND_URL === "string" && process.env.JASOJEON_DEFAULT_BACKEND_URL)
+    ? process.env.JASOJEON_DEFAULT_BACKEND_URL
     : "https://xn--9l4b13i8j.com";
 
-const subcommand = process.argv[2] ?? "start";
+const subcommand = process.argv[2] ?? "install";
 
 async function runStart(): Promise<void> {
   if (!process.env["JASOJEON_BACKEND_URL"] && !process.env["JASOJEON_BACKEND_URLS"]) {
@@ -32,8 +33,10 @@ async function runInstall(): Promise<void> {
 
   process.stdout.write(
     "[jasojeon-runner] Service installed and started in the background.\n" +
-    "[jasojeon-runner] Open the web UI to connect your device.\n"
+    "[jasojeon-runner] Open the web UI to connect your device.\n" +
+    "[jasojeon-runner] This window will close in 3 seconds...\n"
   );
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 }
 
 async function runUninstall(): Promise<void> {
@@ -81,7 +84,7 @@ async function dispatch(): Promise<void> {
       break;
     default:
       process.stderr.write(`[jasojeon-runner] Unknown subcommand: ${subcommand}\n`);
-      process.stderr.write("Usage: jasojeon-runner [start|install|uninstall|status]\n");
+      process.stderr.write("Usage: jasojeon-runner [install|start|uninstall|status]\n");
       process.exit(1);
   }
 }

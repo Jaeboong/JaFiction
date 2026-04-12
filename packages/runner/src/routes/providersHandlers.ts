@@ -18,6 +18,7 @@ import {
 } from "@jasojeon/shared";
 import { performGeminiNotionOAuth } from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
+import { ensureProviderCli } from "../providers/resolve";
 
 function requireProviderId(value: string): ProviderId {
   if (!providerIds.includes(value as ProviderId)) {
@@ -33,7 +34,28 @@ export async function callProviderTest(
   const providerId = requireProviderId(payload.provider);
   let runtimeState: Awaited<ReturnType<ReturnType<RunnerContext["registry"]>["refreshRuntimeState"]>> | undefined;
   await ctx.runBusy("도구 연결을 확인하는 중...", async () => {
-    await ctx.registry().testProvider(providerId);
+    const state = await ctx.registry().testProvider(providerId);
+
+    if (state.installed === false) {
+      // CLI 미설치 → 자동 설치 시도
+      const updateProgress = (msg: string) => {
+        ctx.stateStore.setBusyMessage(msg);
+        void ctx.pushState();
+      };
+
+      try {
+        await ensureProviderCli(providerId, updateProgress);
+      } catch {
+        // 설치 실패 — testProvider 결과 그대로 반환
+        await ctx.stateStore.refreshProvider(providerId);
+        return;
+      }
+
+      // 설치 성공 → 재테스트
+      updateProgress("연결 확인 중...");
+      await ctx.registry().testProvider(providerId);
+    }
+
     await ctx.stateStore.refreshProvider(providerId);
   });
   runtimeState = await ctx.registry().refreshRuntimeState(providerId);

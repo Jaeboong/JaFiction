@@ -282,6 +282,14 @@ export class RunnerClient {
     return this.refetchProviderRuntimeState(providerId);
   }
 
+  async startProviderCliAuth(providerId: ProviderId): Promise<{ success: boolean; authUrl?: string; message?: string }> {
+    return this.rpcCall("start_provider_cli_auth", { providerId });
+  }
+
+  async submitProviderCliCode(providerId: ProviderId, code: string): Promise<{ success: boolean; message?: string }> {
+    return this.rpcCall("submit_provider_cli_code", { providerId, code });
+  }
+
   async updateProviderConfig(providerId: ProviderId, payload: Record<string, unknown>): Promise<ProviderRuntimeState> {
     const config = {
       authMode: typeof payload.authMode === "string" ? payload.authMode as "cli" | "apiKey" : undefined,

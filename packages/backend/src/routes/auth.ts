@@ -32,7 +32,7 @@ export type FetchGoogleUserInfo = (
 export interface AuthDeps {
   readonly db: Db;
   readonly store: SessionStore;
-  readonly env: Pick<Env, "NODE_ENV" | "PUBLIC_BASE_URL">;
+  readonly env: Pick<Env, "NODE_ENV" | "PUBLIC_BASE_URL" | "WEB_BASE_URL">;
   readonly fetchGoogleUserInfo?: FetchGoogleUserInfo;
 }
 
@@ -123,7 +123,7 @@ export async function registerAuth(
     const { raw } = await store.createSession(userId);
     setSessionCookie(reply, raw, env);
 
-    await reply.redirect(env.PUBLIC_BASE_URL);
+    await reply.redirect(env.WEB_BASE_URL ?? env.PUBLIC_BASE_URL);
   });
 
   // /auth/me — return the authenticated user's basic profile
@@ -153,6 +153,6 @@ export async function registerAuth(
       }
     }
     clearSessionCookie(reply);
-    await reply.redirect(env.PUBLIC_BASE_URL);
+    await reply.redirect(env.WEB_BASE_URL ?? env.PUBLIC_BASE_URL);
   });
 }

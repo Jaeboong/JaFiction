@@ -70,6 +70,7 @@ export function App() {
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [bootstrapErrorReason, setBootstrapErrorReason] = useState<RunnerBootstrapErrorReason | undefined>();
   const [bootstrapRetryNonce, setBootstrapRetryNonce] = useState(0);
+  const [authModal, setAuthModal] = useState<{ providerId: ProviderId; authUrl: string } | null>(null);
 
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | undefined>();
   const actionNoticeRef = useRef<ActionNoticeState | undefined>(undefined);
@@ -594,11 +595,31 @@ export function App() {
                 });
               }}
               onTest={async (providerId) => {
-                await runProviderAction(providerId, "test", {
-                  pending: { tone: "pending", message: "CLI 연결을 확인중입니다..." },
+                const testResult = await runProviderAction(providerId, "test", {
+                  pending: { tone: "pending", message: "연결 중..." },
                   success: (result) => buildProviderTestNotice(result),
-                  failure: (error) => ({ tone: "error", message: "CLI 연결 확인에 실패했습니다.", detail: getErrorMessage(error) })
+                  failure: (error) => ({ tone: "error", message: "연결에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.testProvider(providerId));
+
+                // 설치는 됐지만 인증 안 된 경우 → 자동 인증
+                if (testResult?.installed && testResult.authStatus !== "healthy" && testResult.authMode === "cli") {
+                  try {
+                    const authResult = await client.startProviderCliAuth(providerId);
+                    if (authResult.success && authResult.authUrl) {
+                      // Claude: 브라우저 열기 + 코드 입력 모달
+                      window.open(authResult.authUrl, "_blank");
+                      setAuthModal({ providerId, authUrl: authResult.authUrl });
+                    } else if (authResult.success) {
+                      // Codex/Gemini: 자동 콜백 완료
+                      await refreshProviderState();
+                      showActionNotice({ tone: "success", message: `${providerId} 인증이 완료되었습니다.` });
+                    } else {
+                      showActionNotice({ tone: "error", message: authResult.message ?? "인증에 실패했습니다." }, 3600);
+                    }
+                  } catch (error) {
+                    showActionNotice({ tone: "error", message: "인증 시작에 실패했습니다.", detail: getErrorMessage(error) }, 3600);
+                  }
+                }
               }}
               onCheckNotion={async (providerId) => {
                 await runProviderAction(providerId, "notion-check", {
@@ -800,6 +821,28 @@ export function App() {
         </section>
       </div>
 
+      {authModal && (
+        <AuthCodeModal
+          providerId={authModal.providerId}
+          authUrl={authModal.authUrl}
+          onSubmit={async (code) => {
+            try {
+              const result = await client.submitProviderCliCode(authModal.providerId, code);
+              if (result.success) {
+                showActionNotice({ tone: "success", message: "인증이 완료되었습니다." });
+                await refreshProviderState();
+              } else {
+                showActionNotice({ tone: "error", message: result.message ?? "인증에 실패했습니다." }, 3600);
+              }
+            } catch (error) {
+              showActionNotice({ tone: "error", message: "코드 제출에 실패했습니다.", detail: getErrorMessage(error) }, 3600);
+            }
+            setAuthModal(null);
+          }}
+          onCancel={() => setAuthModal(null)}
+        />
+      )}
+
       <footer className="app-footer">
         <div className="app-footer-metrics">
           <FooterMetric
@@ -927,4 +970,57 @@ function isCrossOriginRunnerBaseUrl(runnerBaseUrl: string): boolean {
   } catch {
     return false;
   }
+}
+
+function AuthCodeModal({
+  providerId,
+  authUrl,
+  onSubmit,
+  onCancel
+}: {
+  providerId: string;
+  authUrl: string;
+  onSubmit: (code: string) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [code, setCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  return (
+    <div className="auth-modal-overlay" onClick={onCancel}>
+      <div className="auth-modal" onClick={e => e.stopPropagation()}>
+        <h3>인증 코드 입력</h3>
+        <p>브라우저에서 {providerId} 인증을 완료한 뒤, 표시된 코드를 아래에 붙여넣으세요.</p>
+        <input
+          type="text"
+          className="auth-modal-input"
+          value={code}
+          onChange={e => setCode(e.target.value)}
+          placeholder="인증 코드를 입력하세요"
+          autoFocus
+          disabled={submitting}
+        />
+        <div className="auth-modal-actions">
+          <button
+            className="auth-modal-submit"
+            onClick={async () => {
+              if (!code.trim()) return;
+              setSubmitting(true);
+              await onSubmit(code.trim());
+            }}
+            disabled={!code.trim() || submitting}
+          >
+            {submitting ? "확인 중..." : "확인"}
+          </button>
+          <button
+            className="auth-modal-cancel"
+            onClick={onCancel}
+            disabled={submitting}
+          >
+            취소
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

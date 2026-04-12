@@ -739,6 +739,27 @@ export type ProfileGetDocumentPreviewPayload = z.infer<typeof ProfileGetDocument
 export type ProfileGetDocumentPreviewResult = z.infer<typeof ProfileGetDocumentPreviewResultSchema>;
 
 // ---------------------------------------------------------------------------
+// Provider CLI auth — 설치/인증 상태 확인 및 인증 플로우
+// ---------------------------------------------------------------------------
+const ProviderCliIdSchema = z.enum(["claude", "codex", "gemini"]);
+
+export const CheckProviderCliStatusPayloadSchema = z.object({
+  providerId: ProviderCliIdSchema.optional()
+}).strict();
+export type CheckProviderCliStatusPayload = z.infer<typeof CheckProviderCliStatusPayloadSchema>;
+
+export const StartProviderCliAuthPayloadSchema = z.object({
+  providerId: ProviderCliIdSchema
+}).strict();
+export type StartProviderCliAuthPayload = z.infer<typeof StartProviderCliAuthPayloadSchema>;
+
+export const SubmitProviderCliCodePayloadSchema = z.object({
+  providerId: ProviderCliIdSchema,
+  code: z.string().min(1)
+}).strict();
+export type SubmitProviderCliCodePayload = z.infer<typeof SubmitProviderCliCodePayloadSchema>;
+
+// ---------------------------------------------------------------------------
 // Exhaustive op name list
 // ---------------------------------------------------------------------------
 export const OP_NAMES = [
@@ -784,7 +805,10 @@ export const OP_NAMES = [
   "profile_save_text_document",
   "profile_upload_document_chunk",
   "profile_set_document_pinned",
-  "profile_get_document_preview"
+  "profile_get_document_preview",
+  "check_provider_cli_status",
+  "start_provider_cli_auth",
+  "submit_provider_cli_code"
 ] as const satisfies readonly [string, ...string[]];
 
 // Hard cap for chunked upload assembly (server-enforced in handler).
@@ -845,7 +869,10 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("profile_save_text_document"), payload: ProfileSaveTextDocumentPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("profile_upload_document_chunk"), payload: ProfileUploadDocumentChunkPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("profile_set_document_pinned"), payload: ProfileSetDocumentPinnedPayloadSchema }).strict(),
-  RpcRequestBaseSchema.extend({ op: z.literal("profile_get_document_preview"), payload: ProfileGetDocumentPreviewPayloadSchema }).strict()
+  RpcRequestBaseSchema.extend({ op: z.literal("profile_get_document_preview"), payload: ProfileGetDocumentPreviewPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("check_provider_cli_status"), payload: CheckProviderCliStatusPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("start_provider_cli_auth"), payload: StartProviderCliAuthPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("submit_provider_cli_code"), payload: SubmitProviderCliCodePayloadSchema }).strict()
 ]);
 
 export type RpcRequest = z.infer<typeof RpcRequestSchema>;

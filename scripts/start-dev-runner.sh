@@ -48,6 +48,7 @@ setsid bash -lc '
   "${RUNNER_LOG_FILE}" \
   "${ROOT_DIR}/scripts/with-node.sh" \
   "${ROOT_DIR}/node_modules/tsx/dist/cli.mjs" \
+  --watch \
   "${ROOT_DIR}/packages/runner/src/index.ts" \
   < /dev/null >> "${RUNNER_LOG_FILE}" 2>&1 &
 

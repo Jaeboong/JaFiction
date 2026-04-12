@@ -9,6 +9,8 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PUBLIC_BASE_URL: z.string().url(),
+  // 로그인 후 리다이렉트 URL. dev에서는 프론트(4124), prod에서는 PUBLIC_BASE_URL과 동일.
+  WEB_BASE_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

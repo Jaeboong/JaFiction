@@ -1,4 +1,4 @@
-import { resolveNodeRuntime, redactSecrets } from "@jasojeon/shared";
+import { redactSecrets } from "@jasojeon/shared";
 import { createRunnerContext } from "./runnerContext";
 import {
   loadDeviceId,
@@ -32,13 +32,6 @@ function parseBackendUrls(): string[] {
 }
 
 export async function main(): Promise<void> {
-  try {
-    resolveNodeRuntime();
-  } catch (error) {
-    process.stderr.write(`[runner] Failed to resolve Node runtime: ${error instanceof Error ? error.message : String(error)}\n`);
-    process.exit(1);
-  }
-
   const backendUrls = parseBackendUrls();
   if (backendUrls.length === 0) {
     process.stderr.write(

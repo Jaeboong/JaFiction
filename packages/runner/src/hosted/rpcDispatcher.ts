@@ -42,6 +42,11 @@ import {
   profileSetDocumentPinned,
   profileGetDocumentPreview
 } from "../routes/profileHandlers";
+import {
+  checkProviderCliStatus,
+  startProviderCliAuth,
+  submitProviderCliCode
+} from "../routes/providerCliHandlers";
 
 // ---------------------------------------------------------------------------
 // Logger interface — narrow surface so callers can provide console or pino
@@ -315,6 +320,15 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
 
     case "profile_get_document_preview":
       return profileGetDocumentPreview(ctx, req.payload);
+
+    case "check_provider_cli_status":
+      return checkProviderCliStatus(ctx, req.payload);
+
+    case "start_provider_cli_auth":
+      return startProviderCliAuth(ctx, req.payload);
+
+    case "submit_provider_cli_code":
+      return submitProviderCliCode(ctx, req.payload);
 
     default:
       // Compile-time exhaustiveness guard + runtime defense

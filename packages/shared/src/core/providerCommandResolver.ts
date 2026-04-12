@@ -34,32 +34,45 @@ export function withCommandDirectoryInPath(baseEnv: NodeJS.ProcessEnv, command: 
   const currentPath = baseEnv.PATH ?? "";
   const delimiter = detectPathDelimiter(currentPath);
 
-  // Always prepend the verified node runtime binDir so the provider's child
+  // Prepend the verified node runtime binDir so the provider's child
   // processes (e.g. MCP stdio servers) inherit the Linux node binary, not a
   // Windows stub that may appear earlier in the ambient PATH on WSL.
-  const nodeRuntime = getNodeRuntime();
-  const nodeDir = nodeRuntime.binDir;
+  // If Node.js is not found (e.g. end-user machine without Node), skip injection.
+  let nodeDir: string | null = null;
+  try {
+    nodeDir = getNodeRuntime().binDir;
+  } catch {
+    // Node.js not available on this machine — proceed without injecting node path
+  }
+
+  const filterEntries = (entries: string[]): string[] =>
+    nodeDir
+      ? entries.filter((e) => !samePathEntry(e, nodeDir as string))
+      : entries;
 
   if (!path.isAbsolute(command)) {
-    const pathEntries = currentPath
-      .split(delimiter)
-      .filter(Boolean)
-      .filter((entry) => !samePathEntry(entry, nodeDir));
+    const pathEntries = filterEntries(currentPath.split(delimiter).filter(Boolean));
     return {
       ...baseEnv,
-      PATH: [nodeDir, ...pathEntries].join(delimiter)
+      PATH: nodeDir
+        ? [nodeDir, ...pathEntries].join(delimiter)
+        : pathEntries.join(delimiter)
     };
   }
 
   const commandDir = path.dirname(command);
-  const pathEntries = currentPath
-    .split(delimiter)
-    .filter(Boolean)
-    .filter((entry) => !samePathEntry(entry, nodeDir) && !samePathEntry(entry, commandDir));
+  const pathEntries = filterEntries(
+    currentPath
+      .split(delimiter)
+      .filter(Boolean)
+      .filter((entry) => !samePathEntry(entry, commandDir))
+  );
 
   return {
     ...baseEnv,
-    PATH: [nodeDir, commandDir, ...pathEntries].join(delimiter)
+    PATH: nodeDir
+      ? [nodeDir, commandDir, ...pathEntries].join(delimiter)
+      : [commandDir, ...pathEntries].join(delimiter)
   };
 }
 
@@ -69,11 +82,19 @@ function shouldSearchKnownLocations(providerId: ProviderId, command: string): bo
 
 async function listPreferredCommandCandidates(providerId: ProviderId, homeDir: string): Promise<string[]> {
   const command = defaultProviderCommands[providerId];
+  const isWindows = process.platform === "win32";
+  const exe = isWindows ? `${command}.exe` : command;
+
   const candidates = [
-    ...(await listNvmCandidates(homeDir, command)),
-    path.join(homeDir, ".local", "bin", command),
-    path.join(homeDir, "bin", command)
+    ...(await listNvmCandidates(homeDir, exe)),
+    path.join(homeDir, ".local", "bin", exe),
+    path.join(homeDir, "bin", exe)
   ];
+
+  if (isWindows) {
+    const localAppData = process.env["LOCALAPPDATA"] ?? path.join(homeDir, "AppData", "Local");
+    candidates.push(path.join(localAppData, "Programs", command, exe));
+  }
 
   return [...new Set(candidates)];
 }

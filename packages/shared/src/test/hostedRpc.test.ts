@@ -1068,12 +1068,15 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "profile_upload_document_chunk": return acc + 1;
       case "profile_set_document_pinned": return acc + 1;
       case "profile_get_document_preview": return acc + 1;
+      case "check_provider_cli_status": return acc + 1;
+      case "start_provider_cli_auth": return acc + 1;
+      case "submit_provider_cli_code": return acc + 1;
       default: return assertNever(op);
     }
   }, 0);
 
-  assert.equal(count, 43);
-  assert.equal(OP_NAMES.length, 43);
+  assert.equal(count, 46);
+  assert.equal(OP_NAMES.length, 46);
 });
 
 test("EVENT_NAMES exhaustiveness via switch", () => {
