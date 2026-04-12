@@ -10,12 +10,14 @@ async function main(): Promise<void> {
   const pool = createPgPool(env);
   const db = createDrizzle(pool);
   const redis = createRedis(env);
+  const redisSub = createRedis(env);
 
   await redis.connect();
+  await redisSub.connect();
 
   const store = createSessionStore(db, env);
 
-  const app = await buildApp({ pool, redis, db, store, env });
+  const app = await buildApp({ pool, redis, redisSub, db, store, env });
 
   await app.listen({ port: env.PORT, host: "0.0.0.0" });
 }

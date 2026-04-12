@@ -316,6 +316,7 @@ export type SaveProviderApiKeyResult = z.infer<typeof SaveProviderApiKeyResultSc
 // Making dbId optional keeps the existing token-only UX working without
 // blocking future expansion.
 export const NotionConnectPayloadSchema = z.object({
+  provider: ProviderIdSchema.optional(),
   token: z.string().min(1).optional(),
   dbId: z.string().min(1).optional()
 }).strict();
@@ -326,7 +327,9 @@ export type NotionConnectPayload = z.infer<typeof NotionConnectPayloadSchema>;
 export type NotionConnectResult = z.infer<typeof NotionConnectResultSchema>;
 
 // notion_disconnect — mirrors providersRouter POST /:providerId/notion/disconnect
-export const NotionDisconnectPayloadSchema = z.object({}).strict();
+export const NotionDisconnectPayloadSchema = z.object({
+  provider: ProviderIdSchema.optional()
+}).strict();
 export const NotionDisconnectResultSchema = z.object({
   ok: z.literal(true)
 }).strict();
@@ -759,6 +762,16 @@ export const SubmitProviderCliCodePayloadSchema = z.object({
 }).strict();
 export type SubmitProviderCliCodePayload = z.infer<typeof SubmitProviderCliCodePayloadSchema>;
 
+export const CallProviderLogoutPayloadSchema = z.object({
+  providerId: ProviderCliIdSchema
+}).strict();
+export const CallProviderLogoutResultSchema = z.object({
+  ok: z.boolean(),
+  message: z.string().optional()
+}).strict();
+export type CallProviderLogoutPayload = z.infer<typeof CallProviderLogoutPayloadSchema>;
+export type CallProviderLogoutResult = z.infer<typeof CallProviderLogoutResultSchema>;
+
 // ---------------------------------------------------------------------------
 // Exhaustive op name list
 // ---------------------------------------------------------------------------
@@ -808,7 +821,8 @@ export const OP_NAMES = [
   "profile_get_document_preview",
   "check_provider_cli_status",
   "start_provider_cli_auth",
-  "submit_provider_cli_code"
+  "submit_provider_cli_code",
+  "call_provider_logout"
 ] as const satisfies readonly [string, ...string[]];
 
 // Hard cap for chunked upload assembly (server-enforced in handler).
@@ -872,7 +886,8 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("profile_get_document_preview"), payload: ProfileGetDocumentPreviewPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("check_provider_cli_status"), payload: CheckProviderCliStatusPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("start_provider_cli_auth"), payload: StartProviderCliAuthPayloadSchema }).strict(),
-  RpcRequestBaseSchema.extend({ op: z.literal("submit_provider_cli_code"), payload: SubmitProviderCliCodePayloadSchema }).strict()
+  RpcRequestBaseSchema.extend({ op: z.literal("submit_provider_cli_code"), payload: SubmitProviderCliCodePayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("call_provider_logout"), payload: CallProviderLogoutPayloadSchema }).strict()
 ]);
 
 export type RpcRequest = z.infer<typeof RpcRequestSchema>;

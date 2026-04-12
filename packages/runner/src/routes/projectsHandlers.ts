@@ -236,8 +236,15 @@ export async function generateInsights(
         projectSlug: slug,
         patch: payload.patch as Record<string, unknown> | undefined
       });
-    } catch {
-      // Persisted onto the project record (insightLastError).
+    } catch (err) {
+      try {
+        const message = err instanceof Error ? err.message : String(err);
+        const storage = ctx.storage();
+        const current = await storage.getProject(slug);
+        await storage.updateProject({ ...current, insightStatus: "error", insightLastError: message });
+      } catch {
+        // storage write failure is non-fatal
+      }
     } finally {
       try {
         await ctx.stateStore.refreshProjects(slug);

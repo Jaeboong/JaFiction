@@ -1,4 +1,7 @@
 import { spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { NotionConnectPlan, NotionMcpCheckResult } from "./notionMcp";
 import {
   buildCodexNotionConnectPlan,
@@ -85,6 +88,11 @@ export class ProviderRegistry {
     return states.map(cloneRuntimeState);
   }
 
+  getCachedRuntimeState(providerId: ProviderId): ProviderRuntimeState | undefined {
+    const cached = this.runtimeStateCache.get(providerId);
+    return cached ? cloneRuntimeState(cached) : undefined;
+  }
+
   async refreshRuntimeState(providerId: ProviderId): Promise<ProviderRuntimeState> {
     const savedStatuses = await this.storage.loadProviderStatuses();
     const state = await this.buildRuntimeState(providerId, savedStatuses[providerId]);
@@ -140,20 +148,24 @@ export class ProviderRegistry {
       };
     }
 
-    try {
-      await this.execute(providerId, "Reply with the single word OK.", {
-        cwd: this.storage.storageRoot,
-        authMode,
-        apiKey,
-        abortSignal: AbortSignal.timeout(10_000)
-      }, true);
+    const env = buildEnvironment(providerId, authMode, apiKey, command);
+
+    if (authMode === "apiKey") {
+      // API 키가 있으면 낙관적으로 healthy로 표시 — 실제 검증은 실행 시점에
       status = { ...status, authStatus: "healthy", lastError: undefined };
-    } catch (error) {
-      status = {
-        ...status,
-        authStatus: "unhealthy",
-        lastError: isAbortError(error) ? "인증 테스트 시간 초과" : error instanceof Error ? error.message : String(error)
-      };
+    } else {
+      try {
+        const authOk = await checkProviderAuthStatus(providerId, command, env, AbortSignal.timeout(10_000));
+        status = authOk
+          ? { ...status, authStatus: "healthy", lastError: undefined }
+          : { ...status, authStatus: "unhealthy", lastError: "인증되지 않았습니다. CLI 로그인이 필요합니다." };
+      } catch (error) {
+        status = {
+          ...status,
+          authStatus: "unhealthy",
+          lastError: isAbortError(error) ? "인증 상태 확인 시간 초과" : error instanceof Error ? error.message : String(error)
+        };
+      }
     }
 
     await this.storage.saveProviderStatus(status);
@@ -187,7 +199,11 @@ export class ProviderRegistry {
       throw new Error(`${providerNames[providerId]}는 API 키 방식에서 API 키가 필요합니다.`);
     }
 
-    const args = buildProviderArgs(providerId, prompt, testOnly, {
+    // On Windows, Claude is typically invoked as claude.cmd. Passing long prompts
+    // with special characters (<<<, >>>, quotes) as argv causes cmd.exe to
+    // misinterpret them as redirection operators. Use stdin delivery instead.
+    const useStdin = providerId === "claude" && process.platform === "win32";
+    const args = buildProviderArgs(providerId, useStdin ? "" : prompt, testOnly, {
       model: normalizeProviderSettingValue(options.modelOverride) ?? this.getModel(providerId),
       effort: normalizeProviderSettingValue(options.effortOverride) ?? this.getEffort(providerId)
     });
@@ -204,7 +220,8 @@ export class ProviderRegistry {
       options.speakerRole,
       options.messageScope,
       options.participantId,
-      options.participantLabel
+      options.participantLabel,
+      useStdin ? prompt : undefined
     );
     return {
       ...result,
@@ -377,6 +394,21 @@ export class ProviderRegistry {
     const env = withCommandDirectoryInPath(process.env, command);
 
     for (const step of plan.steps) {
+      // `mcp login` is interactive (opens browser, waits for OAuth callback).
+      // Run it detached so the RPC doesn't block indefinitely.
+      if (step.args[0] === "mcp" && step.args[1] === "login") {
+        const useShell = command.endsWith(".cmd");
+        const child = spawn(command, step.args, {
+          cwd: this.storage.storageRoot,
+          env,
+          stdio: "ignore",
+          shell: useShell,
+          detached: true,
+          windowsHide: true
+        });
+        child.unref();
+        continue;
+      }
       await runProcess(command, step.args, this.storage.storageRoot, env);
     }
   }
@@ -487,16 +519,72 @@ function buildEnvironment(
   return env;
 }
 
+async function checkProviderAuthStatus(
+  providerId: ProviderId,
+  command: string,
+  env: NodeJS.ProcessEnv,
+  abortSignal?: AbortSignal
+): Promise<boolean> {
+  switch (providerId) {
+    case "claude": {
+      const result = await runProcess(command, ["auth", "status"], process.cwd(), env, undefined, abortSignal);
+      try {
+        const parsed = JSON.parse(result.stdout) as Record<string, unknown>;
+        return parsed["loggedIn"] === true;
+      } catch {
+        return false;
+      }
+    }
+    case "codex": {
+      // 1차: auth.json 파일 존재 여부로 확인 (Windows에서 spawn+shell:false stderr 캡처 문제 회피)
+      const codexAuthPath = path.join(os.homedir(), ".codex", "auth.json");
+      if (fs.existsSync(codexAuthPath)) {
+        try {
+          const raw = fs.readFileSync(codexAuthPath, "utf-8");
+          const parsed = JSON.parse(raw) as Record<string, unknown>;
+          if (parsed["auth_mode"] === "chatgpt" || parsed["OPENAI_API_KEY"]) {
+            return true;
+          }
+        } catch { /* 파싱 실패 시 CLI 방식으로 폴백 */ }
+      }
+      // 2차: CLI 출력으로 확인 (폴백)
+      try {
+        const result = await runProcess(command, ["login", "status"], process.cwd(), env, undefined, abortSignal);
+        const combined = `${result.stdout}\n${result.stderr}`.trim().toLowerCase();
+        return combined.includes("logged in");
+      } catch {
+        return false;
+      }
+    }
+    case "gemini": {
+      const oauthCredsPath = path.join(os.homedir(), ".gemini", "oauth_creds.json");
+      return fs.existsSync(oauthCredsPath);
+    }
+  }
+}
+
 async function detectInstallation(command: string): Promise<{ installed: boolean; version?: string; error?: string }> {
   try {
     const result = await runProcess(command, ["--version"], process.cwd(), withCommandDirectoryInPath(process.env, command));
     return { installed: true, version: firstNonEmptyLine(result.stdout) ?? firstNonEmptyLine(result.stderr) };
   } catch (error) {
-    return {
-      installed: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
+    const message = error instanceof Error ? error.message : String(error);
+    const userFacingError = classifyInstallationError(message);
+    return { installed: false, error: userFacingError };
   }
+}
+
+function classifyInstallationError(errorMessage: string): string {
+  if (/ENOENT|command not found|not recognized|not found/i.test(errorMessage)) {
+    return "CLI가 설치되어 있지 않습니다.";
+  }
+  if (/MODULE_NOT_FOUND|Cannot find module/i.test(errorMessage)) {
+    return "CLI 패키지가 손상되었습니다. 재설치가 필요합니다.";
+  }
+  if (/exited with code/i.test(errorMessage)) {
+    return "CLI 실행 중 오류가 발생했습니다. 재설치가 필요할 수 있습니다.";
+  }
+  return "CLI가 설치되어 있지 않거나 실행할 수 없습니다.";
 }
 
 function firstNonEmptyLine(text: string): string | undefined {
@@ -518,14 +606,16 @@ async function runProcess(
   speakerRole?: PromptExecutionOptions["speakerRole"],
   messageScope?: string,
   participantId?: string,
-  participantLabel?: string
+  participantLabel?: string,
+  stdinData?: string
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   if (abortSignal?.aborted) {
     throw new RunAbortedError();
   }
 
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, env, shell: false });
+    const useShell = process.platform === "win32" && command.endsWith(".cmd");
+    const child = spawn(command, args, { cwd, env, shell: useShell, windowsHide: true });
     let stdout = "";
     let stderr = "";
     let aborted = false;
@@ -564,9 +654,14 @@ async function runProcess(
 
     abortSignal?.addEventListener("abort", handleAbort, { once: true });
 
-    // These CLIs are invoked with their full prompt in argv, so we can close
-    // stdin immediately and avoid tools like Claude waiting for piped input.
-    child.stdin.end();
+    // Write prompt via stdin if provided (avoids shell escaping issues with
+    // special characters like <<< >>> in prompts on Windows cmd.exe).
+    // Otherwise close stdin immediately to avoid CLIs waiting for piped input.
+    if (stdinData) {
+      child.stdin.write(stdinData, () => { child.stdin.end(); });
+    } else {
+      child.stdin.end();
+    }
 
     child.stdout.on("data", async (chunk: Buffer | string) => {
       const text = chunk.toString();

@@ -317,6 +317,14 @@ export async function ensureNpm(onProgress?: (msg: string) => void): Promise<str
   return downloadPortableNodeJs(onProgress);
 }
 
+async function verifyCliWorks(binPath: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    execFile(binPath, ["--version"], { timeout: 5_000 }, (error) => {
+      resolve(error === null);
+    });
+  });
+}
+
 /**
  * 프로바이더 CLI를 확인하고, 없으면 설치한다.
  */
@@ -326,7 +334,10 @@ export async function ensureProviderCli(
 ): Promise<void> {
   const commandName = providerId === "claude" ? "claude" : providerId;
   const existing = await resolveCommand(commandName);
-  if (existing) return;
+  if (existing) {
+    const works = await verifyCliWorks(existing);
+    if (works) return;
+  }
 
   switch (providerId) {
     case "claude":

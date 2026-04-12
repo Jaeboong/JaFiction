@@ -27,8 +27,8 @@ export const claudeHandler: ProviderAuthHandler = {
     }
   },
 
-  async startAuth(): Promise<ProviderAuthResult> {
-    const bin = await resolveCommand("claude");
+  async startAuth(command?: string): Promise<ProviderAuthResult> {
+    const bin = command ?? await resolveCommand("claude");
     if (!bin) {
       return { success: false, message: "Claude CLI가 설치되어 있지 않습니다." };
     }
@@ -82,6 +82,38 @@ export const claudeHandler: ProviderAuthHandler = {
         clearInterval(checkForUrl);
         clearTimeout(timeout);
         pendingAuthProcess = null;
+      });
+    });
+  },
+
+  async logout(command?: string): Promise<ProviderAuthResult> {
+    const bin = command ?? await resolveCommand("claude");
+    if (!bin) {
+      return { success: false, message: "Claude CLI가 설치되어 있지 않습니다." };
+    }
+
+    if (pendingAuthProcess) {
+      pendingAuthProcess.kill();
+      pendingAuthProcess = null;
+    }
+
+    return new Promise<ProviderAuthResult>((resolve) => {
+      const child = spawn(bin, ["auth", "logout"], {
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      const timeout = setTimeout(() => {
+        child.kill();
+        resolve({ success: false, message: "로그아웃 응답 대기 시간 초과." });
+      }, 15_000);
+
+      child.on("close", (exitCode) => {
+        clearTimeout(timeout);
+        if (exitCode === 0) {
+          resolve({ success: true, message: "Claude 로그아웃 완료." });
+        } else {
+          resolve({ success: false, message: "로그아웃에 실패했습니다." });
+        }
       });
     });
   },

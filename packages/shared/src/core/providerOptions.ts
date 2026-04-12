@@ -64,17 +64,30 @@ export function getProviderCapabilities(providerId: ProviderId): ProviderCapabil
   return cloneProviderCapabilities(providerCapabilitiesMap[providerId]);
 }
 
+// capabilities 캐시 — 바이너리 읽기(수백 MB)를 매번 반복하지 않도록
+const capabilitiesCache = new Map<string, { capabilities: ProviderCapabilities; cachedAt: number }>();
+const CAPABILITIES_TTL_MS = 5 * 60 * 1000; // 5분
+
 export async function loadProviderCapabilities(providerId: ProviderId, command: string): Promise<ProviderCapabilities> {
+  const cacheKey = `${providerId}:${command}`;
+  const cached = capabilitiesCache.get(cacheKey);
+  if (cached && Date.now() - cached.cachedAt < CAPABILITIES_TTL_MS) {
+    return cloneProviderCapabilities(cached.capabilities);
+  }
+
   const fallback = getProviderCapabilities(providerId);
   const discoveredOptions = await discoverProviderModelOptions(providerId, command);
   if (!discoveredOptions.length) {
+    capabilitiesCache.set(cacheKey, { capabilities: fallback, cachedAt: Date.now() });
     return fallback;
   }
 
-  return {
+  const result = {
     ...fallback,
     modelOptions: mergeModelOptions(fallback.modelOptions, discoveredOptions)
   };
+  capabilitiesCache.set(cacheKey, { capabilities: result, cachedAt: Date.now() });
+  return cloneProviderCapabilities(result);
 }
 
 export function normalizeProviderSettingValue(value: string | undefined | null): string | undefined {
@@ -124,7 +137,12 @@ export function buildProviderArgs(
       if (effort) {
         args.push("--effort", effort);
       }
-      args.push("-p", prompt);
+      // Empty prompt = stdin delivery mode (prompt written to child.stdin)
+      if (prompt) {
+        args.push("-p", prompt);
+      } else {
+        args.push("-p");
+      }
       return args;
     }
     case "gemini": {

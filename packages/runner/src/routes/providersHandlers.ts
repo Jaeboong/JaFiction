@@ -16,7 +16,6 @@ import {
   ProviderId,
   providerIds
 } from "@jasojeon/shared";
-import { performGeminiNotionOAuth } from "@jasojeon/shared";
 import { RunnerContext } from "../runnerContext";
 import { ensureProviderCli } from "../providers/resolve";
 
@@ -57,8 +56,13 @@ export async function callProviderTest(
     }
 
     await ctx.stateStore.refreshProvider(providerId);
+    // testProvider가 이미 캐시를 갱신했으므로 캐시에서 가져옴
+    // refreshRuntimeState는 바이너리를 다시 읽어 느림 (Claude 232MB)
+    runtimeState = await ctx.registry().getCachedRuntimeState(providerId);
   });
-  runtimeState = await ctx.registry().refreshRuntimeState(providerId);
+  if (!runtimeState) {
+    runtimeState = await ctx.registry().refreshRuntimeState(providerId);
+  }
   return {
     ok: runtimeState.authStatus === "healthy",
     stdoutExcerpt: undefined,
@@ -118,9 +122,6 @@ export async function clearProviderApiKey(
   return { ok: true };
 }
 
-// notion_connect: save token then connect MCP (claude provider is canonical for Notion)
-const NOTION_PROVIDER: ProviderId = "claude";
-
 export async function notionCheck(
   ctx: RunnerContext,
   payload: NotionCheckPayload
@@ -137,27 +138,26 @@ export async function notionConnect(
   ctx: RunnerContext,
   payload: NotionConnectPayload
 ): Promise<NotionConnectResult> {
+  const providerId = payload.provider ? requireProviderId(payload.provider) : "claude" as ProviderId;
   await ctx.runBusy("Notion MCP를 연결하는 중...", async () => {
     if (payload.token) {
       await ctx.registry().saveNotionToken(payload.token);
-    } else {
-      // token 없으면 OAuth 브라우저 플로우 실행 (로컬 러너에서 브라우저 열림)
-      await performGeminiNotionOAuth("notion");
     }
-    await ctx.registry().connectNotionMcp(NOTION_PROVIDER);
-    await ctx.registry().checkNotionMcp(NOTION_PROVIDER);
-    await ctx.stateStore.refreshProvider(NOTION_PROVIDER);
+    await ctx.registry().connectNotionMcp(providerId);
+    await ctx.registry().checkNotionMcp(providerId);
+    await ctx.stateStore.refreshProvider(providerId);
   });
   return { ok: true };
 }
 
 export async function notionDisconnect(
   ctx: RunnerContext,
-  _payload: NotionDisconnectPayload
+  payload: NotionDisconnectPayload
 ): Promise<NotionDisconnectResult> {
+  const providerId = payload.provider ? requireProviderId(payload.provider) : "claude" as ProviderId;
   await ctx.runBusy("Notion MCP 연결을 해제하는 중...", async () => {
-    await ctx.registry().disconnectNotionMcp(NOTION_PROVIDER);
-    await ctx.stateStore.refreshProvider(NOTION_PROVIDER);
+    await ctx.registry().disconnectNotionMcp(providerId);
+    await ctx.stateStore.refreshProvider(providerId);
   });
   return { ok: true };
 }

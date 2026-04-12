@@ -24,8 +24,8 @@ export const codexHandler: ProviderAuthHandler = {
     }
   },
 
-  async startAuth(): Promise<ProviderAuthResult> {
-    const bin = await resolveCommand("codex");
+  async startAuth(command?: string): Promise<ProviderAuthResult> {
+    const bin = command ?? await resolveCommand("codex");
     if (!bin) {
       return { success: false, message: "Codex CLI가 설치되어 있지 않습니다." };
     }
@@ -47,6 +47,32 @@ export const codexHandler: ProviderAuthHandler = {
           resolve({ success: true, message: "Codex 인증 완료." });
         } else {
           resolve({ success: false, message: "Codex 인증에 실패했습니다." });
+        }
+      });
+    });
+  },
+  async logout(command?: string): Promise<ProviderAuthResult> {
+    const bin = command ?? await resolveCommand("codex");
+    if (!bin) {
+      return { success: false, message: "Codex CLI가 설치되어 있지 않습니다." };
+    }
+
+    return new Promise<ProviderAuthResult>((resolve) => {
+      const child = spawn(bin, ["logout"], {
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      const timeout = setTimeout(() => {
+        child.kill();
+        resolve({ success: false, message: "로그아웃 응답 대기 시간 초과." });
+      }, 15_000);
+
+      child.on("close", (exitCode) => {
+        clearTimeout(timeout);
+        if (exitCode === 0) {
+          resolve({ success: true, message: "Codex 로그아웃 완료." });
+        } else {
+          resolve({ success: false, message: "로그아웃에 실패했습니다." });
         }
       });
     });

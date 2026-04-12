@@ -26,7 +26,7 @@ const backendClient = new BackendClient(backendBaseUrl);
 
 type AppTab = "overview" | "providers" | "projects" | "runs" | "settings";
 type ActionTone = "pending" | "success" | "warning" | "error";
-type ProviderActionKind = "test" | "notion-check" | "notion-connect" | "notion-disconnect";
+type ProviderActionKind = "test" | "notion-check" | "notion-connect" | "notion-disconnect" | "logout";
 type OpenDartActionKind = "save" | "delete" | "test";
 const actionNoticeAutoDismissMs = 2200;
 const actionNoticeExitMs = 200;
@@ -153,8 +153,23 @@ export function App() {
         });
 
         stateSocket = nextClient.createStateSocket();
-        stateSocket.onmessage = (event) => {
-          const parsed = JSON.parse(event.data) as unknown;
+        stateSocket.binaryType = "blob";
+        stateSocket.onmessage = async (event) => {
+          let raw: string;
+          try {
+            raw =
+              typeof event.data === "string"
+                ? event.data
+                : await (event.data as Blob).text();
+          } catch {
+            return;
+          }
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(raw);
+          } catch {
+            return;
+          }
           // Hosted mode multiplexes frames through /ws/events as EventEnvelope;
           // local mode sends SidebarState directly on /ws/state.
           const snapshot = decodeSidebarStateFrame(parsed);
@@ -339,9 +354,7 @@ export function App() {
     }
     const nextState = await client.fetchState();
     setLastUpdatedAt(Date.now());
-    startTransition(() => {
-      setState(nextState);
-    });
+    setState(nextState);
   };
 
   if (!client || !state) {
@@ -560,19 +573,7 @@ export function App() {
                   success: { tone: "success", message: "Notion Integration Token이 저장되었습니다." },
                   failure: (error) => ({ tone: "error", message: "Notion Integration Token 저장에 실패했습니다.", detail: getErrorMessage(error) })
                 }, async () => {
-                  const response = await fetch(`${client.baseUrl}/api/providers/${providerId}/notion-token`, {
-                    credentials: "include",
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ token })
-                  });
-                  if (!response.ok) {
-                    const payload = await response.json().catch(() => ({}));
-                    const message = typeof payload.message === "string" ? payload.message : `Request failed (${response.status})`;
-                    throw new Error(message);
-                  }
+                  await client.connectNotion(providerId, token);
                   await refreshProviderState();
                 });
               }}
@@ -582,44 +583,71 @@ export function App() {
                   success: { tone: "success", message: "Notion Integration Token이 삭제되었습니다." },
                   failure: (error) => ({ tone: "error", message: "Notion Integration Token 삭제에 실패했습니다.", detail: getErrorMessage(error) })
                 }, async () => {
-                  const response = await fetch(`${client.baseUrl}/api/providers/${providerId}/notion-token`, {
-                    credentials: "include",
-                    method: "DELETE"
-                  });
-                  if (!response.ok) {
-                    const payload = await response.json().catch(() => ({}));
-                    const message = typeof payload.message === "string" ? payload.message : `Request failed (${response.status})`;
-                    throw new Error(message);
-                  }
+                  await client.disconnectNotion(providerId);
                   await refreshProviderState();
                 });
               }}
               onTest={async (providerId) => {
                 const testResult = await runProviderAction(providerId, "test", {
                   pending: { tone: "pending", message: "연결 중..." },
-                  success: (result) => buildProviderTestNotice(result),
+                  success: (result) => {
+                    if (result?.installed && result.authStatus !== "healthy" && result.authMode === "cli") {
+                      return { tone: "pending", message: "CLI 인증이 필요합니다. 진행 중..." };
+                    }
+                    return buildProviderTestNotice(result);
+                  },
                   failure: (error) => ({ tone: "error", message: "연결에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.testProvider(providerId));
+
+                // testProvider가 상태를 변경했을 수 있으므로 UI 갱신
+                await refreshProviderState();
 
                 // 설치는 됐지만 인증 안 된 경우 → 자동 인증
                 if (testResult?.installed && testResult.authStatus !== "healthy" && testResult.authMode === "cli") {
                   try {
                     const authResult = await client.startProviderCliAuth(providerId);
+                    // 폴링 함수: 인증 완료될 때까지 5초 간격으로 상태 확인 (최대 2분)
+                    const pollAuth = async () => {
+                      for (let i = 0; i < 24; i++) {
+                        await new Promise((r) => setTimeout(r, 5000));
+                        const recheck = await client.testProvider(providerId);
+                        if (recheck.authStatus === "healthy") {
+                          await refreshProviderState();
+                          showActionNotice({ tone: "success", message: `${providerId} 인증이 완료되었습니다.` });
+                          return;
+                        }
+                      }
+                      showActionNotice({ tone: "error", message: "인증 대기 시간이 초과되었습니다. 테스트 버튼을 눌러 다시 확인해주세요." }, 3600);
+                    };
+
                     if (authResult.success && authResult.authUrl) {
-                      // Claude: 브라우저 열기 + 코드 입력 모달
+                      // Claude: 브라우저에서 인증 진행 → 완료 후 자동 상태 재확인
                       window.open(authResult.authUrl, "_blank");
-                      setAuthModal({ providerId, authUrl: authResult.authUrl });
+                      showActionNotice({ tone: "pending", message: "브라우저에서 인증을 완료해주세요..." });
+                      pollAuth();
                     } else if (authResult.success) {
-                      // Codex/Gemini: 자동 콜백 완료
+                      // Codex: CLI가 자동 콜백으로 즉시 완료
                       await refreshProviderState();
                       showActionNotice({ tone: "success", message: `${providerId} 인증이 완료되었습니다.` });
                     } else {
-                      showActionNotice({ tone: "error", message: authResult.message ?? "인증에 실패했습니다." }, 3600);
+                      // Gemini 등: CLI가 브라우저를 열었지만 아직 완료 안 됨 → 폴링 시작
+                      showActionNotice({ tone: "pending", message: authResult.message ?? "브라우저에서 인증을 완료해주세요..." });
+                      pollAuth();
                     }
                   } catch (error) {
                     showActionNotice({ tone: "error", message: "인증 시작에 실패했습니다.", detail: getErrorMessage(error) }, 3600);
                   }
                 }
+              }}
+              onLogout={async (providerId) => {
+                await runProviderAction(providerId, "logout", {
+                  pending: { tone: "pending", message: "연결을 해제하는 중입니다..." },
+                  success: (result) => result?.ok
+                    ? { tone: "success", message: "연결이 해제되었습니다." }
+                    : { tone: "error", message: result?.message ?? "연결 해제에 실패했습니다." },
+                  failure: (error) => ({ tone: "error", message: "연결 해제에 실패했습니다.", detail: getErrorMessage(error) })
+                }, () => client.logoutProvider(providerId));
+                await refreshProviderState();
               }}
               onCheckNotion={async (providerId) => {
                 await runProviderAction(providerId, "notion-check", {
@@ -631,7 +659,7 @@ export function App() {
               }}
               onConnectNotion={async (providerId) => {
                 await runProviderAction(providerId, "notion-connect", {
-                  pending: { tone: "pending", message: "브라우저에서 Notion 인증을 완료해주세요..." },
+                  pending: { tone: "pending", message: providerId === "claude" ? "Notion MCP를 연결하는 중..." : "브라우저에서 Notion 인증을 완료해주세요..." },
                   success: (result) => buildNotionConnectNotice(result),
                   failure: (error) => ({ tone: "error", message: "Notion MCP 연결에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.connectNotion(providerId));
@@ -912,12 +940,13 @@ function buildProviderTestNotice(state: ProviderRuntimeState): ActionNotice {
   if (state.authStatus === "healthy") {
     return { tone: "success", message: "CLI 연결이 확인되었습니다." };
   }
-
-  return {
-    tone: "error",
-    message: "CLI 연결에 실패했습니다.",
-    detail: state.lastError ?? "설치 상태와 인증 구성을 확인해 주세요."
-  };
+  if (!state.installed) {
+    return { tone: "error", message: "CLI가 설치되어 있지 않습니다." };
+  }
+  if (state.authMode === "cli") {
+    return { tone: "warning", message: "CLI 인증이 필요합니다." };
+  }
+  return { tone: "error", message: "연결 설정을 확인해 주세요." };
 }
 
 function buildNotionCheckNotice(state: ProviderRuntimeState): ActionNotice {

@@ -437,7 +437,8 @@ function spawnBrowser(candidate: BrowserOpenCommand): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(candidate.command, [...candidate.args], {
       detached: true,
-      stdio: "ignore"
+      stdio: "ignore",
+      windowsHide: true
     });
     child.once("error", reject);
     child.once("spawn", () => {

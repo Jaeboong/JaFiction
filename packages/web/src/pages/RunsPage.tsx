@@ -176,12 +176,17 @@ export function RunsPage({
     let disposed = false;
     const socket = onCreateRunSocket(liveRunId);
 
-    socket.onmessage = (ev) => {
+    socket.onmessage = async (ev) => {
       if (disposed) {
         return;
       }
 
-      const parsed = JSON.parse(ev.data as string) as unknown;
+      let raw: string;
+      try {
+        raw = typeof ev.data === "string" ? ev.data : await (ev.data as Blob).text();
+      } catch { return; }
+      let parsed: unknown;
+      try { parsed = JSON.parse(raw); } catch { return; }
 
       // intervention_request arrives as a hosted envelope — handle before run_event decode
       const interventionFrame = decodeInterventionRequestFrame(parsed);
@@ -1390,11 +1395,16 @@ function RunFeed({
     // so even late-connecting clients receive the full stream.
     const socket = onCreateRunSocketRef.current(runId);
 
-    socket.onmessage = (ev) => {
+    socket.onmessage = async (ev) => {
       if (disposed) {
         return;
       }
-      const parsed = JSON.parse(ev.data as string) as unknown;
+      let raw: string;
+      try {
+        raw = typeof ev.data === "string" ? ev.data : await (ev.data as Blob).text();
+      } catch { return; }
+      let parsed: unknown;
+      try { parsed = JSON.parse(raw); } catch { return; }
 
       const interventionFrame = decodeInterventionRequestFrame(parsed);
       if (interventionFrame && interventionFrame.runId === runId) {

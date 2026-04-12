@@ -431,7 +431,7 @@ test("save_provider_api_key: requires provider and non-empty key", () => {
   assert.equal(missingProvider.success, false);
 });
 
-test("notion_connect: requires token; dbId optional", () => {
+test("notion_connect: requires token; dbId optional; provider optional", () => {
   const ok = RpcRequestSchema.safeParse({
     v: 1, id: "r17", op: "notion_connect",
     payload: { token: "secret_token", dbId: "db-uuid" }
@@ -441,13 +441,19 @@ test("notion_connect: requires token; dbId optional", () => {
   assert.equal(tokenOnly.success, true);
   const emptyToken = NotionConnectPayloadSchema.safeParse({ token: "" });
   assert.equal(emptyToken.success, false);
+  const withProvider = NotionConnectPayloadSchema.safeParse({ provider: "codex" });
+  assert.equal(withProvider.success, true);
+  const withProviderAndToken = NotionConnectPayloadSchema.safeParse({ provider: "gemini", token: "secret" });
+  assert.equal(withProviderAndToken.success, true);
 });
 
-test("notion_disconnect: empty payload accepted", () => {
+test("notion_disconnect: empty payload accepted; provider optional", () => {
   const ok = RpcRequestSchema.safeParse({ v: 1, id: "r18", op: "notion_disconnect", payload: {} });
   assert.equal(ok.success, true);
   const withExtra = NotionDisconnectPayloadSchema.safeParse({ extra: true });
   assert.equal(withExtra.success, false);
+  const withProvider = NotionDisconnectPayloadSchema.safeParse({ provider: "claude" });
+  assert.equal(withProvider.success, true);
 });
 
 test("opendart_save_key: requires non-empty key", () => {
@@ -1071,12 +1077,13 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "check_provider_cli_status": return acc + 1;
       case "start_provider_cli_auth": return acc + 1;
       case "submit_provider_cli_code": return acc + 1;
+      case "call_provider_logout": return acc + 1;
       default: return assertNever(op);
     }
   }, 0);
 
-  assert.equal(count, 46);
-  assert.equal(OP_NAMES.length, 46);
+  assert.equal(count, 47);
+  assert.equal(OP_NAMES.length, 47);
 });
 
 test("EVENT_NAMES exhaustiveness via switch", () => {
@@ -1107,5 +1114,5 @@ test("list_projects payload rejects extra fields", () => {
 });
 
 test("notion_disconnect payload rejects extra fields", () => {
-  assert.equal(require("../core/hostedRpc").NotionDisconnectPayloadSchema.safeParse({ force: true }).success, false);
+  assert.equal(NotionDisconnectPayloadSchema.safeParse({ force: true }).success, false);
 });

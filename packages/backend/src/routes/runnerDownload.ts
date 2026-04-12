@@ -39,9 +39,7 @@ export function registerRunnerDownload(app: FastifyInstance): void {
     if (!fs.existsSync(filePath)) {
       return reply.code(404).send({
         error: "binary_not_found",
-        message: isDev
-          ? `로컬 바이너리가 없습니다. packages/runner 에서 'bun run build.ts --local' 을 실행하세요.`
-          : `서버 바이너리가 없습니다. packages/runner 에서 'bun run build.ts' 를 실행하고 배포하세요.`,
+        message: "러너 바이너리를 찾을 수 없습니다.",
       });
     }
 

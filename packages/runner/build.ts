@@ -1,8 +1,9 @@
 import { execSync } from "node:child_process";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const OUTDIR = path.join(__dirname, "dist-bin");
 

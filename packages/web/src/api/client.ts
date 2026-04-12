@@ -3,6 +3,7 @@ import type {
   AbortRunResult,
   AnalyzeInsightsResult,
   AnalyzePostingResult,
+  CallProviderTestResult,
   CompleteRunResult,
   ContextDocument,
   CreateProjectResult,
@@ -278,7 +279,10 @@ export class RunnerClient {
   }
 
   async testProvider(providerId: ProviderId): Promise<ProviderRuntimeState> {
-    await this.rpcCall("call_provider_test", { provider: providerId });
+    const result = await this.rpcCall<CallProviderTestResult>("call_provider_test", { provider: providerId });
+    if (result.runtimeState) {
+      return result.runtimeState;
+    }
     return this.refetchProviderRuntimeState(providerId);
   }
 
@@ -288,6 +292,10 @@ export class RunnerClient {
 
   async submitProviderCliCode(providerId: ProviderId, code: string): Promise<{ success: boolean; message?: string }> {
     return this.rpcCall("submit_provider_cli_code", { providerId, code });
+  }
+
+  async logoutProvider(providerId: ProviderId): Promise<{ ok: boolean; message?: string }> {
+    return this.rpcCall("call_provider_logout", { providerId });
   }
 
   async updateProviderConfig(providerId: ProviderId, payload: Record<string, unknown>): Promise<ProviderRuntimeState> {
@@ -315,13 +323,15 @@ export class RunnerClient {
     return this.refetchProviderRuntimeState(providerId);
   }
 
-  async connectNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
-    await this.rpcCall("notion_connect", {});
+  async connectNotion(providerId: ProviderId, token?: string): Promise<ProviderRuntimeState> {
+    const payload: Record<string, string> = { provider: providerId };
+    if (token) payload.token = token;
+    await this.rpcCall("notion_connect", payload);
     return this.refetchProviderRuntimeState(providerId);
   }
 
   async disconnectNotion(providerId: ProviderId): Promise<ProviderRuntimeState> {
-    await this.rpcCall("notion_disconnect", {});
+    await this.rpcCall("notion_disconnect", { provider: providerId });
     return this.refetchProviderRuntimeState(providerId);
   }
 

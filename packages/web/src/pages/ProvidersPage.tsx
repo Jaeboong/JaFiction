@@ -5,7 +5,7 @@ import { AgentDefaultsSummary } from "../components/AgentDefaultsSummary";
 import { providerName, statusToneForAuthStatus } from "../formatters";
 import "../styles/providers.css";
 
-type ProviderActionKind = "test" | "notion-check" | "notion-connect" | "notion-disconnect";
+type ProviderActionKind = "test" | "notion-check" | "notion-connect" | "notion-disconnect" | "logout";
 
 interface ProvidersPageProps {
   providers: ProviderRuntimeState[];
@@ -18,8 +18,9 @@ interface ProvidersPageProps {
   onSaveNotionToken(providerId: ProviderId, token: string): Promise<void>;
   onDeleteNotionToken(providerId: ProviderId): Promise<void>;
   onTest(providerId: ProviderId): Promise<void>;
+  onLogout(providerId: ProviderId): Promise<void>;
   onCheckNotion(providerId: ProviderId): Promise<void>;
-  onConnectNotion(providerId: ProviderId): Promise<void>;
+  onConnectNotion(providerId: ProviderId, token?: string): Promise<void>;
   onDisconnectNotion(providerId: ProviderId): Promise<void>;
 }
 
@@ -142,6 +143,7 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
     onSaveNotionToken,
     onDeleteNotionToken,
     onTest,
+    onLogout,
     onCheckNotion,
     onConnectNotion,
     onDisconnectNotion
@@ -177,6 +179,7 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
       ? "warning"
       : "neutral";
   const isTesting = pendingProviderAction?.providerId === provider.providerId && pendingProviderAction.kind === "test";
+  const isLoggingOut = pendingProviderAction?.providerId === provider.providerId && pendingProviderAction.kind === "logout";
   const isCheckingNotion = pendingProviderAction?.providerId === provider.providerId && pendingProviderAction.kind === "notion-check";
   const isConnectingNotion = pendingProviderAction?.providerId === provider.providerId && pendingProviderAction.kind === "notion-connect";
   const isDisconnectingNotion = pendingProviderAction?.providerId === provider.providerId && pendingProviderAction.kind === "notion-disconnect";
@@ -214,6 +217,15 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
                 ? <ButtonBusyLabel label={cliNotConnected ? "연결 중..." : "테스트중..."} />
                 : cliNotConnected ? "연결" : "테스트"}
             </button>
+            {provider.authMode === "cli" && provider.authStatus === "healthy" ? (
+              <button
+                className="providers-danger-button"
+                onClick={() => onLogout(provider.providerId)}
+                disabled={hasPendingProviderAction}
+              >
+                {isLoggingOut ? <ButtonBusyLabel label="해제 중..." /> : "연결 해제"}
+              </button>
+            ) : null}
             <button
               className="providers-primary-button"
               onClick={async () => {
@@ -461,7 +473,13 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
               <button
                 className={`providers-secondary-button providers-icon-button${isConnectingNotion ? " is-busy" : ""}`}
                 type="button"
-                onClick={() => onConnectNotion(provider.providerId)}
+                onClick={async () => {
+                  if (provider.providerId === "claude" && notionToken.trim()) {
+                    await onSaveNotionToken("claude", notionToken.trim());
+                    setNotionToken("");
+                  }
+                  onConnectNotion(provider.providerId);
+                }}
                 disabled={hasPendingProviderAction}
                 aria-label="Notion 연결하기"
                 title="Notion 연결하기"

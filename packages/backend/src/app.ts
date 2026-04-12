@@ -23,6 +23,8 @@ import type { Env } from "./env";
 export interface AppDeps {
   readonly pool: Pool;
   readonly redis: Redis;
+  /** Dedicated Redis connection for subscribe-mode channels (browserEvents). */
+  readonly redisSub?: Redis;
   readonly db: Db;
   readonly store: SessionStore;
   readonly env: Env;
@@ -122,7 +124,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await registerBrowserEvents(app, {
     store: deps.store,
-    redis: deps.redis as unknown as import("./ws/browserEvents").SubscribeRedis
+    redis: (deps.redisSub ?? deps.redis) as unknown as import("./ws/browserEvents").SubscribeRedis
   });
 
   await registerRpc(app, {

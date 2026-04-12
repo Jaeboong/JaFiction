@@ -29,9 +29,10 @@ export async function checkAllProviderStatus(): Promise<
 }
 
 export async function startProviderAuth(
-  providerId: ProviderId
+  providerId: ProviderId,
+  command?: string
 ): Promise<ProviderAuthResult> {
-  return handlers[providerId].startAuth();
+  return handlers[providerId].startAuth(command);
 }
 
 export async function submitProviderAuthCode(
@@ -43,4 +44,15 @@ export async function submitProviderAuthCode(
     return { success: false, message: `${providerId}는 코드 입력이 필요하지 않습니다.` };
   }
   return handler.submitCode(code);
+}
+
+export async function logoutProvider(
+  providerId: ProviderId,
+  command?: string
+): Promise<ProviderAuthResult> {
+  const handler = handlers[providerId];
+  if (!handler.logout) {
+    return { success: false, message: `${providerId}는 로그아웃을 지원하지 않습니다.` };
+  }
+  return handler.logout(command);
 }

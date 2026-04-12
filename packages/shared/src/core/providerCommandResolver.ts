@@ -94,6 +94,12 @@ async function listPreferredCommandCandidates(providerId: ProviderId, homeDir: s
   if (isWindows) {
     const localAppData = process.env["LOCALAPPDATA"] ?? path.join(homeDir, "AppData", "Local");
     candidates.push(path.join(localAppData, "Programs", command, exe));
+
+    // npm global (AppData\Roaming\npm) — .cmd 래퍼 경로 추가
+    const npmGlobal = process.env["APPDATA"]
+      ? path.join(process.env["APPDATA"], "npm")
+      : path.join(homeDir, "AppData", "Roaming", "npm");
+    candidates.push(path.join(npmGlobal, `${command}.cmd`));
   }
 
   return [...new Set(candidates)];

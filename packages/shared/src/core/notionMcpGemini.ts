@@ -1,3 +1,7 @@
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+
 import {
   NotionConnectPlan,
   NotionMcpCheckResult,
@@ -15,6 +19,12 @@ export function parseGeminiNotionStatus(output: string): NotionMcpCheckResult {
   const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const match = lines.find((line) => /notion/i.test(line) || line.includes(notionMcpUrl));
   if (!match) {
+    // CLI output may be empty even when configured (Gemini CLI ≤0.37).
+    // Fall back to reading settings.json directly.
+    const settingsResult = checkGeminiSettingsFile();
+    if (settingsResult) {
+      return settingsResult;
+    }
     return { configured: false, connected: false, message: "Notion MCP is not configured for Gemini." };
   }
 
@@ -25,6 +35,42 @@ export function parseGeminiNotionStatus(output: string): NotionMcpCheckResult {
     configName: notionConfigName,
     message: `Notion MCP is configured for Gemini: ${match}`
   };
+}
+
+function checkGeminiSettingsFile(): NotionMcpCheckResult | undefined {
+  try {
+    const settingsPath = path.join(os.homedir(), ".gemini", "settings.json");
+    const raw = fs.readFileSync(settingsPath, "utf8");
+    const settings = JSON.parse(raw) as { mcpServers?: Record<string, unknown> };
+    if (!settings.mcpServers) {
+      return undefined;
+    }
+    const notionEntry = Object.entries(settings.mcpServers).find(
+      ([key, val]) => /notion/i.test(key) || (val && typeof val === "object" && "url" in val && (val as { url?: string }).url === notionMcpUrl)
+    );
+    if (!notionEntry) {
+      return undefined;
+    }
+
+    // Check if OAuth token exists
+    const tokenPath = path.join(os.homedir(), ".gemini", "mcp-oauth-tokens.json");
+    let hasToken = false;
+    try {
+      const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf8")) as Array<{ serverName?: string }>;
+      hasToken = tokens.some((t) => t.serverName === "notion");
+    } catch {
+      // no token file
+    }
+
+    return {
+      configured: true,
+      connected: hasToken,
+      configName: notionEntry[0],
+      message: `Notion MCP is configured for Gemini (from settings.json)${hasToken ? " with OAuth token" : ""}.`
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 export function buildGeminiNotionConnectPlan(

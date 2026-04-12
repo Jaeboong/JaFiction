@@ -16,7 +16,8 @@ export interface ProviderAuthResult {
 
 export interface ProviderAuthHandler {
   checkStatus(): Promise<ProviderStatus>;
-  startAuth(): Promise<ProviderAuthResult>;
+  startAuth(command?: string): Promise<ProviderAuthResult>;
   /** Claude 전용: 웹에서 받은 코드를 stdin으로 전달 */
   submitCode?(code: string): Promise<ProviderAuthResult>;
+  logout?(command?: string): Promise<ProviderAuthResult>;
 }

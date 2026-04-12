@@ -45,7 +45,8 @@ import {
 import {
   checkProviderCliStatus,
   startProviderCliAuth,
-  submitProviderCliCode
+  submitProviderCliCode,
+  callProviderLogout
 } from "../routes/providerCliHandlers";
 
 // ---------------------------------------------------------------------------
@@ -329,6 +330,9 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
 
     case "submit_provider_cli_code":
       return submitProviderCliCode(ctx, req.payload);
+
+    case "call_provider_logout":
+      return callProviderLogout(ctx, req.payload);
 
     default:
       // Compile-time exhaustiveness guard + runtime defense
