@@ -18,10 +18,42 @@ import { StateHub } from "./ws/stateHub";
 
 export const openDartSecretKey = "jasojeon.apiKey.openDart";
 
-/** 서버 env 에서 읽는 OpenDART API 키. 없으면 undefined. */
+let _cachedDartApiKey: string | undefined;
+
+/**
+ * runner 부팅 시 backend 에서 DART_API_KEY 를 fetch 해 메모리에 캐싱한다.
+ * env 변수가 있으면 그것을 우선 사용 (개발 환경 fallback).
+ * fetch 실패 시 cachedDartApiKey 는 undefined — 인사이트는 OpenDART 없이 진행.
+ */
+export async function fetchAndCacheDartApiKey(
+  backendUrl: string,
+  deviceToken: string
+): Promise<void> {
+  const envKey = process.env["DART_API_KEY"];
+  if (envKey && envKey.trim().length > 0) {
+    _cachedDartApiKey = envKey.trim();
+    return;
+  }
+
+  const base = backendUrl.replace(/\/$/, "");
+  try {
+    const res = await fetch(`${base}/api/runner/dart-key`, {
+      headers: { Authorization: `Bearer ${deviceToken}` },
+    });
+    if (res.ok) {
+      const json = await res.json() as { key?: unknown };
+      if (typeof json.key === "string" && json.key.trim().length > 0) {
+        _cachedDartApiKey = json.key.trim();
+      }
+    }
+  } catch {
+    // 실패 시 cachedDartApiKey 는 undefined 로 유지
+  }
+}
+
+/** 캐싱된 OpenDART API 키를 반환한다. 부팅 시 fetchAndCacheDartApiKey 를 호출해야 한다. */
 export function getServerDartApiKey(): string | undefined {
-  const key = process.env["DART_API_KEY"];
-  return key && key.trim().length > 0 ? key.trim() : undefined;
+  return _cachedDartApiKey;
 }
 
 export interface RunnerContext {

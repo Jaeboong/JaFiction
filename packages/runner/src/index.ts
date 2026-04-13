@@ -1,5 +1,5 @@
 import { redactSecrets } from "@jasojeon/shared";
-import { createRunnerContext } from "./runnerContext";
+import { createRunnerContext, fetchAndCacheDartApiKey } from "./runnerContext";
 import {
   loadDeviceId,
   loadDeviceToken,
@@ -146,6 +146,13 @@ async function connectToBackend(opts: {
       }
     }).catch(() => {});
   }
+
+  // backend 에서 DART_API_KEY fetch (실패해도 runner 는 정상 부팅)
+  await fetchAndCacheDartApiKey(backendUrl, deviceToken).catch((err: unknown) => {
+    process.stderr.write(
+      `[runner][${backendUrl}] DART_API_KEY fetch failed: ${err instanceof Error ? err.message : String(err)}\n`
+    );
+  });
 
   const dispatcher = createRpcDispatcher({ runnerContext: ctx, logger });
 

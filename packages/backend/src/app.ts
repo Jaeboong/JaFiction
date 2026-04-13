@@ -15,6 +15,7 @@ import { registerRunnerSocket, createDrizzleRunnerSocketDeviceStore } from "./ws
 import { registerBrowserEvents } from "./ws/browserEvents";
 import { registerRpc, createDrizzleRpcDeviceStore } from "./routes/rpc";
 import { registerRunnerDownload } from "./routes/runnerDownload";
+import { registerRunnerDartKey } from "./routes/runnerDartKey";
 import { createSubscribeAdapter } from "./redis/subscribeAdapter";
 import { createDeviceHub } from "./ws/deviceHub";
 import type { DeviceHub } from "./ws/deviceHub";
@@ -140,6 +141,11 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   });
 
   registerRunnerDownload(app);
+
+  registerRunnerDartKey(app, {
+    deviceStore: createDrizzleDeviceStore(deps.db),
+    env: deps.env,
+  });
 
   // Lightweight session probe — lets the web client verify session validity
   // over HTTP before opening a WebSocket (JS cannot read WS 401 directly).
