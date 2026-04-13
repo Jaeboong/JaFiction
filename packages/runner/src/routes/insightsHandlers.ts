@@ -127,6 +127,12 @@ export async function generateProjectInsightsService(
     insightStatus: "generating",
     insightLastError: undefined
   });
+  // insightStatus:"generating" 을 즉시 클라이언트에 push 해야
+  // ProjectsPage 의 sawGeneratingStatusRef 가 세트된다.
+  // 이 push 없이 finally 에서만 push 하면 클라이언트가 generating 을 본 적 없어
+  // "ready" snapshot 을 수신해도 낙관적 잠금이 해제되지 않는다.
+  await ctx.stateStore.refreshProjects(input.projectSlug);
+  await ctx.pushState();
 
   let companyResolution: OpenDartCompanyResolution | undefined;
   const openDartApiKey = getServerDartApiKey();
