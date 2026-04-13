@@ -17,7 +17,6 @@ import type {
   JobPostingExtractionResult,
   ListProjectsResult,
   OpName,
-  OpendartSaveKeyResult,
   ProfileGetDocumentPreviewResult,
   ProfileListDocumentsResult,
   ProfileSaveTextDocumentResult,
@@ -147,17 +146,6 @@ export class RunnerClient {
 
   async saveAgentDefaults(agentDefaults: AgentDefaults): Promise<void> {
     await this.rpcCall("save_agent_defaults", { agentDefaults });
-  }
-
-  createStateSocket(): WebSocket {
-    return new WebSocket(toWsUrl(this.baseUrl, "/ws/events"));
-  }
-
-  createRunSocket(_runId: string): WebSocket {
-    // Hosted mode multiplexes all events (state, run, intervention, finished)
-    // through a single /ws/events endpoint scoped to the session cookie.
-    // Callers filter frames by envelope.event on the client side.
-    return new WebSocket(toWsUrl(this.baseUrl, "/ws/events"));
   }
 
   async listProjects(): Promise<ListProjectsResult> {
@@ -364,14 +352,6 @@ export class RunnerClient {
     return this.rpcCall<GetRunMessagesResult>("get_run_messages", { runId });
   }
 
-  async saveOpenDartApiKey(apiKey: string): Promise<void> {
-    await this.rpcCall<OpendartSaveKeyResult>("opendart_save_key", { key: apiKey });
-  }
-
-  async deleteOpenDartApiKey(): Promise<void> {
-    await this.rpcCall("opendart_delete_key", {});
-  }
-
   async testOpenDartConnection(): Promise<{ ok: boolean; message: string }> {
     const result = await this.rpcCall<{ ok: boolean; sample?: string }>("opendart_test", {});
     // Shape-wrap: hosted result is {ok, sample?}, but the UI contract is
@@ -447,6 +427,12 @@ export class RunnerClient {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new RunnerBootstrapError("auth_required", "세션이 만료되었습니다. 다시 로그인해 주세요.");
+      }
+      if (response.status === 413) {
+        throw new RunnerBootstrapError("unknown", `RPC ${op}: 요청 페이로드가 너무 큽니다 (413).`);
+      }
       const body = await response.json().catch(() => ({})) as Record<string, unknown>;
       const message = typeof body["message"] === "string"
         ? body["message"]
@@ -461,14 +447,6 @@ export class RunnerClient {
     return envelope.result as TResult;
   }
 
-}
-
-function toWsUrl(baseUrl: string, pathname: string): string {
-  const url = new URL(baseUrl);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  url.pathname = pathname;
-  url.search = "";
-  return url.toString();
 }
 
 // ---------------------------------------------------------------------------
