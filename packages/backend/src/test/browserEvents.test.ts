@@ -1,7 +1,7 @@
 /**
  * browserEvents.test.ts
  *
- * Tests the /ws/events browser WebSocket endpoint.
+ * Tests the /ws/events browser WebSocket endpoint and /api/ws-probe.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -14,7 +14,7 @@ import {
   makeInMemorySessionStore
 } from "./fakes";
 import type { UserRow } from "../auth/session";
-import { SESSION_COOKIE } from "../auth/session";
+import { SESSION_COOKIE, makeRequireSession } from "../auth/session";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -32,6 +32,11 @@ async function buildTestApp(
   await app.register(fastifyCookie, { secret: "test-secret-32-chars-minimum-!!!" });
   await app.register(fastifyWebsocket);
   await registerBrowserEvents(app, { store, redis });
+  // Register ws-probe (same as in buildApp)
+  const requireSession = makeRequireSession(store);
+  app.get("/api/ws-probe", { preHandler: requireSession }, async (_request, reply) => {
+    return reply.code(200).send({ ok: true });
+  });
   await app.listen({ port: 0, host: "127.0.0.1" });
   const port = (app.server.address() as import("net").AddressInfo).port;
   return { app, port };
@@ -99,6 +104,7 @@ describe("browserEvents — /ws/events", () => {
   });
 
   it("two concurrent browser sockets for same user both receive events", async () => {
+
     const redis = makeFakePubSubRedis();
     const userId = "user-events-2";
     const userMap = new Map<string, UserRow>([[userId, makeUser(userId)]]);
@@ -133,6 +139,44 @@ describe("browserEvents — /ws/events", () => {
 
       ws1.close();
       ws2.close();
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/ws-probe
+// ---------------------------------------------------------------------------
+
+describe("GET /api/ws-probe", () => {
+  it("no session cookie → 401", async () => {
+    const redis = makeFakePubSubRedis();
+    const userMap = new Map<string, UserRow>();
+    const store = makeInMemorySessionStore(userMap);
+    const { app, port } = await buildTestApp(redis, store);
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/ws-probe`);
+      assert.strictEqual(res.status, 401);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("valid session → 200 with {ok: true}", async () => {
+    const redis = makeFakePubSubRedis();
+    const userId = "user-probe-1";
+    const userMap = new Map<string, UserRow>([[userId, makeUser(userId)]]);
+    const store = makeInMemorySessionStore(userMap);
+    const { raw } = await store.createSession(userId);
+    const { app, port } = await buildTestApp(redis, store);
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/ws-probe`, {
+        headers: { Cookie: `${SESSION_COOKIE}=${raw}` }
+      });
+      assert.strictEqual(res.status, 200);
+      const body = await res.json() as { ok: boolean };
+      assert.strictEqual(body.ok, true);
     } finally {
       await app.close();
     }

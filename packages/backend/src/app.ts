@@ -20,6 +20,7 @@ import { createDeviceHub } from "./ws/deviceHub";
 import type { DeviceHub } from "./ws/deviceHub";
 import type { FetchGoogleUserInfo } from "./routes/auth";
 import type { Env } from "./env";
+import { makeRequireSession } from "./auth/session";
 
 export interface AppDeps {
   readonly pool: Pool;
@@ -75,6 +76,7 @@ function defaultLoggerConfig(): object {
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: deps.logger ?? (deps.env.NODE_ENV !== "test" ? defaultLoggerConfig() : false),
+    bodyLimit: 20 * 1024 * 1024,
   });
 
   // Plugins
@@ -138,6 +140,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   });
 
   registerRunnerDownload(app);
+
+  // Lightweight session probe — lets the web client verify session validity
+  // over HTTP before opening a WebSocket (JS cannot read WS 401 directly).
+  const requireSession = makeRequireSession(deps.store);
+  app.get("/api/ws-probe", { preHandler: requireSession }, async (_request, reply) => {
+    return reply.code(200).send({ ok: true });
+  });
 
   return app;
 }

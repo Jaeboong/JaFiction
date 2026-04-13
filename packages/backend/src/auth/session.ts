@@ -136,11 +136,20 @@ export function makeRequireSession(store: SessionStore) {
   ): Promise<FastifyReply | void> {
     const raw = request.cookies[SESSION_COOKIE];
     if (!raw) {
+      request.log.warn({ session_error: "missing", path: request.url }, "session denied");
       return reply.code(401).send({ error: "Unauthorized" });
     }
 
-    const result = await store.verifySession(raw);
+    let result: SessionWithUser | null;
+    try {
+      result = await store.verifySession(raw);
+    } catch (err) {
+      request.log.warn({ session_error: "unknown", path: request.url }, "session denied");
+      throw err;
+    }
+
     if (!result) {
+      request.log.warn({ session_error: "expired", path: request.url }, "session denied");
       return reply.code(401).send({ error: "Unauthorized" });
     }
 

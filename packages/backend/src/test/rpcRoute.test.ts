@@ -39,9 +39,10 @@ function makeMemoryRpcDeviceStore(deviceIds: readonly string[]): RpcDeviceStore 
 async function buildTestApp(
   store: ReturnType<typeof makeInMemorySessionStore>,
   hub: DeviceHub,
-  deviceStore: RpcDeviceStore
+  deviceStore: RpcDeviceStore,
+  opts: { bodyLimit?: number } = {}
 ) {
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: false, bodyLimit: opts.bodyLimit ?? 20 * 1024 * 1024 });
   await app.register(fastifyCookie, { secret: "test-secret-32-chars-minimum-!!!" });
   await registerRpc(app, { store, hub, deviceStore });
   await app.listen({ port: 0, host: "127.0.0.1" });
@@ -63,6 +64,24 @@ async function post(
     body: JSON.stringify(body)
   });
   return { status: res.status, body: await res.json() };
+}
+
+async function postRaw(
+  port: number,
+  rawBody: ArrayBuffer,
+  cookie?: string
+): Promise<{ status: number }> {
+  const res = await fetch(`http://127.0.0.1:${port}/api/rpc`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(cookie ? { Cookie: cookie } : {})
+    },
+    body: rawBody
+  });
+  // drain body to release connection
+  await res.text().catch(() => undefined);
+  return { status: res.status };
 }
 
 // ---------------------------------------------------------------------------
@@ -254,6 +273,62 @@ describe("deviceHub wrapper contract", () => {
       );
     } finally {
       runner.close();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// bodyLimit tests — 413 rejection and 20MB pass-through
+// ---------------------------------------------------------------------------
+
+describe("POST /api/rpc bodyLimit", () => {
+  it("15MB payload with valid session → passes through (200 or 400, not 413)", async () => {
+    const redis = makeFakePubSubRedis();
+    const hub = createDeviceHub({ redis });
+    const userId = "user-body-1";
+    const userMap = new Map<string, UserRow>([[userId, makeUser(userId)]]);
+    const store = makeInMemorySessionStore(userMap);
+    const { raw } = await store.createSession(userId);
+    const { app, port } = await buildTestApp(store, hub, makeMemoryRpcDeviceStore([]), { bodyLimit: 20 * 1024 * 1024 });
+    try {
+      // 15MB of JSON-like text — not a valid RpcRequest but must not hit bodyLimit.
+      const payload = new ArrayBuffer(15 * 1024 * 1024);
+      const { status } = await postRaw(port, payload, `${SESSION_COOKIE}=${raw}`);
+      assert.notStrictEqual(status, 413, "15MB payload must not be rejected by bodyLimit");
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("25MB payload → 413 or connection reset (exceeds bodyLimit)", async () => {
+    const redis = makeFakePubSubRedis();
+    const hub = createDeviceHub({ redis });
+    const userId = "user-body-2";
+    const userMap = new Map<string, UserRow>([[userId, makeUser(userId)]]);
+    const store = makeInMemorySessionStore(userMap);
+    const { raw } = await store.createSession(userId);
+    const { app, port } = await buildTestApp(store, hub, makeMemoryRpcDeviceStore([]), { bodyLimit: 20 * 1024 * 1024 });
+    try {
+      const payload = new ArrayBuffer(25 * 1024 * 1024);
+      let status: number | undefined;
+      try {
+        const result = await postRaw(port, payload, `${SESSION_COOKIE}=${raw}`);
+        status = result.status;
+      } catch (err) {
+        // Fastify may reset the connection before sending 413 — both are
+        // valid rejection signals for an oversized body.
+        const code = (err as NodeJS.ErrnoException).cause
+          ? ((err as NodeJS.ErrnoException).cause as NodeJS.ErrnoException).code
+          : (err as NodeJS.ErrnoException).code;
+        assert.ok(
+          code === "ECONNRESET" || code === "UND_ERR_SOCKET",
+          `Expected ECONNRESET or UND_ERR_SOCKET, got: ${code}`
+        );
+        return;
+      }
+      assert.strictEqual(status, 413, "25MB payload must be rejected with 413");
+    } finally {
+      await app.close();
     }
   });
 });
