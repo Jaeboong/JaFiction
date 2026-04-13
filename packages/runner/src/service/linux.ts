@@ -15,7 +15,7 @@ function buildServiceContent(exePath: string): string {
 Description=Jasojeon Runner
 
 [Service]
-ExecStart=${exePath} start
+ExecStart="${exePath}" start
 Restart=on-failure
 
 [Install]

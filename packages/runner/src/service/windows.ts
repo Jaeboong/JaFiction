@@ -1,4 +1,4 @@
-import { execSync, spawn } from "node:child_process";
+import { spawnSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -14,14 +14,14 @@ export async function installWindowsService(exePath: string): Promise<void> {
   const logPath = getLogPath(exePath);
 
   // 1. 레지스트리에 로그인 시 자동 실행 등록 (관리자 권한 불필요)
-  try {
-    execSync(
-      `reg add "${REG_KEY}" /v ${REG_VALUE} /t REG_SZ /d "${command}" /f`,
-      { stdio: "pipe" }
-    );
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`[jasojeon-runner] Failed to register autostart: ${msg}`);
+  const installResult = spawnSync(
+    "reg",
+    ["add", REG_KEY, "/v", REG_VALUE, "/t", "REG_SZ", "/d", command, "/f"],
+    { stdio: "pipe" }
+  );
+  if (installResult.status !== 0) {
+    const stderr = installResult.stderr?.toString() ?? "";
+    throw new Error(`[jasojeon-runner] Failed to register autostart: ${stderr}`);
   }
 
   // 2. 지금 바로 백그라운드로 실행 (로그 파일에 stdout/stderr 기록)
@@ -38,11 +38,14 @@ export async function installWindowsService(exePath: string): Promise<void> {
 }
 
 export async function uninstallWindowsService(): Promise<void> {
-  try {
-    execSync(`reg delete "${REG_KEY}" /v ${REG_VALUE} /f`, { stdio: "pipe" });
-    process.stdout.write(`[jasojeon-runner] Autostart entry removed.\n`);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`[jasojeon-runner] Failed to remove autostart entry: ${msg}`);
+  const uninstallResult = spawnSync(
+    "reg",
+    ["delete", REG_KEY, "/v", REG_VALUE, "/f"],
+    { stdio: "pipe" }
+  );
+  if (uninstallResult.status !== 0) {
+    const stderr = uninstallResult.stderr?.toString() ?? "";
+    throw new Error(`[jasojeon-runner] Failed to remove autostart entry: ${stderr}`);
   }
+  process.stdout.write(`[jasojeon-runner] Autostart entry removed.\n`);
 }

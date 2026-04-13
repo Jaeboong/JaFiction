@@ -10,7 +10,15 @@ function plistPath(): string {
   return path.join(os.homedir(), "Library", "LaunchAgents", PLIST_FILENAME);
 }
 
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function buildPlistContent(exePath: string): string {
+  const safeExePath = escapeXml(exePath);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -19,7 +27,7 @@ function buildPlistContent(exePath: string): string {
   <string>${PLIST_LABEL}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>${exePath}</string>
+    <string>${safeExePath}</string>
     <string>start</string>
   </array>
   <key>RunAtLoad</key>
