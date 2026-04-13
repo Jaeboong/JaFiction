@@ -441,6 +441,13 @@ export class ProviderRegistry {
       lastError = "API 키 방식에서는 API 키가 필요합니다.";
     }
 
+    if (installation.installed && !this.notionStatusCache.has(providerId)) {
+      try {
+        await this.checkNotionMcp(providerId);
+      } catch (err) {
+        console.warn(`[ProviderRegistry] Notion MCP 초기 상태 확인 실패 (${providerId}):`, err);
+      }
+    }
     const notionStatus = installation.installed ? this.notionStatusCache.get(providerId) : undefined;
     return {
       providerId,
