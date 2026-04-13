@@ -1,9 +1,8 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { pathToFileURL } from "node:url";
 import JSZip from "jszip";
 import { XMLParser } from "fast-xml-parser";
-import pdfParse from "pdf-parse";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { ExtractionStatus, SourceType } from "./types";
 
 export interface ExtractionResult {
@@ -49,13 +48,8 @@ export class ContextExtractor {
 
     if (sourceType === "pdf") {
       const buffer = await fs.readFile(filePath);
-      try {
-        const result = await pdfParse(buffer);
-        return { extractionStatus: "normalized", content: normalizeText(result.text) };
-      } catch {
-        const content = await extractPdfWithPdfJs(buffer);
-        return { extractionStatus: "normalized", content: normalizeText(content) };
-      }
+      const content = await extractPdfWithPdfJs(buffer);
+      return { extractionStatus: "normalized", content: normalizeText(content) };
     }
 
     if (sourceType === "pptx") {
@@ -127,16 +121,11 @@ function normalizeText(text: string): string {
 
 async function extractPdfWithPdfJs(buffer: Buffer): Promise<string> {
   installPdfJsNodePolyfills();
-  const dynamicImport = new Function("specifier", "return import(specifier);") as (specifier: string) => Promise<{
-    getDocument: (options: Record<string, unknown>) => { promise: Promise<any> };
-  }>;
-  const pdfjs = await dynamicImport("pdfjs-dist/legacy/build/pdf.mjs");
-  const standardFontDataUrl = `${pathToFileURL(path.join(path.dirname(require.resolve("pdfjs-dist/package.json")), "standard_fonts")).href}/`;
-  const loadingTask = pdfjs.getDocument({
+  const loadingTask = getDocument({
     data: new Uint8Array(buffer),
     isEvalSupported: false,
     useWorkerFetch: false,
-    standardFontDataUrl
+    disableFontFace: true,
   });
   const document = await loadingTask.promise;
   const pages: string[] = [];
