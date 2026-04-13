@@ -40,9 +40,12 @@ Jasojeon is a web UI + local runner rewrite of the original `forJob` VS Code ext
 ./scripts/stop-dev-stack.sh       # stop all; --all also tears down containers
 ./scripts/with-node.sh <command>
 ./scripts/with-npm.sh run <script>
+./scripts/gh.sh <args>             # GitHub CLI 래퍼 — bash에서 gh.exe 경로 자동 탐색
 ```
 
 **WSL rule**: Raw `node` / `npm` on `PATH` may be the wrong binary. Always prefer `./scripts/*.sh`.
+
+**gh CLI rule**: bash/WSL에서 `gh`는 PATH에 없음. 항상 `./scripts/gh.sh`를 사용할 것. 절대 `gh` 또는 `powershell -Command "gh ..."` 로 직접 호출하지 말 것.
 
 ---
 
