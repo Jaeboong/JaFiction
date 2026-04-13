@@ -9,6 +9,7 @@ import Fastify from "fastify";
 import fastifyCookie from "@fastify/cookie";
 import fastifyWebsocket from "@fastify/websocket";
 import { registerBrowserEvents } from "../ws/browserEvents";
+import type { BrowserEventsOptions } from "../ws/browserEvents";
 import {
   makeFakePubSubRedis,
   makeInMemorySessionStore
@@ -26,12 +27,13 @@ function makeUser(id: string): UserRow {
 
 async function buildTestApp(
   redis: ReturnType<typeof makeFakePubSubRedis>,
-  store: ReturnType<typeof makeInMemorySessionStore>
+  store: ReturnType<typeof makeInMemorySessionStore>,
+  options?: BrowserEventsOptions
 ) {
   const app = Fastify({ logger: false });
   await app.register(fastifyCookie, { secret: "test-secret-32-chars-minimum-!!!" });
   await app.register(fastifyWebsocket);
-  await registerBrowserEvents(app, { store, redis });
+  await registerBrowserEvents(app, { store, redis }, options);
   // Register ws-probe (same as in buildApp)
   const requireSession = makeRequireSession(store);
   app.get("/api/ws-probe", { preHandler: requireSession }, async (_request, reply) => {
@@ -46,6 +48,13 @@ function nextMessage(ws: import("ws").WebSocket): Promise<string> {
   return new Promise((resolve, reject) => {
     ws.once("message", (data) => resolve(String(data)));
     ws.once("error", reject);
+  });
+}
+
+function waitForClose(ws: import("ws").WebSocket): Promise<number> {
+  return new Promise((resolve) => {
+    ws.once("close", (code) => resolve(code));
+    ws.once("error", () => resolve(-1));
   });
 }
 
@@ -139,6 +148,79 @@ describe("browserEvents — /ws/events", () => {
 
       ws1.close();
       ws2.close();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("heartbeat — server sends ping frames to connected client", async () => {
+    const redis = makeFakePubSubRedis();
+    const userId = "user-heartbeat-1";
+    const userMap = new Map<string, UserRow>([[userId, makeUser(userId)]]);
+    const store = makeInMemorySessionStore(userMap);
+    const { raw } = await store.createSession(userId);
+    // Use short interval for test speed
+    const { app, port } = await buildTestApp(redis, store, {
+      heartbeatIntervalMs: 5,
+      heartbeatTimeoutMs: 15_000
+    });
+    try {
+      const { WebSocket } = await import("ws");
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws/events`, {
+        headers: { Cookie: `${SESSION_COOKIE}=${raw}` }
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        ws.once("open", resolve);
+        ws.once("error", reject);
+      });
+
+      // Wait for a ping from the server
+      const pingReceived = await new Promise<boolean>((resolve) => {
+        ws.once("ping", () => resolve(true));
+        setTimeout(() => resolve(false), 200);
+      });
+
+      ws.close();
+      assert.strictEqual(pingReceived, true, "Server should send a ping frame within 200ms");
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("heartbeat — dead socket is terminated when pong is not received", async () => {
+    const redis = makeFakePubSubRedis();
+    const userId = "user-heartbeat-2";
+    const userMap = new Map<string, UserRow>([[userId, makeUser(userId)]]);
+    const store = makeInMemorySessionStore(userMap);
+    const { raw } = await store.createSession(userId);
+    // heartbeatIntervalMs=5, heartbeatTimeoutMs=15 so that after ~3 ticks
+    // (15ms) without pong the socket gets terminated
+    const { app, port } = await buildTestApp(redis, store, {
+      heartbeatIntervalMs: 5,
+      heartbeatTimeoutMs: 15
+    });
+    try {
+      const { WebSocket } = await import("ws");
+      // autoPong: false — disable automatic pong so the server never receives
+      // a pong response and detects the dead socket via heartbeat timeout.
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws/events`, {
+        headers: { Cookie: `${SESSION_COOKIE}=${raw}` },
+        autoPong: false
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        ws.once("open", resolve);
+        ws.once("error", reject);
+      });
+
+      const closeCode = await Promise.race<number>([
+        waitForClose(ws),
+        new Promise<number>((resolve) => setTimeout(() => resolve(-999), 500))
+      ]);
+
+      // Server should have closed the connection (not the -999 timeout sentinel)
+      assert.notStrictEqual(closeCode, -999, "Server should have terminated the dead socket");
     } finally {
       await app.close();
     }

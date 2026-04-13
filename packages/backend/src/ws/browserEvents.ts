@@ -20,6 +20,12 @@ import { makeRequireSession, SESSION_COOKIE } from "../auth/session";
 import type { AuthenticatedRequest } from "../auth/session";
 
 // ---------------------------------------------------------------------------
+// Heartbeat constants
+// ---------------------------------------------------------------------------
+const WS_HEARTBEAT_INTERVAL_MS = 25_000;
+const WS_HEARTBEAT_TIMEOUT_MS = 60_000;
+
+// ---------------------------------------------------------------------------
 // Minimal Redis subscribe surface
 // ---------------------------------------------------------------------------
 export interface SubscribeRedis {
@@ -38,12 +44,24 @@ export interface BrowserEventsDeps {
 }
 
 // ---------------------------------------------------------------------------
+// Options
+// ---------------------------------------------------------------------------
+export interface BrowserEventsOptions {
+  readonly heartbeatIntervalMs?: number;
+  readonly heartbeatTimeoutMs?: number;
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 export async function registerBrowserEvents(
   app: FastifyInstance,
-  deps: BrowserEventsDeps
+  deps: BrowserEventsDeps,
+  options: BrowserEventsOptions = {}
 ): Promise<void> {
+  const heartbeatIntervalMs = options.heartbeatIntervalMs ?? WS_HEARTBEAT_INTERVAL_MS;
+  const heartbeatTimeoutMs = options.heartbeatTimeoutMs ?? WS_HEARTBEAT_TIMEOUT_MS;
+
   const requireSession = makeRequireSession(deps.store);
 
   app.get(
@@ -55,6 +73,27 @@ export async function registerBrowserEvents(
       const { user } = (request as unknown as AuthenticatedRequest).sessionData;
       const channel = `user:${user.id}:events`;
 
+      // -----------------------------------------------------------------------
+      // Heartbeat — ping every interval, terminate if pong not received in time
+      // -----------------------------------------------------------------------
+      let lastPong = Date.now();
+
+      ws.on("pong", () => {
+        lastPong = Date.now();
+      });
+
+      const heartbeat = setInterval(() => {
+        if (Date.now() - lastPong > heartbeatTimeoutMs) {
+          app.log.warn({ userId: user.id }, "[browserEvents] dead socket detected — terminating");
+          ws.terminate();
+          return;
+        }
+        ws.ping();
+      }, heartbeatIntervalMs);
+
+      // -----------------------------------------------------------------------
+      // Redis subscription
+      // -----------------------------------------------------------------------
       function onMessage(message: string): void {
         try {
           ws.send(message);
@@ -72,11 +111,13 @@ export async function registerBrowserEvents(
       });
 
       ws.on("close", () => {
+        clearInterval(heartbeat);
         deps.redis.unsubscribe(channel, onMessage).catch(() => { /* best-effort */ });
       });
 
       ws.on("error", (err) => {
         app.log.error({ err }, "[browserEvents] socket error");
+        clearInterval(heartbeat);
         deps.redis.unsubscribe(channel, onMessage).catch(() => { /* best-effort */ });
       });
     }
