@@ -243,6 +243,22 @@ export class RunnerClient {
     }
   }
 
+  async uploadProjectFile(
+    projectSlug: string,
+    file: File,
+    opts: { onProgress?: (sent: number, total: number) => void; signal?: AbortSignal } = {}
+  ): Promise<string> {
+    const { uploadFileInChunks } = await import("./hostedUpload");
+    const result = await uploadFileInChunks({
+      client: this,
+      slug: projectSlug,
+      file,
+      onProgress: opts.onProgress,
+      signal: opts.signal
+    });
+    return result.docId;
+  }
+
   async updateProject(projectSlug: string, payload: Record<string, unknown>): Promise<SaveProjectResult | unknown> {
     return this.rpcCall<SaveProjectResult>("save_project", { slug: projectSlug, patch: payload });
   }

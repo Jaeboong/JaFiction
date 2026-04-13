@@ -24,6 +24,8 @@ export interface UploadFileInChunksOpts {
   readonly client: RunnerClient;
   readonly slug: string;
   readonly file: File;
+  readonly onProgress?: (sent: number, total: number) => void;
+  readonly signal?: AbortSignal;
 }
 
 export interface UploadFileInChunksResult {
@@ -34,7 +36,7 @@ export interface UploadFileInChunksResult {
 export async function uploadFileInChunks(
   opts: UploadFileInChunksOpts
 ): Promise<UploadFileInChunksResult> {
-  const { client, slug, file } = opts;
+  const { client, slug, file, onProgress, signal } = opts;
   if (file.size > UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES) {
     throw new Error(
       `파일이 최대 업로드 한도(${UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES} bytes)를 초과했습니다.`
@@ -48,7 +50,9 @@ export async function uploadFileInChunks(
   const totalChunks = Math.max(1, Math.ceil(fullBytes.byteLength / chunkSize));
 
   let lastResult: UploadDocumentChunkResult | undefined;
+  let sentBytes = 0;
   for (let i = 0; i < totalChunks; i += 1) {
+    signal?.throwIfAborted();
     const start = i * chunkSize;
     const end = Math.min(start + chunkSize, fullBytes.byteLength);
     const chunk = fullBytes.subarray(start, end);
@@ -63,6 +67,8 @@ export async function uploadFileInChunks(
       sha256: hash,
       chunkBase64
     });
+    sentBytes += chunk.byteLength;
+    onProgress?.(sentBytes, fullBytes.byteLength);
   }
 
   if (!lastResult || lastResult.status !== "complete") {
