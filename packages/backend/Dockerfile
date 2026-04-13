@@ -14,6 +14,9 @@ FROM oven/bun:1 AS runner-bin
 ARG BUILD_RUNNER_BIN
 WORKDIR /app
 
+# shared is a local file: dependency of runner — must be present for bun install + bun build
+COPY packages/shared/package.json ./packages/shared/package.json
+COPY packages/shared/src          ./packages/shared/src
 COPY packages/runner/package.json ./packages/runner/package.json
 COPY packages/runner/src          ./packages/runner/src
 COPY packages/runner/build.ts     ./packages/runner/build.ts
