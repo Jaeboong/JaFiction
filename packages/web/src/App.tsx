@@ -483,7 +483,11 @@ export function App() {
       <div className="app-stage">
         <section className="app-view">
           {selectedTab === "overview" ? (
-            <OverviewPage />
+            <OverviewPage
+              hasHealthyProvider={state.providers.some((p) => p.authStatus === "healthy")}
+              hasProject={state.projects.length > 0}
+              onFinish={(target) => setSelectedTab(target === "providers" ? "providers" : "projects")}
+            />
           ) : null}
 
           {selectedTab === "settings" ? (
