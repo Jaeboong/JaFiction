@@ -695,6 +695,22 @@ export function App() {
                   throw error;
                 }
               }}
+              onUploadProjectFile={async (projectSlug, file, opts) => {
+                try {
+                  await client.uploadProjectFile(projectSlug, file, opts);
+                  showActionNotice({ tone: "success", message: `${file.name} 을 업로드했습니다.` });
+                } catch (error) {
+                  if ((error as { name?: string }).name === "AbortError") {
+                    return;
+                  }
+                  showActionNotice({
+                    tone: "error",
+                    message: `${file.name} 업로드 실패`,
+                    detail: getErrorMessage(error)
+                  }, 5000);
+                  throw error;
+                }
+              }}
               onDeleteProjectDocument={async (projectSlug, documentId) => {
                 await runAction({
                   pending: { tone: "pending", message: "문서를 삭제하는 중입니다..." },

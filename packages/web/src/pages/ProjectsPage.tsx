@@ -10,12 +10,10 @@ import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
 import { ProjectInsightModal } from "../components/ProjectInsightModal";
 import { hasInsightDocuments, isInsightDocumentTitle } from "../insightDocuments";
 import {
-  extractionStatusLabel,
   formatDate,
   formatRelative,
   insightStatusLabel,
-  sourceTypeLabel,
-  statusToneForExtractionStatus
+  sourceTypeLabel
 } from "../formatters";
 import "../styles/projects.css";
 
@@ -28,6 +26,7 @@ interface ProjectsPageProps {
   onCreateProject(payload: Record<string, unknown>): Promise<ProjectRecord | undefined>;
   onSaveProjectDocument(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onUploadProjectDocuments(projectSlug: string, files: File[]): Promise<void>;
+  onUploadProjectFile(projectSlug: string, file: File, opts?: { onProgress?: (sent: number, total: number) => void; signal?: AbortSignal }): Promise<void>;
   onDeleteProjectDocument(projectSlug: string, documentId: string): Promise<void>;
   onUpdateProject(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onAnalyzeInsights(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
@@ -44,6 +43,7 @@ export function ProjectsPage({
   onCreateProject,
   onSaveProjectDocument,
   onUploadProjectDocuments,
+  onUploadProjectFile,
   onDeleteProjectDocument,
   onUpdateProject,
   onAnalyzeInsights,
@@ -137,6 +137,7 @@ export function ProjectsPage({
             onFetchProjectInsights={onFetchProjectInsights}
             onSaveProjectDocument={onSaveProjectDocument}
             onUploadProjectDocuments={onUploadProjectDocuments}
+            onUploadProjectFile={onUploadProjectFile}
             onDeleteProjectDocument={onDeleteProjectDocument}
             onUpdateProject={onUpdateProject}
             onAnalyzeInsights={onAnalyzeInsights}
@@ -428,11 +429,20 @@ function CreateProjectWorkspace({
   );
 }
 
+interface UploadingItem {
+  readonly id: string;
+  readonly name: string;
+  readonly size: number;
+  progress: number;
+  readonly abortController: AbortController;
+}
+
 function ProjectWorkspace({
   project,
   onFetchProjectInsights,
   onSaveProjectDocument,
   onUploadProjectDocuments,
+  onUploadProjectFile,
   onDeleteProjectDocument,
   onUpdateProject,
   onAnalyzeInsights,
@@ -443,6 +453,7 @@ function ProjectWorkspace({
   onFetchProjectInsights(projectSlug: string): Promise<ProjectInsightWorkspaceState>;
   onSaveProjectDocument(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onUploadProjectDocuments(projectSlug: string, files: File[]): Promise<void>;
+  onUploadProjectFile(projectSlug: string, file: File, opts?: { onProgress?: (sent: number, total: number) => void; signal?: AbortSignal }): Promise<void>;
   onDeleteProjectDocument(projectSlug: string, documentId: string): Promise<void>;
   onUpdateProject(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onAnalyzeInsights(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
@@ -454,6 +465,7 @@ function ProjectWorkspace({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "pending" | "failed">("idle");
   const [uploadError, setUploadError] = useState<string | undefined>();
+  const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
   const [isInsightModalOpen, setIsInsightModalOpen] = useState(false);
   const [insightModalStatus, setInsightModalStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [insightModalError, setInsightModalError] = useState<string | undefined>();
@@ -534,6 +546,36 @@ function ProjectWorkspace({
     } catch (error) {
       setUploadStatus("failed");
       setUploadError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const startSingleUpload = (file: File) => {
+    const ctrl = new AbortController();
+    const id = `upl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setUploadingItems((prev) => [...prev, { id, name: file.name, size: file.size, progress: 0, abortController: ctrl }]);
+
+    void onUploadProjectFile(project.record.slug, file, {
+      onProgress: (sent, total) => {
+        const pct = total > 0 ? Math.round((sent / total) * 100) : 0;
+        setUploadingItems((prev) => prev.map((item) => item.id === id ? { ...item, progress: pct } : item));
+      },
+      signal: ctrl.signal
+    }).finally(() => {
+      setUploadingItems((prev) => prev.filter((item) => item.id !== id));
+    });
+  };
+
+  const handleFilesDropped = (files: File[]) => {
+    const { acceptedFiles, rejectedNames } = partitionContextUploadFiles(files);
+
+    if (rejectedNames.length > 0) {
+      setUploadError(`지원하지 않는 형식은 제외했습니다: ${rejectedNames.join(", ")}`);
+    } else {
+      setUploadError(undefined);
+    }
+
+    for (const file of acceptedFiles) {
+      startSingleUpload(file);
     }
   };
 
@@ -946,115 +988,54 @@ function ProjectWorkspace({
             )}
           </section>
 
-          <section className="projects-panel projects-document-panel">
+          <section
+            className={`projects-panel projects-document-panel ${isDragOver ? "is-drag-over" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              if (e.dataTransfer.files.length) {
+                handleFilesDropped(Array.from(e.dataTransfer.files));
+              }
+            }}
+          >
             <div className="projects-panel-header projects-panel-header-column">
               <div>
                 <h2>컨텍스트 문서</h2>
                 <p>자소서 작성 및 평가에 활용될 이력서, 포트폴리오, 경험 정리 문서입니다.</p>
               </div>
-            </div>
-            <div className="projects-table-wrap">
-              <table className="projects-doc-table">
-                <thead>
-                  <tr>
-                    <th />
-                    <th>문서 제목</th>
-                    <th>유형</th>
-                    <th>추출 상태</th>
-                    <th>생성일</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {contextDocuments.length ? contextDocuments.map((document) => (
-                    <tr key={document.id}>
-                      <td>
-                        <button className="projects-star-button" type="button" disabled aria-label="즐겨찾기">
-                          <svg viewBox="0 0 24 24" focusable="false">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                          </svg>
-                        </button>
-                      </td>
-                      <td>
-                        <strong>{document.title}</strong>
-                      </td>
-                      <td>
-                        <span className={`projects-doc-type tone-${sourceTypeToTone(document.sourceType)}`}>{sourceTypeLabel(document.sourceType)}</span>
-                      </td>
-                      <td>
-                        <span className={`projects-extraction-status tone-${statusToneForExtractionStatus(document.extractionStatus)}`}>
-                          {extractionStatusLabel(document.extractionStatus)}
-                        </span>
-                      </td>
-                      <td>{formatDate(document.createdAt)}</td>
-                      <td className="projects-doc-actions">
-                        <button
-                          className="projects-delete-button"
-                          type="button"
-                          aria-label="삭제"
-                          onClick={() => { void handleDeleteDocument(document.id); }}
-                        >
-                          <svg viewBox="0 0 24 24" focusable="false">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan={6}>
-                        <div className="projects-empty-inline">
-                          {project.documents.length > 0
-                            ? "일반 컨텍스트 문서가 없습니다. 생성된 인사이트는 '인사이트 보기'에서 확인할 수 있습니다."
-                            : "추가된 지원서 문서가 없습니다."}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <div className="projects-context-grid">
-            <section className="projects-panel projects-tool-panel">
-              <div className="projects-panel-header projects-panel-header-column">
-                <div>
-                  <h2>파일 업로드</h2>
-                  <p>PDF, DOCX, MD, TXT 파일을 지원합니다.</p>
-                </div>
-              </div>
-
-              <input
-                ref={fileInputRef}
-                className="projects-hidden-input"
-                type="file"
-                accept={projectContextUploadAccept}
-                multiple
-                onChange={(event) => {
-                  if (event.target.files) {
-                    handleFileSelection(event.target.files);
-                  }
-                  event.target.value = "";
-                }}
-              />
-
               <button
-                className={`projects-dropzone ${uploadStatus === "pending" ? "is-pending" : ""} ${isDragOver ? "is-drag-over" : ""}`}
-                disabled={uploadStatus === "pending"}
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                onDragLeave={() => setIsDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragOver(false);
-                  if (e.dataTransfer.files.length) {
-                    handleFileSelection(e.dataTransfer.files);
-                  }
-                }}
+                className="projects-secondary-button"
                 type="button"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                + 파일 추가
+              </button>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              className="projects-hidden-input"
+              type="file"
+              accept={projectContextUploadAccept}
+              multiple
+              onChange={(event) => {
+                if (event.target.files && event.target.files.length > 0) {
+                  handleFilesDropped(Array.from(event.target.files));
+                }
+                event.target.value = "";
+              }}
+            />
+
+            {uploadError ? <p className="projects-error-text">{uploadError}</p> : null}
+
+            {contextDocuments.length === 0 && uploadingItems.length === 0 ? (
+              <button
+                className={`projects-dropzone ${isDragOver ? "is-drag-over" : ""}`}
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
               >
                 <span className="projects-dropzone-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
@@ -1064,59 +1045,91 @@ function ProjectWorkspace({
                     <line x1="9" y1="15" x2="15" y2="15" />
                   </svg>
                 </span>
-                <strong>{selectedFiles.length ? `${selectedFiles.length}개 파일 선택됨` : "클릭하거나 파일을 여기로 드래그하세요"}</strong>
-                <span>최대 {UPLOAD_DOCUMENT_MAX_MB}MB / 파일당</span>
+                <strong>파일을 여기로 드래그하거나 클릭해서 업로드하세요</strong>
+                <span>PDF, PPTX, MD, TXT, 이미지 · 최대 {UPLOAD_DOCUMENT_MAX_MB}MB</span>
               </button>
-
-              {selectedFiles.length ? (
-                <div className="projects-selected-files">
-                  {selectedFiles.map((file) => (
-                    <div key={buildSelectedFileKey(file)} className="projects-selected-file">
-                      <div className="projects-selected-file-copy">
-                        <span className="projects-file-icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                          </svg>
-                        </span>
-                        <div>
-                          <strong>{file.name}</strong>
-                          <span>{formatFileSize(file.size)}</span>
-                        </div>
-                      </div>
-                      <button
-                        className="projects-chip-button"
-                        disabled={uploadStatus === "pending"}
-                        onClick={() => {
-                          setSelectedFiles((current) => current.filter((item) => buildSelectedFileKey(item) !== buildSelectedFileKey(file)));
-                          setUploadStatus("idle");
-                          setUploadError(undefined);
-                        }}
-                        type="button"
-                      >
-                        제외
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              <div className="projects-tool-panel-footer">
-                {uploadError ? <p className="projects-error-text">{uploadError}</p> : null}
-
-                <button
-                  className="projects-primary-button projects-primary-button-wide"
-                  disabled={uploadStatus === "pending" || !selectedFiles.length}
-                  onClick={() => {
-                    void handleUpload();
-                  }}
-                  type="button"
-                >
-                  업로드 및 추출 시작
-                </button>
+            ) : (
+              <div className="projects-table-wrap">
+                <table className="projects-doc-table">
+                  <thead>
+                    <tr>
+                      <th />
+                      <th>문서 제목</th>
+                      <th>유형</th>
+                      <th>생성일</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uploadingItems.map((item) => (
+                      <tr key={item.id} className="projects-uploading-row">
+                        <td>
+                          <span className="projects-upload-spinner" aria-hidden="true" />
+                        </td>
+                        <td>
+                          <strong>{item.name}</strong>
+                          <span className="projects-upload-progress">{item.progress}%</span>
+                        </td>
+                        <td>{formatFileSize(item.size)}</td>
+                        <td>업로드 중...</td>
+                        <td className="projects-doc-actions">
+                          <button
+                            className="projects-chip-button"
+                            type="button"
+                            onClick={() => item.abortController.abort()}
+                          >
+                            중단
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {contextDocuments.length ? contextDocuments.map((document) => (
+                      <tr key={document.id}>
+                        <td>
+                          <button className="projects-star-button" type="button" disabled aria-label="즐겨찾기">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                          </button>
+                        </td>
+                        <td>
+                          <strong>{document.title}</strong>
+                        </td>
+                        <td>
+                          <span className={`projects-doc-type tone-${sourceTypeToTone(document.sourceType)}`}>{sourceTypeLabel(document.sourceType)}</span>
+                        </td>
+                        <td>{formatDate(document.createdAt)}</td>
+                        <td className="projects-doc-actions">
+                          <button
+                            className="projects-delete-button"
+                            type="button"
+                            aria-label="삭제"
+                            onClick={() => { void handleDeleteDocument(document.id); }}
+                          >
+                            <svg viewBox="0 0 24 24" focusable="false">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    )) : null}
+                    {project.documents.length > 0 && contextDocuments.length === 0 ? (
+                      <tr>
+                        <td colSpan={5}>
+                          <div className="projects-empty-inline">
+                            일반 컨텍스트 문서가 없습니다. 생성된 인사이트는 &apos;인사이트 보기&apos;에서 확인할 수 있습니다.
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
               </div>
-            </section>
+            )}
+          </section>
 
+          <div className="projects-context-grid">
             <section className="projects-panel projects-tool-panel">
               <div className="projects-panel-header projects-panel-header-column">
                 <div>
@@ -1127,7 +1140,7 @@ function ProjectWorkspace({
 
               <div className="projects-text-form">
                 <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="문서 제목을 입력하세요" />
-                <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="내용을 입력하세요..." rows={9} />
+                <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="내용을 입력하세요..." rows={10} style={{ minHeight: "12rem", resize: "vertical" }} />
               </div>
 
               <div className="projects-tool-panel-footer">

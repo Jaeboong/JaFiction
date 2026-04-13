@@ -1,5 +1,4 @@
 import type {
-  ExtractionStatus,
   InsightStatus,
   ProviderAuthStatus,
   ProviderId,
@@ -55,12 +54,6 @@ const sourceTypeLabels: Record<SourceType, string> = {
   txt: "TXT"
 };
 
-const extractionStatusLabels: Record<ExtractionStatus, string> = {
-  failed: "정규화 실패",
-  normalized: "정규화 완료",
-  rawOnly: "원문만 보관"
-};
-
 const reviewModeLabels: Record<ReviewMode, string> = {
   deepFeedback: "심층 피드백",
   realtime: "실시간"
@@ -97,10 +90,6 @@ export function sessionStatusLabel(status?: "idle" | "running" | "paused"): stri
 
 export function sourceTypeLabel(sourceType: SourceType): string {
   return sourceTypeLabels[sourceType];
-}
-
-export function extractionStatusLabel(status: ExtractionStatus): string {
-  return extractionStatusLabels[status];
 }
 
 export function reviewModeLabel(mode: ReviewMode): string {
@@ -154,16 +143,6 @@ export function statusToneForSessionStatus(status?: "idle" | "running" | "paused
     return "warning";
   }
   return "neutral";
-}
-
-export function statusToneForExtractionStatus(status: ExtractionStatus): StatusTone {
-  if (status === "normalized") {
-    return "positive";
-  }
-  if (status === "rawOnly") {
-    return "warning";
-  }
-  return "negative";
 }
 
 export function formatRelative(value?: string | number): string {
