@@ -4,7 +4,13 @@ import * as path from "node:path";
 import JSZip from "jszip";
 import { XMLParser } from "fast-xml-parser";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { WorkerMessageHandler } from "pdfjs-dist/legacy/build/pdf.worker.mjs";
 import { ExtractionStatus, SourceType } from "./types";
+
+// bun-compile 환경: node_modules 없음 → pdf.worker.mjs 동적 require 실패.
+// pdfjs 는 globalThis.pdfjsWorker.WorkerMessageHandler 가 존재하면 path lookup 없이
+// 인메모리 fake worker 를 사용한다. 정적 import 로 번들에 포함 후 globalThis 에 주입.
+(globalThis as Record<string, unknown>).pdfjsWorker = { WorkerMessageHandler };
 
 export interface ExtractionResult {
   extractionStatus: ExtractionStatus;
