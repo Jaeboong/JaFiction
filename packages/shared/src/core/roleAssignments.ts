@@ -84,6 +84,11 @@ export function resolveRoleAssignments(
       "finalizer",
       sourceMap.get("finalizer")?.providerId ?? coordinatorProvider,
       sourceMap.get("finalizer")
+    ),
+    insight_analyst: normalizeRoleAssignment(
+      "insight_analyst",
+      sourceMap.get("insight_analyst")?.providerId ?? coordinatorProvider,
+      sourceMap.get("insight_analyst")
     )
   };
 
@@ -105,8 +110,10 @@ export function deriveLegacyParticipantsFromRoles(
   };
 }
 
+const orchestrationRoleIds = essayRoleIds.filter((role) => role !== "insight_analyst");
+
 export function buildRoleAssignmentsFromDefaults(agentDefaults: AgentDefaults): RoleAssignment[] {
-  return essayRoleIds.flatMap((role) => {
+  return orchestrationRoleIds.flatMap((role) => {
     const config = agentDefaults[role];
     if (!config) {
       return [];

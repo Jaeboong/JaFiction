@@ -62,6 +62,7 @@ export interface DeviceHub {
   attach(deviceId: string, userIds: readonly string[], ws: WebSocket): void;
   detach(deviceId: string): void;
   isConnected(deviceId: string): boolean;
+  getConnectedDeviceIds(): readonly string[];
   getUserIdsForDevice(deviceId: string): readonly string[] | undefined;
   sendRpc(deviceId: string, req: RpcRequest, opts?: { timeoutMs?: number }): Promise<RpcResponse>;
   handleRunnerEvent(userIds: readonly string[], envelope: EventEnvelope): void;
@@ -178,6 +179,10 @@ export function createDeviceHub(deps: {
 
     isConnected(deviceId: string): boolean {
       return devices.has(deviceId);
+    },
+
+    getConnectedDeviceIds(): readonly string[] {
+      return [...devices.keys()];
     },
 
     getUserIdsForDevice(deviceId: string): readonly string[] | undefined {

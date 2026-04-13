@@ -11,8 +11,13 @@ ensure_harness_dirs
 backend_urls="${JASOJEON_BACKEND_URLS:-${JASOJEON_BACKEND_URL:-http://localhost:4000,https://xn--9l4b13i8j.com}}"
 
 # Parse optional flags
+foreground=0
 while [ $# -gt 0 ]; do
   case "$1" in
+    --foreground)
+      foreground=1
+      shift
+      ;;
     --backend-url)
       backend_urls="$2"
       shift 2
@@ -30,6 +35,20 @@ done
 
 stop_pid_file "runner" "${RUNNER_PID_FILE}" || true
 : > "${RUNNER_LOG_FILE}"
+
+if [ "${foreground}" -eq 1 ]; then
+  export JASOJEON_MODE="hosted"
+  export JASOJEON_BACKEND_URLS="${backend_urls}"
+  exec "${ROOT_DIR}/scripts/with-node.sh" \
+    "${ROOT_DIR}/scripts/lib/supervise.mjs" \
+    --label runner \
+    --pidfile "${RUNNER_PID_FILE}" \
+    --logfile "${RUNNER_LOG_FILE}" \
+    -- "${ROOT_DIR}/scripts/with-node.sh" \
+    "${ROOT_DIR}/node_modules/tsx/dist/cli.mjs" \
+    --watch \
+    "${ROOT_DIR}/packages/runner/src/index.ts"
+fi
 
 # Runner auto-claims on first boot — no pairing prompt.
 setsid bash -lc '

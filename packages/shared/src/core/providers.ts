@@ -21,6 +21,7 @@ import {
 import { performGeminiNotionOAuth } from "./notionOAuth";
 import { buildProviderArgs, getProviderCapabilities, loadProviderCapabilities, normalizeProviderSettingValue } from "./providerOptions";
 import { defaultProviderCommands, resolveProviderCommand, withCommandDirectoryInPath } from "./providerCommandResolver";
+import { resolveNodeRuntime } from "./nodeRuntimeResolver";
 import { createProviderStreamProcessor, parseProviderFinalText } from "./providerStreaming";
 import {
   AuthMode,
@@ -594,6 +595,53 @@ function firstNonEmptyLine(text: string): string | undefined {
     .find(Boolean);
 }
 
+/**
+ * On Windows, npm global installs produce a `.cmd` wrapper that forwards to a
+ * Node.js entry script. Spawning the `.cmd` goes through cmd.exe, which has a
+ * ~8KB command-line length limit and fragile metacharacter escaping. For large
+ * prompts (insight generation, long conversations) this fails with
+ * "명령이 너무 깁니다" (command is too long).
+ *
+ * This helper parses the `.cmd` wrapper to extract the underlying node script
+ * path so the caller can `spawn(node, [script, ...args])` directly, bypassing
+ * cmd.exe entirely. CreateProcess raises the limit to ~32KB and eliminates all
+ * shell escaping concerns.
+ */
+async function resolveCmdWrapper(command: string): Promise<{ node: string; script: string } | undefined> {
+  if (process.platform !== "win32" || !command.toLowerCase().endsWith(".cmd")) {
+    return undefined;
+  }
+  let content: string;
+  try {
+    content = await fs.promises.readFile(command, "utf8");
+  } catch {
+    return undefined;
+  }
+  // Typical npm wrapper has lines like:
+  //   "%_prog%"  "%dp0%\node_modules\@openai\codex\bin\codex.js" %*
+  // Extract the .js path.
+  const scriptMatch = content.match(/"([^"]+\.js)"/i) ?? content.match(/(\S+\.js)/i);
+  if (!scriptMatch?.[1]) {
+    return undefined;
+  }
+  let scriptPath = scriptMatch[1];
+  // Resolve %dp0% / %~dp0 (directory of the .cmd) and other relative bits.
+  const cmdDir = path.dirname(command);
+  scriptPath = scriptPath
+    .replace(/%~?dp0%?\\?/gi, cmdDir + path.sep)
+    .replace(/%~?dp0/gi, cmdDir + path.sep);
+  if (!path.isAbsolute(scriptPath)) {
+    scriptPath = path.resolve(cmdDir, scriptPath);
+  }
+  try {
+    await fs.promises.access(scriptPath);
+  } catch {
+    return undefined;
+  }
+  const nodeRuntime = resolveNodeRuntime();
+  return { node: nodeRuntime.nodeBin, script: scriptPath };
+}
+
 async function runProcess(
   command: string,
   args: string[],
@@ -613,9 +661,22 @@ async function runProcess(
     throw new RunAbortedError();
   }
 
+  // Resolve Windows .cmd wrappers → direct node invocation to bypass cmd.exe's
+  // 8KB argv limit and metacharacter escaping issues.
+  const resolvedCmd = await resolveCmdWrapper(command);
+  let effectiveCommand = command;
+  let effectiveArgs = args;
+  let useShell = false;
+  if (resolvedCmd) {
+    effectiveCommand = resolvedCmd.node;
+    effectiveArgs = [resolvedCmd.script, ...args];
+  } else if (process.platform === "win32" && command.endsWith(".cmd")) {
+    // Fallback: couldn't parse the .cmd wrapper, use shell as before.
+    useShell = true;
+  }
+
   return new Promise((resolve, reject) => {
-    const useShell = process.platform === "win32" && command.endsWith(".cmd");
-    const child = spawn(command, args, { cwd, env, shell: useShell, windowsHide: true });
+    const child = spawn(effectiveCommand, effectiveArgs, { cwd, env, shell: useShell, windowsHide: true });
     let stdout = "";
     let stderr = "";
     let aborted = false;

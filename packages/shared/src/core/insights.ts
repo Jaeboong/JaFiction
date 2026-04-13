@@ -4,13 +4,14 @@ import {
   buildSupportingInsightPrompt,
   CompanyProfile,
   parseCompanyAnalysisResponse,
-  parseSupportingInsightResponse
+  parseSupportingInsightResponse,
+  SupportingInsightArtifacts
 } from "./companyInsightArtifacts";
 import { OpenDartCompanyResolution } from "./openDart";
 import { ProjectRecord, ProviderId, ProviderRuntimeState } from "./types";
 
 export interface InsightGateway {
-  listRuntimeStates(): Promise<ProviderRuntimeState[]>;
+  listRuntimeStates(options?: { refresh?: boolean }): Promise<ProviderRuntimeState[]>;
   execute(
     providerId: ProviderId,
     prompt: string,
@@ -32,6 +33,72 @@ export interface InsightGenerationArtifacts {
   "question-analysis.md": string;
 }
 
+export interface CompanyAnalysisPhaseResult {
+  providerId: ProviderId;
+  companyProfile: CompanyProfile;
+  companyInsight: string;
+}
+
+export async function generateCompanyAnalysisPhase(
+  gateway: InsightGateway,
+  workspaceRoot: string,
+  project: ProjectRecord,
+  companyResolution: OpenDartCompanyResolution | undefined,
+  companySourceBundle: CompanySourceBundle,
+  preferredProviderId?: ProviderId,
+  modelOverride?: string,
+  effortOverride?: string
+): Promise<CompanyAnalysisPhaseResult> {
+  const provider = chooseInsightProvider(await gateway.listRuntimeStates({ refresh: true }), preferredProviderId);
+  if (!provider) {
+    throw new Error("인사이트를 생성하려면 최소 한 개의 healthy provider가 필요합니다.");
+  }
+
+  const apiKey = await gateway.getApiKey(provider.providerId);
+  const result = parseCompanyAnalysisResponse(
+    (await gateway.execute(provider.providerId, buildCompanyAnalysisPrompt(project, companyResolution, companySourceBundle), {
+      cwd: workspaceRoot,
+      authMode: provider.authMode,
+      apiKey,
+      modelOverride,
+      effortOverride
+    })).text,
+    project.companyName,
+    companySourceBundle.manifest.coverage
+  );
+
+  return {
+    providerId: provider.providerId,
+    companyProfile: result.companyProfile,
+    companyInsight: result.companyInsight
+  };
+}
+
+export async function generateSupportingInsightPhase(
+  gateway: InsightGateway,
+  workspaceRoot: string,
+  project: ProjectRecord,
+  companyAnalysis: CompanyAnalysisPhaseResult,
+  modelOverride?: string,
+  effortOverride?: string
+): Promise<SupportingInsightArtifacts> {
+  const provider = chooseInsightProvider(await gateway.listRuntimeStates(), companyAnalysis.providerId);
+  if (!provider) {
+    throw new Error("인사이트를 생성하려면 최소 한 개의 healthy provider가 필요합니다.");
+  }
+
+  const apiKey = await gateway.getApiKey(provider.providerId);
+  return parseSupportingInsightResponse(
+    (await gateway.execute(provider.providerId, buildSupportingInsightPrompt(project, companyAnalysis.companyProfile, companyAnalysis.companyInsight), {
+      cwd: workspaceRoot,
+      authMode: provider.authMode,
+      apiKey,
+      modelOverride,
+      effortOverride
+    })).text
+  );
+}
+
 export async function generateInsightArtifacts(
   gateway: InsightGateway,
   workspaceRoot: string,
@@ -40,30 +107,11 @@ export async function generateInsightArtifacts(
   companySourceBundle: CompanySourceBundle,
   preferredProviderId?: ProviderId
 ): Promise<{ providerId: ProviderId; companyProfile: CompanyProfile; artifacts: InsightGenerationArtifacts }> {
-  const provider = chooseInsightProvider(await gateway.listRuntimeStates(), preferredProviderId);
-  if (!provider) {
-    throw new Error("인사이트를 생성하려면 최소 한 개의 healthy provider가 필요합니다.");
-  }
-
-  const apiKey = await gateway.getApiKey(provider.providerId);
-  const execute = (prompt: string) =>
-    gateway.execute(provider.providerId, prompt, {
-      cwd: workspaceRoot,
-      authMode: provider.authMode,
-      apiKey
-    });
-
-  const companyPhase = parseCompanyAnalysisResponse(
-    (await execute(buildCompanyAnalysisPrompt(project, companyResolution, companySourceBundle))).text,
-    project.companyName,
-    companySourceBundle.manifest.coverage
-  );
-  const followUp = parseSupportingInsightResponse(
-    (await execute(buildSupportingInsightPrompt(project, companyPhase.companyProfile, companyPhase.companyInsight))).text
-  );
+  const companyPhase = await generateCompanyAnalysisPhase(gateway, workspaceRoot, project, companyResolution, companySourceBundle, preferredProviderId);
+  const followUp = await generateSupportingInsightPhase(gateway, workspaceRoot, project, companyPhase);
 
   return {
-    providerId: provider.providerId,
+    providerId: companyPhase.providerId,
     companyProfile: companyPhase.companyProfile,
     artifacts: {
       "company-insight.md": companyPhase.companyInsight,

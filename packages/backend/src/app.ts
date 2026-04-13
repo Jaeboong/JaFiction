@@ -15,6 +15,7 @@ import { registerRunnerSocket, createDrizzleRunnerSocketDeviceStore } from "./ws
 import { registerBrowserEvents } from "./ws/browserEvents";
 import { registerRpc, createDrizzleRpcDeviceStore } from "./routes/rpc";
 import { registerRunnerDownload } from "./routes/runnerDownload";
+import { createSubscribeAdapter } from "./redis/subscribeAdapter";
 import { createDeviceHub } from "./ws/deviceHub";
 import type { DeviceHub } from "./ws/deviceHub";
 import type { FetchGoogleUserInfo } from "./routes/auth";
@@ -100,14 +101,9 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await registerMe(app, { store: deps.store, env: deps.env, db: deps.db });
 
-  await registerPairing(app, {
-    deviceStore: createDrizzleDeviceStore(deps.db),
-    redis: deps.redis,
-    store: deps.store,
-    env: deps.env,
-  });
-
   // Phase 6 — runner ↔ backend relay + browser event fan-out
+  // Hub must be created before registerPairing so the approve handler can
+  // auto-connect new browser sessions to an already-connected runner.
   const hub = deps.deviceHub ?? createDeviceHub({
     redis: deps.redis,
     logger: deps.env.NODE_ENV !== "test" ? {
@@ -117,6 +113,14 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     } : undefined
   });
 
+  await registerPairing(app, {
+    deviceStore: createDrizzleDeviceStore(deps.db),
+    redis: deps.redis,
+    store: deps.store,
+    env: deps.env,
+    hub,
+  });
+
   await registerRunnerSocket(app, {
     deviceStore: createDrizzleRunnerSocketDeviceStore(deps.db),
     hub
@@ -124,7 +128,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await registerBrowserEvents(app, {
     store: deps.store,
-    redis: (deps.redisSub ?? deps.redis) as unknown as import("./ws/browserEvents").SubscribeRedis
+    redis: createSubscribeAdapter(deps.redisSub ?? deps.redis)
   });
 
   await registerRpc(app, {

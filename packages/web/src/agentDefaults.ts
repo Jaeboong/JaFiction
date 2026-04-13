@@ -7,7 +7,8 @@ export const essayRoleIds: EssayRoleId[] = [
   "fit_reviewer",
   "evidence_reviewer",
   "voice_reviewer",
-  "finalizer"
+  "finalizer",
+  "insight_analyst"
 ];
 
 export const essayRoleLabels: Record<EssayRoleId, string> = {
@@ -17,7 +18,8 @@ export const essayRoleLabels: Record<EssayRoleId, string> = {
   fit_reviewer: "적합성 리뷰어",
   evidence_reviewer: "근거 리뷰어",
   voice_reviewer: "어조 리뷰어",
-  finalizer: "완성자"
+  finalizer: "완성자",
+  insight_analyst: "인사이트 분석"
 };
 
 export const reviewerRoleOrder: EssayRoleId[] = ["evidence_reviewer", "fit_reviewer", "voice_reviewer"];
@@ -44,8 +46,10 @@ export function materializeAgentDefaults(
   }, {} as ResolvedAgentDefaults);
 }
 
+export const orchestrationRoleIds = essayRoleIds.filter((roleId) => roleId !== "insight_analyst");
+
 export function buildRoleAssignmentsFromDefaults(agentDefaults: AgentDefaults): RoleAssignment[] {
-  return essayRoleIds.flatMap((roleId) => {
+  return orchestrationRoleIds.flatMap((roleId) => {
     const config = agentDefaults[roleId];
     if (!config) {
       return [];

@@ -23,6 +23,7 @@ import { makeRequireSession } from "../auth/session";
 import type { AuthenticatedRequest } from "../auth/session";
 import type Redis from "ioredis";
 import type { Env } from "../env";
+import type { DeviceHub } from "../ws/deviceHub";
 
 const CLAIM_TTL_SECONDS = 600;
 const RATE_LIMIT_MAX = 10;
@@ -231,6 +232,8 @@ export interface PairingDeps {
   readonly redis: Redis;
   readonly store: SessionStore;
   readonly env: Pick<Env, "NODE_ENV">;
+  /** Optional — when provided, auto-connect already-connected runners to new sessions. */
+  readonly hub?: DeviceHub;
 }
 
 // ---------------------------------------------------------------------------
@@ -405,6 +408,24 @@ export async function registerPairing(
       }
 
       if (matching.length === 0) {
+        // Fallback: if a runner is already connected via WebSocket (e.g. existing
+        // device reconnected with stored token), auto-authorize the new session.
+        // Gated to non-production to avoid unintended cross-user device sharing in prod.
+        if (deps.hub && deps.env.NODE_ENV !== "production") {
+          const connectedIds = deps.hub.getConnectedDeviceIds();
+          if (connectedIds.length > 0) {
+            const deviceId = connectedIds[0];
+            try {
+              const authorized = await deps.deviceStore.authorizeExistingDevice(deviceId, user.id);
+              if (authorized) {
+                request.log.info({ deviceId, userId: user.id }, "auto-connected new session to already-connected runner");
+                return reply.code(200).send({ status: "authorized", deviceId });
+              }
+            } catch (err) {
+              request.log.error({ err }, "auto-connect: authorizeExistingDevice failed");
+            }
+          }
+        }
         return reply.code(200).send({ status: "no_claim" });
       }
 

@@ -15,7 +15,8 @@ import {
   buildRoleAssignmentsFromDefaults,
   essayRoleIds,
   essayRoleLabels,
-  materializeAgentDefaults
+  materializeAgentDefaults,
+  orchestrationRoleIds
 } from "../agentDefaults";
 import { CustomSelect } from "../components/CustomSelect";
 import { ReviewerCard, parseReviewerCardContent } from "../components/ReviewerCard";
@@ -483,7 +484,7 @@ function RunComposerPanel({
   );
   const roleAssignments = buildRoleAssignmentsFromDefaults(resolvedAgentDefaults);
   const participantSelection = buildParticipantSelectionFromDefaults(resolvedAgentDefaults);
-  const unavailableRoles = essayRoleIds.filter((roleId) => !healthyProviderIds.has(resolvedAgentDefaults[roleId].providerId));
+  const unavailableRoles = orchestrationRoleIds.filter((roleId) => !healthyProviderIds.has(resolvedAgentDefaults[roleId].providerId));
   const canStartRun = providers.length > 0 && unavailableRoles.length === 0;
   const essayQuestionsSignature = essayQuestions.join("\u0000");
   const [question, setQuestion] = useState("");
@@ -837,7 +838,7 @@ function RunComposerPanel({
             </div>
 
             <div className="runs-role-table-body">
-              {essayRoleIds.map((roleId, index) => {
+              {orchestrationRoleIds.map((roleId, index) => {
                 const config = resolvedAgentDefaults[roleId];
                 return (
                   <div key={roleId} className={`runs-role-row ${index % 2 === 0 ? "is-alt" : ""}`} role="row">

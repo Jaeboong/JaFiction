@@ -36,12 +36,12 @@ export function buildCompanyAnalysisPrompt(
     "Do not fabricate unsupported facts. If source coverage is weak, say 'insufficient source coverage' plainly.",
     "",
     "Return exactly two files using this format:",
-    "<<<FILE: company-profile.json>>>",
+    "===BEGIN FILE: company-profile.json===",
     "{...valid json...}",
-    "<<<END FILE>>>",
-    "<<<FILE: company-insight.md>>>",
+    "===END FILE===",
+    "===BEGIN FILE: company-insight.md===",
     "...markdown...",
-    "<<<END FILE>>>",
+    "===END FILE===",
     "",
     "## company-profile.json requirements",
     "- valid JSON only",
@@ -98,15 +98,15 @@ export function buildSupportingInsightPrompt(
     "Do not invent unsupported facts. If coverage is weak, keep interpretations conservative.",
     "",
     "Return exactly three markdown files using this format:",
-    "<<<FILE: job-insight.md>>>",
+    "===BEGIN FILE: job-insight.md===",
     "...markdown...",
-    "<<<END FILE>>>",
-    "<<<FILE: application-strategy.md>>>",
+    "===END FILE===",
+    "===BEGIN FILE: application-strategy.md===",
     "...markdown...",
-    "<<<END FILE>>>",
-    "<<<FILE: question-analysis.md>>>",
+    "===END FILE===",
+    "===BEGIN FILE: question-analysis.md===",
     "...markdown...",
-    "<<<END FILE>>>",
+    "===END FILE===",
     "",
     "## Project Inputs",
     JSON.stringify({
@@ -163,8 +163,11 @@ export function parseSupportingInsightResponse(text: string): SupportingInsightA
 }
 
 function extractArtifact(text: string, fileName: string): string {
-  const pattern = new RegExp(`<<<FILE:\\s*${escapeRegExp(fileName)}>>>\\s*([\\s\\S]*?)\\s*<<<END FILE>>>`, "i");
-  const match = text.match(pattern);
+  // Primary format: ===BEGIN FILE: name=== ... ===END FILE===
+  // Also accepts legacy <<<FILE: name>>> ... <<<END FILE>>> for backward compatibility
+  const primary = new RegExp(`={3,}\\s*BEGIN\\s+FILE:\\s*${escapeRegExp(fileName)}\\s*={3,}\\s*([\\s\\S]*?)\\s*={3,}\\s*END\\s+FILE\\s*={3,}`, "i");
+  const legacy = new RegExp(`<<<FILE:\\s*${escapeRegExp(fileName)}>>>\\s*([\\s\\S]*?)\\s*<<<END FILE>>>`, "i");
+  const match = text.match(primary) ?? text.match(legacy);
   if (!match?.[1]?.trim()) {
     throw new Error(`인사이트 응답에서 ${fileName} 블록을 찾지 못했습니다.`);
   }

@@ -113,6 +113,13 @@ function findCompanionBin(
 
 const defaultCandidateProvider: CandidateProvider = {
   listCandidates(homeDir: string): readonly string[] {
+    const isWin = process.platform === "win32";
+    const nodeNames = isWin ? ["node.exe", "node"] : ["node"];
+    const pushNode = (dir: string, bucket: string[]): void => {
+      for (const name of nodeNames) {
+        bucket.push(path.join(dir, name));
+      }
+    };
     const candidates: string[] = [];
 
     // 1. Explicit override
@@ -187,18 +194,18 @@ const defaultCandidateProvider: CandidateProvider = {
 
     // 3. Package manager standard paths
     for (const dir of ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) {
-      candidates.push(path.join(dir, "node"));
+      pushNode(dir, candidates);
     }
 
     // 4. PATH entries in order
     const pathVar = process.env["PATH"] ?? "";
     const delimiter = pathVar.includes(";") ? ";" : ":";
     for (const dir of pathVar.split(delimiter).filter(Boolean)) {
-      candidates.push(path.join(dir, "node"));
+      pushNode(dir, candidates);
     }
 
     // 5. ~/.local/bin last (may contain WSL Windows stubs)
-    candidates.push(path.join(homeDir, ".local", "bin", "node"));
+    pushNode(path.join(homeDir, ".local", "bin"), candidates);
 
     return candidates;
   }
@@ -226,6 +233,19 @@ const defaultRuntimeVerifier: RuntimeVerifier = {
   },
 
   verifyCompanion(bin: string, binDir: string): boolean {
+    // On Windows, npm/npx are .cmd wrappers. Node's CVE-2024-27980 mitigation
+    // blocks spawning .cmd without shell: true, producing EINVAL. Rather than
+    // enabling shell (cmd.exe reintroduces escaping/length issues), just verify
+    // the file exists — the runtime check is only meaningful on Unix where
+    // npm is a shebang script that can silently break.
+    if (process.platform === "win32") {
+      try {
+        fs.accessSync(bin, fs.constants.F_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    }
     // npm/npx는 #!/usr/bin/env node shebang을 가진 .js 심볼릭링크라서
     // PATH에 node가 없으면 exec 실패 → binDir을 env.PATH 앞에 주입.
     const parentPath = process.env["PATH"] ?? "";

@@ -50,6 +50,7 @@ export async function opendartTest(
     lastCheckAt: new Date().toISOString(),
     lastError: result.ok ? undefined : result.message
   });
+  await ctx.stateStore.refreshOpenDartConfigured();
   await ctx.pushState();
 
   let sample: string | undefined;

@@ -299,6 +299,7 @@ export async function deleteRun(
   await ctx.runBusy("실행 기록을 삭제하는 중...", async () => {
     await ctx.storage().deleteRun(slug, runId);
     await ctx.stateStore.refreshProjects(slug);
+    await ctx.pushState();
   });
   return { ok: true };
 }
