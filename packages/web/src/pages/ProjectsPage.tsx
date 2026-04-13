@@ -1065,7 +1065,7 @@ function ProjectWorkspace({
                   </svg>
                 </span>
                 <strong>{selectedFiles.length ? `${selectedFiles.length}개 파일 선택됨` : "클릭하거나 파일을 여기로 드래그하세요"}</strong>
-                <span>최대 10MB / 파일당</span>
+                <span>최대 {UPLOAD_DOCUMENT_MAX_MB}MB / 파일당</span>
               </button>
 
               {selectedFiles.length ? (
@@ -1254,6 +1254,10 @@ function formatFileSize(bytes: number): string {
   }
   return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)}MB`;
 }
+
+// Kept inline — shared constant not re-exported across vite bundle boundary.
+const UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES = 100 * 1024 * 1024;
+const UPLOAD_DOCUMENT_MAX_MB = Math.floor(UPLOAD_DOCUMENT_CHUNK_MAX_TOTAL_BYTES / (1024 * 1024));
 
 const supportedContextUploadExtensions = new Set([
   ".pdf",
