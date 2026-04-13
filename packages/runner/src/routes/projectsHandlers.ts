@@ -371,11 +371,20 @@ export async function uploadDocumentChunk(
   }
 
   let docId = "";
-  await ctx.runBusy("프로젝트 파일을 가져오는 중...", async () => {
-    const document = await ctx.storage().importProjectUpload(slug, filename, full);
-    docId = document.id;
-    await ctx.stateStore.refreshProjects(slug);
-  });
+  try {
+    await ctx.runBusy("프로젝트 파일을 가져오는 중...", async () => {
+      const document = await ctx.storage().importProjectUpload(slug, filename, full);
+      docId = document.id;
+      await ctx.stateStore.refreshProjects(slug);
+    });
+  } catch (error) {
+    uploadSessions.delete(uploadId);
+    const err = error as { code?: string; message?: string };
+    if (!err.code) {
+      (error as { code?: string }).code = "extraction_failed";
+    }
+    throw error;
+  }
 
   return { status: "complete", uploadId, docId };
 }

@@ -53,6 +53,30 @@ test("storage imports uploaded buffers for profile and project documents", async
   assert.equal(projectDoc.note, "Imported from picker");
 });
 
+test("importProjectUpload rejects and rolls back raw file when PDF is corrupt", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const storage = await createStorage(workspaceRoot);
+  const project = await storage.createProject("TechCorp");
+  const brokenPdfBytes = Buffer.from("not a pdf");
+
+  await assert.rejects(
+    () => storage.importProjectUpload(project.slug, "broken.pdf", brokenPdfBytes),
+    (err: Error & { code?: string }) => {
+      assert.equal(err.code, "extraction_failed");
+      return true;
+    }
+  );
+
+  const docs = await storage.listProjectDocuments(project.slug);
+  assert.equal(docs.length, 0);
+
+  const rawDir = path.join(workspaceRoot, ".forjob", "projects", project.slug, "context", "raw");
+  const rawFiles = await fs.readdir(rawDir);
+  assert.equal(rawFiles.length, 0);
+});
+
 test("storage updates and deletes projects", async (t) => {
   const workspaceRoot = await createTempWorkspace();
   t.after(async () => cleanupTempWorkspace(workspaceRoot));

@@ -91,8 +91,9 @@ export class ManifestStore {
         normalizedPath = relativeFrom(this.workspaceRoot, normalizedFilePath);
       }
     } catch (error) {
-      extractionStatus = "failed";
-      note = note ? `${note}\n\nExtraction error: ${(error as Error).message}` : `Extraction error: ${(error as Error).message}`;
+      await fs.unlink(rawFilePath).catch(() => {});
+      const userMessage = buildExtractionErrorMessage(sourceType, error as Error);
+      throw taggedExtractionError(userMessage);
     }
 
     const document: ContextDocument = {
@@ -143,8 +144,9 @@ export class ManifestStore {
         normalizedPath = relativeFrom(this.workspaceRoot, normalizedFilePath);
       }
     } catch (error) {
-      extractionStatus = "failed";
-      note = note ? `${note}\n\nExtraction error: ${(error as Error).message}` : `Extraction error: ${(error as Error).message}`;
+      await fs.unlink(rawFilePath).catch(() => {});
+      const userMessage = buildExtractionErrorMessage(sourceType, error as Error);
+      throw taggedExtractionError(userMessage);
     }
 
     const document: ContextDocument = {
@@ -192,4 +194,20 @@ export class ManifestStore {
       await updateProject({ ...project, pinnedDocumentIds: [...pinned] } as ProjectRecord);
     }
   }
+}
+
+function taggedExtractionError(message: string): Error {
+  const err = new Error(message);
+  (err as { code?: string }).code = "extraction_failed";
+  return err;
+}
+
+function buildExtractionErrorMessage(sourceType: ContextDocument["sourceType"], cause: Error): string {
+  if (sourceType === "pdf") {
+    return "PDF 에서 텍스트를 추출하지 못했습니다. 이미지 기반 PDF 라면 텍스트가 포함된 사본을 업로드해 주세요.";
+  }
+  if (sourceType === "pptx") {
+    return "PPTX 파일의 슬라이드 텍스트를 추출하지 못했습니다.";
+  }
+  return `파일 처리 중 오류가 발생했습니다: ${cause.message}`;
 }
