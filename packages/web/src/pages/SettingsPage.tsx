@@ -1,5 +1,5 @@
 import type { SidebarState } from "@jasojeon/shared";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { AgentEffortSection } from "../components/AgentEffortSection";
 import { ProfileDocumentsPanel } from "../components/profile/ProfileDocumentsPanel";
 import type { RunnerClient } from "../api/client";
@@ -14,15 +14,11 @@ interface SettingsPageProps {
   storageRoot: string;
   runnerBaseUrlDraft: string;
   lastUpdatedAt?: number;
-  pendingOpenDartAction?: "save" | "delete" | "test";
   client: RunnerClient;
   onSelectSection(value: SettingsSection): void;
   onRunnerBaseUrlDraftChange(value: string): void;
   onApplyRunnerBaseUrl(): void;
   onSaveAgentDefaults(agentDefaults: SidebarState["agentDefaults"]): Promise<void>;
-  onSaveOpenDartApiKey(apiKey: string): Promise<void>;
-  onDeleteOpenDartApiKey(): Promise<void>;
-  onTestOpenDartConnection(): Promise<void>;
   onProfileDocumentsChanged(): void;
 }
 
@@ -41,14 +37,10 @@ export function SettingsPage({
   storageRoot,
   runnerBaseUrlDraft,
   lastUpdatedAt,
-  pendingOpenDartAction,
   client,
   onRunnerBaseUrlDraftChange,
   onApplyRunnerBaseUrl,
   onSaveAgentDefaults,
-  onSaveOpenDartApiKey,
-  onDeleteOpenDartApiKey,
-  onTestOpenDartConnection,
   onProfileDocumentsChanged
 }: SettingsPageProps) {
   const healthyProviders = state.providers.filter((p) => p.authStatus === "healthy").length;
@@ -195,14 +187,8 @@ export function SettingsPage({
             </div>
             <div className="settings-opendart-body">
               <p className="settings-opendart-desc">
-                금융감독원 전자공시시스템(OpenDART) API 키를 등록하면 기업 재무 정보와 공시 데이터를 자동으로 조회합니다.
+                금융감독원 전자공시시스템(OpenDART) API 키는 서버에서 관리됩니다. 별도 설정이 필요하지 않습니다.
               </p>
-              <OpenDartForm
-                pendingAction={pendingOpenDartAction}
-                onSave={onSaveOpenDartApiKey}
-                onDelete={onDeleteOpenDartApiKey}
-                onTest={onTestOpenDartConnection}
-              />
             </div>
           </section>
 
@@ -239,82 +225,3 @@ export function SettingsPage({
   );
 }
 
-function OpenDartForm({
-  pendingAction,
-  onSave,
-  onDelete,
-  onTest
-}: {
-  pendingAction?: "save" | "delete" | "test";
-  onSave(apiKey: string): Promise<void>;
-  onDelete(): Promise<void>;
-  onTest(): Promise<void>;
-}) {
-  const [apiKey, setApiKey] = useState("");
-  const [apiKeyVisible, setApiKeyVisible] = useState(false);
-  const hasPending = Boolean(pendingAction);
-
-  return (
-    <div className="settings-opendart-form">
-      <div className="settings-opendart-field">
-        <label className="settings-field-label" htmlFor="opendart-apikey">API Key</label>
-        <div className="settings-api-key-row">
-          <input
-            id="opendart-apikey"
-            type={apiKeyVisible ? "text" : "password"}
-            className="settings-api-key-input"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="OpenDART API 키를 입력하세요"
-            spellCheck={false}
-          />
-          <button
-            className="settings-secondary-button"
-            type="button"
-            onClick={() => setApiKeyVisible((v) => !v)}
-          >
-            {apiKeyVisible ? "Hide" : "Show"}
-          </button>
-        </div>
-      </div>
-      <div className="settings-opendart-actions">
-        <button
-          className="settings-primary-button"
-          type="button"
-          disabled={!apiKey.trim() || hasPending}
-          onClick={async () => {
-            await onSave(apiKey);
-            setApiKey("");
-          }}
-        >
-          {pendingAction === "save" ? <BusyLabel label="저장중..." /> : "저장"}
-        </button>
-        <button
-          className="settings-secondary-button"
-          type="button"
-          disabled={hasPending}
-          onClick={onDelete}
-        >
-          {pendingAction === "delete" ? <BusyLabel label="삭제중..." /> : "삭제"}
-        </button>
-        <button
-          className="settings-secondary-button"
-          type="button"
-          disabled={hasPending}
-          onClick={onTest}
-        >
-          {pendingAction === "test" ? <BusyLabel label="확인중..." /> : "연결 테스트"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function BusyLabel({ label }: { label: string }) {
-  return (
-    <span className="button-busy-label">
-      <span className="activity-indicator" aria-hidden="true" />
-      {label}
-    </span>
-  );
-}

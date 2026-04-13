@@ -32,6 +32,7 @@ export const TEST_ENV: Env = {
   PORT: 3099,
   NODE_ENV: "test",
   PUBLIC_BASE_URL: "http://localhost:3099",
+  DART_API_KEY: "test-dart-api-key",
 };
 
 export interface TestAppDeps {

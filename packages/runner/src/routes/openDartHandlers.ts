@@ -7,31 +7,25 @@ import {
   OpendartDeleteKeyResult,
   OpenDartClient
 } from "@jasojeon/shared";
-import { openDartSecretKey, RunnerContext } from "../runnerContext";
+import { getServerDartApiKey, RunnerContext } from "../runnerContext";
+
+// OpenDART API 키는 이제 서버 env(DART_API_KEY)로 관리됩니다.
+// 아래 핸들러들은 RPC 스키마 하위 호환을 위해 유지하되,
+// 사용자별 키 저장/삭제 로직은 no-op으로 처리합니다.
 
 export async function opendartSaveKey(
-  ctx: RunnerContext,
-  payload: OpendartSaveKeyPayload
+  _ctx: RunnerContext,
+  _payload: OpendartSaveKeyPayload
 ): Promise<OpendartSaveKeyResult> {
-  const apiKey = payload.key.trim();
-  if (!apiKey) {
-    throw Object.assign(new Error("OpenDART API 키는 비워둘 수 없습니다."), { code: "invalid_input" });
-  }
-  await ctx.runBusy("OpenDART API 키를 저장하는 중...", async () => {
-    await ctx.secrets().store(openDartSecretKey, apiKey);
-    await ctx.stateStore.refreshOpenDartConfigured();
-  });
+  // 서버 env 기반으로 전환됨 — 사용자 입력 키는 저장하지 않습니다.
   return { ok: true };
 }
 
 export async function opendartDeleteKey(
-  ctx: RunnerContext,
+  _ctx: RunnerContext,
   _payload: OpendartDeleteKeyPayload
 ): Promise<OpendartDeleteKeyResult> {
-  await ctx.runBusy("OpenDART API 키를 삭제하는 중...", async () => {
-    await ctx.secrets().delete(openDartSecretKey);
-    await ctx.stateStore.refreshOpenDartConfigured();
-  });
+  // 서버 env 기반으로 전환됨 — 삭제할 사용자 키가 없습니다.
   return { ok: true };
 }
 
@@ -39,7 +33,7 @@ export async function opendartTest(
   ctx: RunnerContext,
   payload: OpendartTestPayload
 ): Promise<OpendartTestResult> {
-  const apiKey = await ctx.secrets().get(openDartSecretKey);
+  const apiKey = getServerDartApiKey();
   if (!apiKey) {
     return { ok: false, sample: undefined };
   }

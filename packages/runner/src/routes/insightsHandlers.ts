@@ -12,7 +12,7 @@ import {
   type ProjectInsightInput,
   type ProjectInsightWorkspaceState
 } from "@jasojeon/shared";
-import { openDartSecretKey, RunnerContext } from "../runnerContext";
+import { getServerDartApiKey, RunnerContext } from "../runnerContext";
 
 // ---------------------------------------------------------------------------
 // Insights service logic
@@ -129,7 +129,7 @@ export async function generateProjectInsightsService(
   });
 
   let companyResolution: OpenDartCompanyResolution | undefined;
-  const openDartApiKey = await ctx.secrets().get(openDartSecretKey);
+  const openDartApiKey = getServerDartApiKey();
   if (openDartApiKey) {
     try {
       const openDart = new OpenDartClient(ctx.storageRoot, openDartApiKey);

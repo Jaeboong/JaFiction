@@ -18,6 +18,12 @@ import { StateHub } from "./ws/stateHub";
 
 export const openDartSecretKey = "jasojeon.apiKey.openDart";
 
+/** 서버 env 에서 읽는 OpenDART API 키. 없으면 undefined. */
+export function getServerDartApiKey(): string | undefined {
+  const key = process.env["DART_API_KEY"];
+  return key && key.trim().length > 0 ? key.trim() : undefined;
+}
+
 export interface RunnerContext {
   readonly workspaceRoot: string;
   readonly storageRoot: string;
@@ -56,7 +62,7 @@ export async function createRunnerContext(): Promise<RunnerContext> {
     workspaceRoot,
     storage,
     registry,
-    openDartConfigured: async () => Boolean(await secrets.get(openDartSecretKey)),
+    openDartConfigured: async () => Boolean(getServerDartApiKey()),
     agentDefaults: async () => config.getAgentDefaults(),
     extensionVersion: version
   });

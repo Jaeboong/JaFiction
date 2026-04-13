@@ -11,6 +11,8 @@ const EnvSchema = z.object({
   PUBLIC_BASE_URL: z.string().url(),
   // 로그인 후 리다이렉트 URL. dev에서는 프론트(4124), prod에서는 PUBLIC_BASE_URL과 동일.
   WEB_BASE_URL: z.string().url().optional(),
+  // 금융감독원 OpenDART API 키 — 서버 운영자가 관리, 전 사용자 공유.
+  DART_API_KEY: z.string().min(1),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
