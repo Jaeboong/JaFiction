@@ -7,27 +7,6 @@
 ARG BUILD_RUNNER_BIN=true
 ARG NODE_IMAGE=node:22-alpine
 
-# ---------- runner-bin stage ----------
-# Compiles the hosted runner binary for all 4 target platforms using Bun.
-# Skipped in dev (BUILD_RUNNER_BIN=false) — dev uses a host volume mount instead.
-FROM oven/bun:1 AS runner-bin
-ARG BUILD_RUNNER_BIN
-WORKDIR /app
-
-# shared is a local file: dependency of runner — must be present for bun install + bun build
-COPY packages/shared/package.json ./packages/shared/package.json
-COPY packages/shared/src          ./packages/shared/src
-COPY packages/runner/package.json ./packages/runner/package.json
-COPY packages/runner/src          ./packages/runner/src
-COPY packages/runner/build.ts     ./packages/runner/build.ts
-
-RUN if [ "$BUILD_RUNNER_BIN" = "true" ]; then \
-      bun install --cwd packages/runner && \
-      bun run packages/runner/build.ts; \
-    else \
-      mkdir -p packages/runner/dist-bin; \
-    fi
-
 # ---------- deps stage ----------
 # Installs the full workspace dep tree. Copies only package manifests first so
 # this layer stays cached when source changes.
@@ -79,6 +58,29 @@ RUN node ./node_modules/typescript/lib/tsc.js -p ./packages/backend/tsconfig.jso
 # entrypoint invokes `drizzle-kit migrate`, and drizzle-kit is declared as a
 # devDependency. Pruning would strip it. Image size cost is acceptable for a
 # single-node self-host; revisit if this ever ships to many hosts.
+
+# ---------- runner-bin stage ----------
+# Compiles the hosted runner binary for all 4 target platforms using Bun.
+# Depends on the build stage for packages/shared/dist (bun build resolves
+# @jasojeon/shared via dist/index.js, not raw TypeScript source).
+# Skipped in dev (BUILD_RUNNER_BIN=false) — dev uses a host volume mount instead.
+FROM oven/bun:1 AS runner-bin
+ARG BUILD_RUNNER_BIN
+WORKDIR /app
+
+# shared/dist compiled by the build stage — needed so bun can resolve @jasojeon/shared
+COPY --from=build /app/packages/shared/dist    ./packages/shared/dist
+COPY packages/shared/package.json              ./packages/shared/package.json
+COPY packages/runner/package.json              ./packages/runner/package.json
+COPY packages/runner/src                       ./packages/runner/src
+COPY packages/runner/build.ts                  ./packages/runner/build.ts
+
+RUN if [ "$BUILD_RUNNER_BIN" = "true" ]; then \
+      bun install --cwd packages/runner && \
+      bun run packages/runner/build.ts; \
+    else \
+      mkdir -p packages/runner/dist-bin; \
+    fi
 
 # ---------- runtime stage ----------
 FROM ${NODE_IMAGE} AS runtime
