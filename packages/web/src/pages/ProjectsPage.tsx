@@ -460,6 +460,7 @@ function ProjectWorkspace({
   const [insightWorkspace, setInsightWorkspace] = useState<ProjectInsightWorkspaceState | undefined>();
   const [selectedInsightTab, setSelectedInsightTab] = useState<ProjectInsightDocumentKey | undefined>();
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const sawGeneratingStatusRef = useRef(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [editCompanyName, setEditCompanyName] = useState("");
@@ -471,13 +472,17 @@ function ProjectWorkspace({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // state_snapshot 으로 insightStatus 가 generating 에서 벗어나면 낙관적 잠금 해제
+  // state_snapshot 으로 insightStatus 가 generating 을 거친 뒤 벗어나면 낙관적 잠금 해제
+  // pending → generating → ready/error 순서를 기다리므로, generating 을 보기 전에는 해제하지 않음
   useEffect(() => {
     if (!isGeneratingInsights) {
+      sawGeneratingStatusRef.current = false;
       return;
     }
     const status = project.record.insightStatus;
-    if (status !== "generating") {
+    if (status === "generating") {
+      sawGeneratingStatusRef.current = true;
+    } else if (sawGeneratingStatusRef.current) {
       setIsGeneratingInsights(false);
     }
   }, [isGeneratingInsights, project.record.insightStatus]);
@@ -765,7 +770,11 @@ function ProjectWorkspace({
               </div>
               <div>
                 <span>인사이트 상태</span>
-                <strong className="projects-stat-strong-emerald">{insightStatusLabel(project.record.insightStatus)}</strong>
+                <strong className="projects-stat-strong-emerald">
+                  {isGeneratingInsights && project.record.insightStatus !== "generating"
+                    ? "요청 중..."
+                    : insightStatusLabel(project.record.insightStatus)}
+                </strong>
               </div>
             </article>
           </div>
