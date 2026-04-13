@@ -61,22 +61,26 @@ RUN node ./node_modules/typescript/lib/tsc.js -p ./packages/backend/tsconfig.jso
 
 # ---------- runner-bin stage ----------
 # Compiles the hosted runner binary for all 4 target platforms using Bun.
-# Depends on the build stage for packages/shared/dist (bun build resolves
-# @jasojeon/shared via dist/index.js, not raw TypeScript source).
+# Strategy:
+#   - node_modules from deps stage  → provides zod, jszip, ws, etc. (shared's transitive deps)
+#   - @jasojeon/shared overwritten  → dist/index.js from build stage (compiled JS, not TS source)
+#   - no bun install needed         → all deps already present
 # Skipped in dev (BUILD_RUNNER_BIN=false) — dev uses a host volume mount instead.
 FROM oven/bun:1 AS runner-bin
 ARG BUILD_RUNNER_BIN
 WORKDIR /app
 
-# shared/dist compiled by the build stage — needed so bun can resolve @jasojeon/shared
-COPY --from=build /app/packages/shared/dist    ./packages/shared/dist
-COPY packages/shared/package.json              ./packages/shared/package.json
-COPY packages/runner/package.json              ./packages/runner/package.json
-COPY packages/runner/src                       ./packages/runner/src
-COPY packages/runner/build.ts                  ./packages/runner/build.ts
+# All workspace node_modules (runner + shared transitive deps: zod, jszip, ws, etc.)
+COPY --from=deps /app/node_modules                  ./node_modules
+# Overwrite node_modules/@jasojeon/shared with compiled dist so bun resolves imports
+COPY --from=build /app/packages/shared/dist         ./node_modules/@jasojeon/shared/dist
+COPY packages/shared/package.json                   ./node_modules/@jasojeon/shared/package.json
+# Runner source and build script
+COPY packages/runner/package.json                   ./packages/runner/package.json
+COPY packages/runner/src                            ./packages/runner/src
+COPY packages/runner/build.ts                       ./packages/runner/build.ts
 
 RUN if [ "$BUILD_RUNNER_BIN" = "true" ]; then \
-      bun install --cwd packages/runner && \
       bun run packages/runner/build.ts; \
     else \
       mkdir -p packages/runner/dist-bin; \
