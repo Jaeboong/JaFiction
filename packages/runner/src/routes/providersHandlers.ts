@@ -44,8 +44,9 @@ export async function callProviderTest(
 
       try {
         await ensureProviderCli(providerId, updateProgress);
-      } catch {
-        // 설치 실패 — testProvider 결과 그대로 반환
+      } catch (err) {
+        // 설치 실패 — 에러 로그 후 testProvider 결과 그대로 반환
+        console.error(`[ensureProviderCli] ${providerId} 자동 설치 실패:`, err);
         await ctx.stateStore.refreshProvider(providerId);
         return;
       }

@@ -13,15 +13,27 @@ export async function resolveCommand(name: string): Promise<string | null> {
   const cmd = isWindows ? "where" : "which";
 
   try {
-    const result = await new Promise<string>((resolve, reject) => {
+    const allLines = await new Promise<string[]>((resolve, reject) => {
       execFile(cmd, [name], { timeout: 5_000 }, (error, stdout) => {
         if (error) {
           reject(error);
           return;
         }
-        resolve(stdout.trim().split("\n")[0]);
+        resolve(stdout.trim().split("\n").map((l) => l.trim()).filter(Boolean));
       });
     });
+
+    // Windows에서 `where` 결과에는 확장자 없는 bash 스크립트도 포함됨.
+    // 실행 가능한 파일 우선순위: .exe > .cmd/.bat > 나머지
+    const candidates = isWindows
+      ? [
+          ...allLines.filter((l) => l.toLowerCase().endsWith(".exe")),
+          ...allLines.filter((l) => l.toLowerCase().endsWith(".cmd") || l.toLowerCase().endsWith(".bat")),
+          ...allLines.filter((l) => !/\.(exe|cmd|bat|ps1)$/i.test(l)),
+        ]
+      : allLines;
+
+    const result = candidates[0];
 
     // 경로가 실제로 존재하는지 확인
     if (result && fs.existsSync(result)) {
@@ -44,8 +56,14 @@ export async function installGlobalPackage(
     throw new Error("npm이 설치되어 있지 않습니다. Node.js를 먼저 설치해주세요.");
   }
 
+  // .cmd/.bat 파일은 cmd.exe /c 로 실행 (공백 포함 경로 처리)
+  const isCmd = npm.toLowerCase().endsWith(".cmd") || npm.toLowerCase().endsWith(".bat");
+  const installArgs = isCmd
+    ? ["cmd", ["/c", npm, "install", "-g", packageName]] as const
+    : [npm, ["install", "-g", packageName]] as const;
+
   await new Promise<void>((resolve, reject) => {
-    execFile(npm, ["install", "-g", packageName], { timeout: 120_000 }, (error, _stdout, stderr) => {
+    execFile(installArgs[0], [...installArgs[1]], { timeout: 120_000 }, (error, _stdout, stderr) => {
       if (error) {
         reject(new Error(`${packageName} 설치 실패: ${stderr || error.message}`));
         return;
@@ -319,7 +337,11 @@ export async function ensureNpm(onProgress?: (msg: string) => void): Promise<str
 
 async function verifyCliWorks(binPath: string): Promise<boolean> {
   return new Promise((resolve) => {
-    execFile(binPath, ["--version"], { timeout: 5_000 }, (error) => {
+    const isCmd = binPath.toLowerCase().endsWith(".cmd") || binPath.toLowerCase().endsWith(".bat");
+    const [cmd, args] = isCmd
+      ? ["cmd", ["/c", binPath, "--version"]] as const
+      : [binPath, ["--version"]] as const;
+    execFile(cmd, [...args], { timeout: 5_000 }, (error) => {
       resolve(error === null);
     });
   });

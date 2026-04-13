@@ -7,6 +7,7 @@ import {
 } from "../providers";
 import type { ProviderId } from "../providers";
 import type { RunnerContext } from "../runnerContext";
+import { ensureProviderCli } from "../providers/resolve";
 
 export async function checkProviderCliStatus(
   _ctx: unknown,
@@ -24,6 +25,22 @@ export async function startProviderCliAuth(
   payload: { providerId: string }
 ): Promise<unknown> {
   const providerId = payload.providerId as ProviderId;
+
+  // CLI 미설치 시 자동 설치 시도
+  const status = await checkProviderStatus(providerId);
+  if (status.installed === false) {
+    const updateProgress = (msg: string) => {
+      ctx.stateStore.setBusyMessage(msg);
+      void ctx.pushState();
+    };
+    try {
+      await ensureProviderCli(providerId, updateProgress);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, message: `CLI 설치 실패: ${message}` };
+    }
+  }
+
   const command = await ctx.registry().getCommand(providerId);
   const result = await startProviderAuth(providerId, command);
   // 인증 후 auth 상태 재확인하여 캐시 갱신 (get_state가 최신 상태를 반환하도록)
