@@ -10,7 +10,9 @@ import { RunnerClient, BackendClient, RunnerBootstrapError, type RunnerBootstrap
 import { socketHub } from "./api/socketHub";
 import { BootstrapGate } from "./components/BootstrapGate";
 import { UserMenu } from "./components/auth/UserMenu";
+import { NotificationsBell } from "./components/notifications/NotificationsBell";
 import { OnboardingModalHost } from "./components/onboarding/OnboardingModalHost";
+import { useNotifications } from "./hooks/useNotifications";
 import { useOnboardingFlow } from "./hooks/useOnboardingFlow";
 import { decodeSidebarStateFrame } from "./lib/wsFrames";
 import { OverviewPage } from "./pages/OverviewPage";
@@ -84,6 +86,7 @@ export function App() {
   const [tabIndicatorStyle, setTabIndicatorStyle] = useState<TabIndicatorStyle>({ left: 0, width: 0 });
   const isAppReady = Boolean(client && state);
 
+  const notifications = useNotifications();
   const onboarding = useOnboardingFlow(state, selectedTab, (t) => setSelectedTab(t as AppTab));
 
   const setActionNoticeState = (
@@ -310,6 +313,9 @@ export function App() {
     nextActionNoticeIdRef.current = nextNotice.id;
     setActionNoticeState(nextNotice);
 
+    // 알림 히스토리에 동기화 (pending 포함 모두 기록)
+    notifications.add(notice.tone, notice.message, notice.detail);
+
     if (notice.tone === "pending") {
       return;
     }
@@ -444,6 +450,26 @@ export function App() {
         </div>
 
         <div className="app-header-actions" aria-label="Header actions">
+          <NotificationsBell
+            notifications={notifications.notifications}
+            unreadCount={notifications.unreadCount}
+            onOpen={() => notifications.markAllRead()}
+            onClear={() => notifications.clear()}
+          />
+          <button
+            type="button"
+            className="app-icon-button"
+            aria-label="도움말"
+            disabled={!onboarding.isHelpAvailable}
+            onClick={() => onboarding.forceShowForTab(selectedTab)}
+            title={onboarding.isHelpAvailable ? "현재 탭 가이드 보기" : "이 탭에는 가이드가 없습니다"}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
           <button
             className={`app-icon-button ${selectedTab === "settings" ? "is-active" : ""}`}
             type="button"
