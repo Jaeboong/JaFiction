@@ -285,7 +285,65 @@ describe("SocketHub", () => {
     hub.dispose();
   });
 
-  // 8. dispose() → 모든 재연결 중단, 구독자 제거
+  // 8. P2-3: reconnecting 상태에서 connect() 재호출 → 중복 소켓 생성 없음
+  it("connect() in reconnecting state resets and creates only one new WS", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makeProbeOk())  // 첫 probe → open
+      .mockResolvedValueOnce(makeProbeOk())  // close 후 probeAfterClose → reconnecting
+      .mockResolvedValueOnce(makeProbeOk()); // 재connect 후 probe → new WS
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const hub = new SocketHub();
+    hub.connect(BASE_URL);
+    await flush();
+
+    MockWebSocket.instances[0].triggerOpen();
+    expect(hub.getState()).toBe("open");
+
+    // WS 비정상 종료 → reconnecting
+    MockWebSocket.instances[0].triggerClose({ code: 1006 });
+    await flush();
+    expect(hub.getState()).toBe("reconnecting");
+
+    // reconnecting 상태에서 connect() 재호출
+    hub.connect(BASE_URL);
+    await flush();
+
+    // WS 인스턴스는 2개 (첫 번째 + 새로운 하나): 중복 없음
+    expect(MockWebSocket.instances).toHaveLength(2);
+
+    hub.dispose();
+  });
+
+  // 9. P2-3: auth_expired 상태에서 connect() 재호출 → probing 으로 리셋, 새 probe 시도
+  it("connect() in auth_expired state resets to probing", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makeProbe401())  // 첫 probe → auth_expired
+      .mockResolvedValueOnce(makeProbeOk());  // 재connect probe → open
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const hub = new SocketHub();
+    hub.connect(BASE_URL);
+    await flush();
+
+    expect(hub.getState()).toBe("auth_expired");
+
+    // auth_expired 에서 connect() 재호출 → probing 으로 전이해야 함
+    hub.connect(BASE_URL);
+    expect(hub.getState()).toBe("probing");
+
+    await flush();
+
+    // probe 200 성공 → connecting 상태로 진행
+    expect(hub.getState()).toBe("connecting");
+    expect(MockWebSocket.instances).toHaveLength(1);
+
+    hub.dispose();
+  });
+
+  // 10. dispose() → 모든 재연결 중단, 구독자 제거
   it("dispose stops reconnection and clears subscribers", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 

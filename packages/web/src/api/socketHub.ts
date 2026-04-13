@@ -58,13 +58,12 @@ export class SocketHub {
     if (this._disposed) {
       return;
     }
-    if (this._state === "connecting" || this._state === "open") {
+    if (this._state === "connecting" || this._state === "open" || this._state === "probing") {
       return;
     }
-    // 재시도 중 새 connect() → attempt 카운터 리셋
-    this._attempts = 0;
+    // reconnecting/auth_expired/network_error/idle 상태에서 재호출 → 이전 소켓/타이머 정리
+    this._cleanupSocket();
     this._baseUrl = baseUrl;
-    this._clearRetryTimer();
     void this._probe();
   }
 
@@ -305,6 +304,30 @@ export class SocketHub {
         // swallow
       }
     }
+  }
+
+  /**
+   * 재연결/만료/에러 상태에서 connect() 재호출 시 이전 소켓 인스턴스를 정리.
+   * 구독자와 상태 리스너는 유지한다 (App.tsx useEffect cleanup 에서 처리).
+   */
+  private _cleanupSocket(): void {
+    this._clearRetryTimer();
+    this._attempts = 0;
+    const socket = this._socket;
+    this._socket = undefined;
+    if (socket) {
+      // 핸들러를 null 로 교체해 닫힘 이벤트가 상태머신을 재진입하지 않도록 방어
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      try {
+        socket.close();
+      } catch {
+        // swallow
+      }
+    }
+    this._state = "idle";
   }
 
   private _clearRetryTimer(): void {
