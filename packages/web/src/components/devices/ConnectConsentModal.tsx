@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { BackendClient, ApproveDeviceClaimResult } from "../../api/client";
 import { RunnerClient } from "../../api/client";
 
@@ -68,18 +68,17 @@ function StepIndicator({ current }: StepIndicatorProps) {
         const isDone = num < current;
         const isActive = num === current;
         return (
-          <>
+          <React.Fragment key={num}>
             <div
-              key={num}
               className={`runner-install-step-dot${isActive ? " active" : isDone ? " done" : ""}`}
             >
               <span>{isDone ? "✓" : num}</span>
               <span>{label}</span>
             </div>
             {i < STEP_LABELS.length - 1 && (
-              <div key={`line-${num}`} className={`runner-install-step-line${isDone ? " done" : ""}`} />
+              <div className={`runner-install-step-line${isDone ? " done" : ""}`} />
             )}
-          </>
+          </React.Fragment>
         );
       })}
     </div>
@@ -156,7 +155,7 @@ function RunnerInstallGuide({
       <>
         <StepIndicator current={1} />
         <img
-          src="/runner-step1.png"
+          src="/download.webp"
           alt="러너 소개"
           className="runner-install-img"
         />
@@ -182,7 +181,7 @@ function RunnerInstallGuide({
       <>
         <StepIndicator current={2} />
         <img
-          src="/runner-step2.png"
+          src="/click.webp"
           alt="설치 방법"
           className="runner-install-img"
         />
@@ -211,7 +210,7 @@ function RunnerInstallGuide({
     <>
       <StepIndicator current={3} />
       <img
-        src="/runner-step3.png"
+        src="/installing.webp"
         alt="다운로드 및 연결"
         className="runner-install-img"
       />
