@@ -10,6 +10,8 @@ import { RunnerClient, BackendClient, RunnerBootstrapError, type RunnerBootstrap
 import { socketHub } from "./api/socketHub";
 import { BootstrapGate } from "./components/BootstrapGate";
 import { UserMenu } from "./components/auth/UserMenu";
+import { OnboardingModalHost } from "./components/onboarding/OnboardingModalHost";
+import { useOnboardingFlow } from "./hooks/useOnboardingFlow";
 import { decodeSidebarStateFrame } from "./lib/wsFrames";
 import { OverviewPage } from "./pages/OverviewPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
@@ -81,6 +83,8 @@ export function App() {
   const activeTabRef = useRef<HTMLButtonElement | null>(null);
   const [tabIndicatorStyle, setTabIndicatorStyle] = useState<TabIndicatorStyle>({ left: 0, width: 0 });
   const isAppReady = Boolean(client && state);
+
+  const onboarding = useOnboardingFlow(state, selectedTab, (t) => setSelectedTab(t as AppTab));
 
   const setActionNoticeState = (
     next: ActionNoticeState | undefined | ((current: ActionNoticeState | undefined) => ActionNoticeState | undefined)
@@ -479,6 +483,15 @@ export function App() {
           {errorMessage ? <div className="app-error-banner">{errorMessage}</div> : null}
         </div>
       ) : null}
+
+      <OnboardingModalHost
+        activeModalId={onboarding.activeModalId}
+        state={state}
+        selectedTab={selectedTab}
+        isForcedShow={false}
+        onDismiss={(id, persist) => onboarding.dismiss(id, persist)}
+        onNavigate={(tab) => setSelectedTab(tab as AppTab)}
+      />
 
       <div className="app-stage">
         <section className="app-view">
