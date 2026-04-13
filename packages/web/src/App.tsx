@@ -7,6 +7,7 @@ import type {
 } from "@jasojeon/shared";
 import { startTransition, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { RunnerClient, BackendClient, RunnerBootstrapError, type RunnerBootstrapErrorReason } from "./api/client";
+import { socketHub } from "./api/socketHub";
 import { BootstrapGate } from "./components/BootstrapGate";
 import { UserMenu } from "./components/auth/UserMenu";
 import { decodeSidebarStateFrame } from "./lib/wsFrames";
@@ -27,7 +28,6 @@ const backendClient = new BackendClient(backendBaseUrl);
 type AppTab = "overview" | "providers" | "projects" | "runs" | "settings";
 type ActionTone = "pending" | "success" | "warning" | "error";
 type ProviderActionKind = "test" | "notion-check" | "notion-connect" | "notion-disconnect" | "logout";
-type OpenDartActionKind = "save" | "delete" | "test";
 const actionNoticeAutoDismissMs = 2200;
 const actionNoticeExitMs = 200;
 
@@ -62,7 +62,6 @@ export function App() {
   const [storageRoot, setStorageRoot] = useState("");
   const [selectedTab, setSelectedTab] = useState<AppTab>("overview");
   const [selectedSettingsSection, setSelectedSettingsSection] = useState<SettingsSection>("dashboard");
-  const [pendingOpenDartAction, setPendingOpenDartAction] = useState<OpenDartActionKind | undefined>();
   const [selectedProjectSlug, setSelectedProjectSlug] = useState<string | undefined>();
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
   const [actionNotice, setActionNotice] = useState<ActionNoticeState | undefined>();
@@ -70,6 +69,7 @@ export function App() {
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [bootstrapErrorReason, setBootstrapErrorReason] = useState<RunnerBootstrapErrorReason | undefined>();
   const [bootstrapRetryNonce, setBootstrapRetryNonce] = useState(0);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [authModal, setAuthModal] = useState<{ providerId: ProviderId; authUrl: string } | null>(null);
 
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | undefined>();
@@ -131,12 +131,50 @@ export function App() {
 
   useEffect(() => {
     let disposed = false;
-    let stateSocket: WebSocket | undefined;
 
     setClient(undefined);
     setState(undefined);
     setErrorMessage(undefined);
     setBootstrapErrorReason(undefined);
+    setSessionExpired(false);
+
+    // SocketHub 상태 변화 구독 — auth_expired/network_error 를 UX 에 반영
+    const unsubHubState = socketHub.onStateChange((hubState) => {
+      if (disposed) {
+        return;
+      }
+      if (hubState === "auth_expired") {
+        setSessionExpired(true);
+        setBootstrapErrorReason("auth_required");
+        setClient(undefined);
+        setState(undefined);
+      } else if (hubState === "network_error") {
+        setErrorMessage("WebSocket 연결에 반복 실패했습니다. 네트워크를 확인해 주세요.");
+      }
+    });
+
+    // state_snapshot 프레임 구독
+    const unsubSnapshot = socketHub.subscribe(
+      (frame) => {
+        if (!frame || typeof frame !== "object") {
+          return false;
+        }
+        return (frame as Record<string, unknown>)["event"] === "state_snapshot";
+      },
+      (frame) => {
+        if (disposed) {
+          return;
+        }
+        const snapshot = decodeSidebarStateFrame(frame);
+        if (!snapshot) {
+          return;
+        }
+        setLastUpdatedAt(Date.now());
+        startTransition(() => {
+          setState(snapshot);
+        });
+      }
+    );
 
     void RunnerClient.bootstrap(runnerBaseUrl)
       .then((session) => {
@@ -152,38 +190,8 @@ export function App() {
           setState(session.state);
         });
 
-        stateSocket = nextClient.createStateSocket();
-        stateSocket.binaryType = "blob";
-        stateSocket.onmessage = async (event) => {
-          let raw: string;
-          try {
-            raw =
-              typeof event.data === "string"
-                ? event.data
-                : await (event.data as Blob).text();
-          } catch {
-            return;
-          }
-          let parsed: unknown;
-          try {
-            parsed = JSON.parse(raw);
-          } catch {
-            return;
-          }
-          // Hosted mode multiplexes frames through /ws/events as EventEnvelope;
-          // local mode sends SidebarState directly on /ws/state.
-          const snapshot = decodeSidebarStateFrame(parsed);
-          if (!snapshot) {
-            return;
-          }
-          setLastUpdatedAt(Date.now());
-          startTransition(() => {
-            setState(snapshot);
-          });
-        };
-        stateSocket.onerror = () => {
-          setErrorMessage("Runner state socket disconnected.");
-        };
+        // 단일 WS 연결 시작
+        socketHub.connect(runnerBaseUrl);
       })
       .catch((error) => {
         if (disposed) {
@@ -196,7 +204,9 @@ export function App() {
 
     return () => {
       disposed = true;
-      stateSocket?.close();
+      unsubHubState();
+      unsubSnapshot();
+      // dispose() 는 탭/앱 종료 시점에만. effect 재실행 시에는 구독만 해제.
     };
   }, [runnerBaseUrl, bootstrapRetryNonce]);
 
@@ -374,6 +384,7 @@ export function App() {
             runnerBaseUrl={runnerBaseUrl}
             backendClient={backendClient}
             onRetry={retryBootstrap}
+            sessionExpired={sessionExpired}
           />
         </main>
       );
@@ -409,6 +420,7 @@ export function App() {
             runnerBaseUrl={runnerBaseUrl}
             backendClient={backendClient}
             onRetry={retryBootstrap}
+            sessionExpired={sessionExpired}
           />
         </div>
       </main>
@@ -481,7 +493,6 @@ export function App() {
               storageRoot={storageRoot}
               runnerBaseUrlDraft={runnerBaseUrlDraft}
               lastUpdatedAt={lastUpdatedAt}
-              pendingOpenDartAction={pendingOpenDartAction}
               client={client}
               onSelectSection={setSelectedSettingsSection}
               onProfileDocumentsChanged={() => {
@@ -495,44 +506,6 @@ export function App() {
                   success: { tone: "success", message: "에이전트 배정을 저장했습니다." },
                   failure: (error) => ({ tone: "error", message: "에이전트 배정 저장에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.saveAgentDefaults(agentDefaults).then(() => undefined));
-              }}
-              onSaveOpenDartApiKey={async (apiKey) => {
-                setPendingOpenDartAction("save");
-                try {
-                  await runAction({
-                    pending: { tone: "pending", message: "OpenDART API 키를 저장중입니다..." },
-                    success: { tone: "success", message: "OpenDART API 키가 저장되었습니다." },
-                    failure: (error) => ({ tone: "error", message: "OpenDART API 키 저장에 실패했습니다.", detail: getErrorMessage(error) })
-                  }, () => client.saveOpenDartApiKey(apiKey));
-                } finally {
-                  setPendingOpenDartAction(undefined);
-                }
-              }}
-              onDeleteOpenDartApiKey={async () => {
-                setPendingOpenDartAction("delete");
-                try {
-                  await runAction({
-                    pending: { tone: "pending", message: "OpenDART API 키를 삭제중입니다..." },
-                    success: { tone: "success", message: "OpenDART API 키가 삭제되었습니다." },
-                    failure: (error) => ({ tone: "error", message: "OpenDART API 키 삭제에 실패했습니다.", detail: getErrorMessage(error) })
-                  }, () => client.deleteOpenDartApiKey());
-                } finally {
-                  setPendingOpenDartAction(undefined);
-                }
-              }}
-              onTestOpenDartConnection={async () => {
-                setPendingOpenDartAction("test");
-                try {
-                  await runAction({
-                    pending: { tone: "pending", message: "OpenDART 연결을 확인중입니다..." },
-                    success: (result) => result.ok
-                      ? { tone: "success", message: "OpenDART 연결이 확인되었습니다.", detail: result.message }
-                      : { tone: "error", message: "OpenDART 연결에 실패했습니다.", detail: result.message },
-                    failure: (error) => ({ tone: "error", message: "OpenDART 연결 확인에 실패했습니다.", detail: getErrorMessage(error) })
-                  }, () => client.testOpenDartConnection());
-                } finally {
-                  setPendingOpenDartAction(undefined);
-                }
               }}
             />
           ) : null}
@@ -840,7 +813,25 @@ export function App() {
                   failure: (error) => ({ tone: "error", message: "초안 저장에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.saveEssayDraft(projectSlug, questionIndex, draft).then(() => undefined));
               }}
-              onCreateRunSocket={(runId) => client.createRunSocket(runId)}
+              onSubscribeRunEvents={(runId, handler) =>
+                socketHub.subscribe(
+                  (frame) => {
+                    if (!frame || typeof frame !== "object") {
+                      return false;
+                    }
+                    const f = frame as Record<string, unknown>;
+                    // run_event 또는 intervention_request 프레임으로 해당 runId 필터
+                    if (f["event"] === "run_event" || f["event"] === "intervention_request") {
+                      const payload = f["payload"];
+                      if (payload && typeof payload === "object") {
+                        return (payload as Record<string, unknown>)["runId"] === runId;
+                      }
+                    }
+                    return false;
+                  },
+                  handler
+                )
+              }
               onGetRunMessages={(projectSlug, runId) => client.getRunMessages(projectSlug, runId)}
               onAwaitingUserInput={showAwaitingUserInputNotice}
             />

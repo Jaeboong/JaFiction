@@ -1,10 +1,11 @@
 export interface LoginGateProps {
   readonly loginHref?: string;
+  readonly sessionExpired?: boolean;
 }
 
 const DEFAULT_LOGIN_HREF = "/auth/google";
 
-export function LoginGate({ loginHref = DEFAULT_LOGIN_HREF }: LoginGateProps) {
+export function LoginGate({ loginHref = DEFAULT_LOGIN_HREF, sessionExpired = false }: LoginGateProps) {
   return (
     <div className="login-page" aria-label="로그인">
       {/* 왼쪽 — 브랜드 패널 */}
@@ -26,7 +27,11 @@ export function LoginGate({ loginHref = DEFAULT_LOGIN_HREF }: LoginGateProps) {
         <div className="login-form-inner">
           <p className="login-form-kicker">자소전</p>
           <h2 className="login-form-heading">시작하기</h2>
-          <p className="login-form-desc">Google 계정으로 로그인하면 바로 사용할 수 있습니다.</p>
+          <p className="login-form-desc">
+            {sessionExpired
+              ? "세션이 만료되어 다시 로그인해 주세요."
+              : "Google 계정으로 로그인하면 바로 사용할 수 있습니다."}
+          </p>
           <a className="google-signin-btn" href={loginHref} data-testid="login-gate-cta">
             <svg className="google-signin-logo" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

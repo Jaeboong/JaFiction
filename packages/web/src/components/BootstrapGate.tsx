@@ -17,6 +17,7 @@ export interface BootstrapGateProps {
   readonly runnerBaseUrl: string;
   readonly backendClient: BackendClient;
   readonly onRetry: () => void;
+  readonly sessionExpired?: boolean;
 }
 
 export function BootstrapGate({
@@ -24,10 +25,11 @@ export function BootstrapGate({
   errorMessage,
   runnerBaseUrl,
   backendClient,
-  onRetry
+  onRetry,
+  sessionExpired = false
 }: BootstrapGateProps): ReactNode {
   if (reason === "auth_required") {
-    return <LoginGate />;
+    return <LoginGate sessionExpired={sessionExpired} />;
   }
   if (reason === "device_offline") {
     return <DeviceOnboarding client={backendClient} onConnected={onRetry} />;

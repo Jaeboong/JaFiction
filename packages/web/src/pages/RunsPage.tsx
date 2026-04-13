@@ -42,7 +42,7 @@ interface RunsPageProps {
   onCompleteRun(projectSlug: string, runId: string): Promise<void>;
   onResumeRun(projectSlug: string, runId: string): Promise<void>;
   onSaveDraft(projectSlug: string, questionIndex: number, draft: string): Promise<void>;
-  onCreateRunSocket(runId: string): WebSocket;
+  onSubscribeRunEvents(runId: string, handler: (frame: unknown) => void): () => void;
   onGetRunMessages(projectSlug: string, runId: string): Promise<{ messages: RunChatMessage[]; ledgers: RunLedgerEntry[] }>;
   onAwaitingUserInput(): void;
 }
@@ -88,7 +88,7 @@ export function RunsPage({
   onCompleteRun,
   onResumeRun,
   onSaveDraft,
-  onCreateRunSocket,
+  onSubscribeRunEvents,
   onGetRunMessages,
   onAwaitingUserInput
 }: RunsPageProps) {
@@ -175,19 +175,11 @@ export function RunsPage({
     }
 
     let disposed = false;
-    const socket = onCreateRunSocket(liveRunId);
 
-    socket.onmessage = async (ev) => {
+    const unsubscribe = onSubscribeRunEvents(liveRunId, (parsed) => {
       if (disposed) {
         return;
       }
-
-      let raw: string;
-      try {
-        raw = typeof ev.data === "string" ? ev.data : await (ev.data as Blob).text();
-      } catch { return; }
-      let parsed: unknown;
-      try { parsed = JSON.parse(raw); } catch { return; }
 
       // intervention_request arrives as a hosted envelope — handle before run_event decode
       const interventionFrame = decodeInterventionRequestFrame(parsed);
@@ -211,13 +203,13 @@ export function RunsPage({
         onAwaitingUserInput();
       }
       updateLiveRunVisualState(nextVisualState);
-    };
+    });
 
     return () => {
       disposed = true;
-      socket.close();
+      unsubscribe();
     };
-  }, [liveRunId, onAwaitingUserInput, onCreateRunSocket, state.runState.status]);
+  }, [liveRunId, onAwaitingUserInput, onSubscribeRunEvents, state.runState.status]);
 
   if (!selectedProject) {
     return (
@@ -422,7 +414,7 @@ export function RunsPage({
               onCompleteRun={onCompleteRun}
               onResumeRun={onResumeRun}
               onSubmitIntervention={onSubmitIntervention}
-              onCreateRunSocket={onCreateRunSocket}
+              onSubscribeRunEvents={onSubscribeRunEvents}
               onGetRunMessages={onGetRunMessages}
               onInsertFinalDraft={(text) => {
                 insertDraftRef.current?.(text);
@@ -909,7 +901,7 @@ function RunControlPanel({
   onCompleteRun,
   onResumeRun,
   onSubmitIntervention,
-  onCreateRunSocket,
+  onSubscribeRunEvents,
   onGetRunMessages,
   onInsertFinalDraft
 }: {
@@ -931,7 +923,7 @@ function RunControlPanel({
   onCompleteRun(projectSlug: string, runId: string): Promise<void>;
   onResumeRun(projectSlug: string, runId: string): Promise<void>;
   onSubmitIntervention(runId: string, message: string): Promise<void>;
-  onCreateRunSocket(runId: string): WebSocket;
+  onSubscribeRunEvents(runId: string, handler: (frame: unknown) => void): () => void;
   onGetRunMessages(projectSlug: string, runId: string): Promise<{ messages: RunChatMessage[]; ledgers: RunLedgerEntry[] }>;
   onInsertFinalDraft?(text: string): void;
 }) {
@@ -1098,7 +1090,7 @@ function RunControlPanel({
         projectSlug={projectSlug}
         runQuestion={runQuestion}
         isLive={isCurrentRunLive && runState.status !== "idle"}
-        onCreateRunSocket={onCreateRunSocket}
+        onSubscribeRunEvents={onSubscribeRunEvents}
         onGetRunMessages={onGetRunMessages}
         onInsertFinalDraft={onInsertFinalDraft}
       />
@@ -1347,7 +1339,7 @@ function RunFeed({
   projectSlug,
   runQuestion,
   isLive,
-  onCreateRunSocket,
+  onSubscribeRunEvents,
   onGetRunMessages,
   onInsertFinalDraft
 }: {
@@ -1355,7 +1347,7 @@ function RunFeed({
   projectSlug?: string;
   runQuestion?: string;
   isLive: boolean;
-  onCreateRunSocket(runId: string): WebSocket;
+  onSubscribeRunEvents(runId: string, handler: (frame: unknown) => void): () => void;
   onGetRunMessages(projectSlug: string, runId: string): Promise<{ messages: RunChatMessage[]; ledgers: RunLedgerEntry[] }>;
   onInsertFinalDraft?(text: string): void;
 }) {
@@ -1368,9 +1360,9 @@ function RunFeed({
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
   // Stable refs so callbacks don't cause effect re-runs
-  const onCreateRunSocketRef = useRef(onCreateRunSocket);
+  const onSubscribeRunEventsRef = useRef(onSubscribeRunEvents);
   const onGetRunMessagesRef = useRef(onGetRunMessages);
-  onCreateRunSocketRef.current = onCreateRunSocket;
+  onSubscribeRunEventsRef.current = onSubscribeRunEvents;
   onGetRunMessagesRef.current = onGetRunMessages;
 
   useEffect(() => {
@@ -1392,20 +1384,11 @@ function RunFeed({
     let pendingClear = true;
     let receivedCount = 0;
 
-    // Always connect WebSocket — RunHub replays buffered events for live runs,
-    // so even late-connecting clients receive the full stream.
-    const socket = onCreateRunSocketRef.current(runId);
-
-    socket.onmessage = async (ev) => {
+    // SocketHub 구독 — 해당 runId 프레임만 전달됨 (App.tsx 의 predicate 필터 통과)
+    const unsubscribe = onSubscribeRunEventsRef.current(runId, (parsed) => {
       if (disposed) {
         return;
       }
-      let raw: string;
-      try {
-        raw = typeof ev.data === "string" ? ev.data : await (ev.data as Blob).text();
-      } catch { return; }
-      let parsed: unknown;
-      try { parsed = JSON.parse(raw); } catch { return; }
 
       const interventionFrame = decodeInterventionRequestFrame(parsed);
       if (interventionFrame && interventionFrame.runId === runId) {
@@ -1453,7 +1436,7 @@ function RunFeed({
       const nextActiveParticipants = applyRunEventToActiveParticipants(activeParticipantsRef.current, event);
       activeParticipantsRef.current = nextActiveParticipants;
       setActiveParticipants(nextActiveParticipants);
-    };
+    });
 
     // Fallback for completed runs: if WebSocket delivers nothing after 1 s,
     // load the persisted chat-messages.json via HTTP.
@@ -1484,7 +1467,7 @@ function RunFeed({
     return () => {
       disposed = true;
       clearTimeout(historyTimer);
-      socket.close();
+      unsubscribe();
     };
     // Only re-run when the selected run or its project changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
