@@ -39,6 +39,8 @@ services:
     build:
       context: .
       dockerfile: packages/backend/Dockerfile
+      args:
+        BUILD_RUNNER_BIN: "false"
     restart: unless-stopped
     depends_on:
       postgres:

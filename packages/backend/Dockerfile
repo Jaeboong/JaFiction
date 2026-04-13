@@ -3,7 +3,27 @@
 # Build context is the repo root (see docker-compose.yml: `context: .`).
 # All stages use multi-arch images so this builds natively on OCI arm64.
 
+# Set to "false" in dev to skip runner binary compilation (dev uses volume mount instead).
+ARG BUILD_RUNNER_BIN=true
 ARG NODE_IMAGE=node:22-alpine
+
+# ---------- runner-bin stage ----------
+# Compiles the hosted runner binary for all 4 target platforms using Bun.
+# Skipped in dev (BUILD_RUNNER_BIN=false) — dev uses a host volume mount instead.
+FROM oven/bun:1 AS runner-bin
+ARG BUILD_RUNNER_BIN
+WORKDIR /app
+
+COPY packages/runner/package.json ./packages/runner/package.json
+COPY packages/runner/src          ./packages/runner/src
+COPY packages/runner/build.ts     ./packages/runner/build.ts
+
+RUN if [ "$BUILD_RUNNER_BIN" = "true" ]; then \
+      bun install --cwd packages/runner && \
+      bun run packages/runner/build.ts; \
+    else \
+      mkdir -p packages/runner/dist-bin; \
+    fi
 
 # ---------- deps stage ----------
 # Installs the full workspace dep tree. Copies only package manifests first so
@@ -76,6 +96,9 @@ COPY --from=build /app/packages/backend/dist           ./packages/backend/dist
 # Migrations live under src/db/migrations — drizzle-kit migrate reads them at runtime.
 COPY --from=build /app/packages/backend/drizzle.config.ts ./packages/backend/drizzle.config.ts
 COPY --from=build /app/packages/backend/src/db/migrations  ./packages/backend/src/db/migrations
+
+# Runner binaries — prod: compiled by runner-bin stage / dev: host volume mount overlays this.
+COPY --from=runner-bin /app/packages/runner/dist-bin ./packages/runner/dist-bin
 
 # Entrypoint runs migrations then starts the server.
 COPY packages/backend/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
