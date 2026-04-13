@@ -130,3 +130,30 @@ Run this to cleanly stop the local stack:
 - Did the hosted outbound runner reconnect cleanly after a backend restart?
 - Did the change make WSL execution safer or more fragile?
 - Were README and harness docs updated when entrypoints changed?
+
+## WebSocket 장애 대응 체크리스트
+
+### 증상
+- 브라우저 콘솔: `WebSocket connection to 'wss://.../ws/events' failed: WebSocket is closed before the connection is established.`
+- 사용자 증상: 에이전트 대화 실행 시 이벤트가 도달하지 않음, 화면이 멈춤
+
+### 재현 결정 트리
+1. `./scripts/dev-stack.sh --skip-check` 로 로컬 부트
+2. 브라우저 로그아웃 상태에서 `/ws/events` 접속 → 401 재현되는지
+3. 재현되면 → 세션 쿠키/만료 경로 문제 (SocketHub 가 auth_expired 로 전이되어야 함)
+4. 재현 실패면 → Nginx 프록시 헤더, 운영 전용 쿠키 도메인 scope, 백엔드 포트 등 환경 차이 점검
+
+### 로그 grep 키워드 (운영 백엔드)
+- `docker logs jasojeon-backend-1 | grep -E "/ws/events.*401|/api/ws-probe.*401|session_error"`
+- `session_error` 필드는 `missing | expired | unknown` 중 하나 — 원인 분류에 사용
+- `FST_ERR_CTP_BODY_TOO_LARGE` 가 나오면 bodyLimit 상향 필요 (현재 20MB)
+
+### 클라이언트 상태 확인
+- DevTools Application → Cookies: `jf_sid` 존재 여부
+- DevTools Network → `/api/ws-probe`: 200 정상, 401 세션 만료, 500 서버 재기동 중
+- SocketHub 상태머신: `idle → probing → connecting → open → reconnecting → auth_expired | network_error | closed`
+- 재시도 상한 **5회** — 그 이상 호출이 반복되면 버그
+
+### 운영 배포 주의
+- `docker compose` 실행 시 **반드시 `--env-file .env.production` 플래그 포함**. 누락 시 postgres 환경변수가 빈 값이 되어 backend restart loop 발생 이력 있음.
+- `DART_API_KEY` 등 필수 env 는 zod 스키마에 `min(1)` 로 강제되어 있어 누락 시 부팅 즉시 실패 (의도적).
