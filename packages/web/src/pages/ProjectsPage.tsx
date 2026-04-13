@@ -471,6 +471,17 @@ function ProjectWorkspace({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // state_snapshot 으로 insightStatus 가 generating 에서 벗어나면 낙관적 잠금 해제
+  useEffect(() => {
+    if (!isGeneratingInsights) {
+      return;
+    }
+    const status = project.record.insightStatus;
+    if (status !== "generating") {
+      setIsGeneratingInsights(false);
+    }
+  }, [isGeneratingInsights, project.record.insightStatus]);
+
   const projectHasInsightDocuments = hasInsightDocuments(project.documents);
   const contextDocuments = project.documents.filter((document) => !isInsightDocumentTitle(document.title));
   const isInsightReady = project.record.insightStatus === "ready" || projectHasInsightDocuments;
@@ -603,6 +614,9 @@ function ProjectWorkspace({
   };
 
   const handleGenerateInsights = async () => {
+    if (isInsightGenerationPending) {
+      return;
+    }
     setIsGeneratingInsights(true);
 
     try {
@@ -610,12 +624,19 @@ function ProjectWorkspace({
       if (workspace) {
         applyInsightWorkspace(workspace, selectedInsightTab);
       }
-    } finally {
+      // 버튼은 state_snapshot 이 insightStatus:"generating" → 다른 상태로
+      // 전환될 때 useEffect 에서 자동 해제됨. RPC kickoff 자체가 실패하면
+      // catch 에서 즉시 해제.
+    } catch (error) {
       setIsGeneratingInsights(false);
+      throw error;
     }
   };
 
   const handleRegenerateInsights = async () => {
+    if (isInsightGenerationPending) {
+      return;
+    }
     setIsGeneratingInsights(true);
     if (isInsightModalOpen) {
       setInsightModalStatus("loading");
@@ -631,8 +652,10 @@ function ProjectWorkspace({
         setInsightModalStatus("error");
         setInsightModalError("인사이트 재생성 결과를 확인하지 못했습니다.");
       }
-    } finally {
+      // 버튼은 state_snapshot 으로 insightStatus 가 바뀔 때 useEffect 에서 해제됨.
+    } catch (error) {
       setIsGeneratingInsights(false);
+      throw error;
     }
   };
 
