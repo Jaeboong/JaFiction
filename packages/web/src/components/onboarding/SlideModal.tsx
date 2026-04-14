@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import "../../styles/onboarding.css";
 
@@ -46,6 +46,31 @@ export function SlideModal({
   const slide = slides[index];
   const isFirst = index === 0;
   const isLast = index === slides.length - 1;
+
+  useEffect(() => {
+    if (!slide) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onDismiss(false);
+      } else if (e.key === "ArrowLeft" && index > 0) {
+        setIndex((i) => i - 1);
+      } else if (e.key === "ArrowRight") {
+        if (index === slides.length - 1) {
+          const currentSlide = slides[index];
+          if (currentSlide?.primaryAction) {
+            currentSlide.primaryAction.onClick();
+          }
+          onComplete?.();
+          onDismiss(remember);
+        } else {
+          setIndex((i) => i + 1);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [index, slides, remember, onComplete, onDismiss, slide]);
 
   if (!slide) return null;
 

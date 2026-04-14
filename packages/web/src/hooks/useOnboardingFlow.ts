@@ -12,6 +12,7 @@ export type OnboardingModalId =
 type AppTab = "overview" | "providers" | "projects" | "runs" | "settings";
 
 const TAB_MODAL_MAP: Partial<Record<AppTab, OnboardingModalId>> = {
+  overview: "overview_deck",
   providers: "providers_intro",
   projects: "projects_intro",
   runs: "runs_intro"
@@ -83,14 +84,12 @@ export function useOnboardingFlow(
     setActiveModalId(null);
     setForcedModalId(null);
 
-    if (persist) {
-      setDismissedKeys((current) => {
-        const next = new Set(current);
-        next.add(key);
-        saveDismissed(next);
-        return next;
-      });
-    }
+    setDismissedKeys((current) => {
+      const next = new Set(current);
+      next.add(key);
+      if (persist) saveDismissed(next);
+      return next;
+    });
   }, []);
 
   const forceShowForTab = useCallback((tab: string) => {

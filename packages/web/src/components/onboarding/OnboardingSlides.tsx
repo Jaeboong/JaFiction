@@ -62,9 +62,9 @@ export function buildOverviewDeckSlides(options: {
 export const PROVIDERS_INTRO_SLIDES: readonly OnboardingSlide[] = [
   {
     id: "providers-1",
-    title: "왜 프로바이더인가",
+    title: "AI 비용은 0원",
     image: "/onboarding/provider_1.webp",
-    body: <Body>사용자 본인 계정으로 AI 를 호출하므로 비용/속도/모델을 자유롭게 선택할 수 있습니다</Body>
+    body: <Body>타 서비스는 월 구독료를 받지만, 자소전은 여러분의 AI 계정을 직접 연결합니다. 중간 마진 없이, 쓴 만큼만.</Body>
   },
   {
     id: "providers-2",
