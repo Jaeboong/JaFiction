@@ -670,10 +670,12 @@ function ProjectWorkspace({
       const workspace = await onGenerateInsights(project.record.slug, {});
       if (workspace) {
         applyInsightWorkspace(workspace, selectedInsightTab);
+        // 버튼은 state_snapshot 이 insightStatus:"generating" → 다른 상태로
+        // 전환될 때 useEffect 에서 자동 해제됨.
+      } else {
+        // runAction 이 오류를 삼킨 뒤 undefined 반환 (device_offline 등) → 즉시 해제
+        setIsGeneratingInsights(false);
       }
-      // 버튼은 state_snapshot 이 insightStatus:"generating" → 다른 상태로
-      // 전환될 때 useEffect 에서 자동 해제됨. RPC kickoff 자체가 실패하면
-      // catch 에서 즉시 해제.
     } catch (error) {
       setIsGeneratingInsights(false);
       throw error;
@@ -695,11 +697,15 @@ function ProjectWorkspace({
       if (workspace) {
         applyInsightWorkspace(workspace, selectedInsightTab);
         setIsInsightModalOpen(true);
-      } else if (!insightWorkspace) {
-        setInsightModalStatus("error");
-        setInsightModalError("인사이트 재생성 결과를 확인하지 못했습니다.");
+        // 버튼은 state_snapshot 으로 insightStatus 가 바뀔 때 useEffect 에서 해제됨.
+      } else {
+        // runAction 이 오류를 삼킨 뒤 undefined 반환 → 즉시 해제
+        setIsGeneratingInsights(false);
+        if (!insightWorkspace) {
+          setInsightModalStatus("error");
+          setInsightModalError("인사이트 재생성 결과를 확인하지 못했습니다.");
+        }
       }
-      // 버튼은 state_snapshot 으로 insightStatus 가 바뀔 때 useEffect 에서 해제됨.
     } catch (error) {
       setIsGeneratingInsights(false);
       throw error;
@@ -1129,34 +1135,32 @@ function ProjectWorkspace({
             )}
           </section>
 
-          <div className="projects-context-grid">
-            <section className="projects-panel projects-tool-panel">
-              <div className="projects-panel-header projects-panel-header-column">
-                <div>
-                  <h2>텍스트 문서 직접 추가</h2>
-                  <p>간단한 메모나 텍스트를 직접 입력하여 문서로 추가합니다.</p>
-                </div>
+          <section className="projects-panel projects-tool-panel">
+            <div className="projects-panel-header projects-panel-header-column">
+              <div>
+                <h2>텍스트 문서 직접 추가</h2>
+                <p>간단한 메모나 텍스트를 직접 입력하여 문서로 추가합니다.</p>
               </div>
+            </div>
 
-              <div className="projects-text-form">
-                <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="문서 제목을 입력하세요" />
-                <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="내용을 입력하세요..." rows={10} style={{ minHeight: "12rem", resize: "vertical" }} />
-              </div>
+            <div className="projects-text-form">
+              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="문서 제목을 입력하세요" />
+              <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="내용을 입력하세요..." rows={10} style={{ minHeight: "12rem", resize: "vertical" }} />
+            </div>
 
-              <div className="projects-tool-panel-footer">
-                <button
-                  className="projects-secondary-button projects-secondary-button-wide"
-                  disabled={!title.trim()}
-                  onClick={() => {
-                    void handleSaveTextDocument();
-                  }}
-                  type="button"
-                >
-                  문서 추가
-                </button>
-              </div>
-            </section>
-          </div>
+            <div className="projects-tool-panel-footer">
+              <button
+                className="projects-secondary-button projects-secondary-button-wide"
+                disabled={!title.trim()}
+                onClick={() => {
+                  void handleSaveTextDocument();
+                }}
+                type="button"
+              >
+                문서 추가
+              </button>
+            </div>
+          </section>
         </div>
       </div>
 
