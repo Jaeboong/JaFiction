@@ -27,7 +27,7 @@ export function buildOverviewDeckSlides(options: {
     {
       id: "overview-2",
       title: "AI 프로바이더 연결",
-      image: "/onboarding/providers-list.webp",
+      image: "/onboarding/overview_2.webp",
       body: <Body>Claude Code, Codex, Gemini 중 원하는 CLI 를 연결해서 나만의 에이전트로 씁니다. 프로바이더 탭에서 설치/인증 상태를 한눈에 확인</Body>
     },
     {
@@ -45,7 +45,7 @@ export function buildOverviewDeckSlides(options: {
     {
       id: "overview-5",
       title: "에이전트 대화로 자소서 완성",
-      image: "/onboarding/runs-main.webp",
+      image: "/onboarding/overview_5.webp",
       body: <Body>실행 탭에서 여러 역할의 AI 에이전트가 돌아가며 자소서를 함께 작성합니다</Body>
     },
     {
@@ -63,7 +63,7 @@ export const PROVIDERS_INTRO_SLIDES: readonly OnboardingSlide[] = [
   {
     id: "providers-1",
     title: "왜 프로바이더인가",
-    image: "/onboarding/providers-list.webp",
+    image: "/onboarding/provider_1.webp",
     body: <Body>사용자 본인 계정으로 AI 를 호출하므로 비용/속도/모델을 자유롭게 선택할 수 있습니다</Body>
   },
   {
@@ -75,13 +75,13 @@ export const PROVIDERS_INTRO_SLIDES: readonly OnboardingSlide[] = [
   {
     id: "providers-3",
     title: "CLI 설치 + 인증",
-    image: "/onboarding/providers-list.webp",
+    image: "/onboarding/provider_3.webp",
     body: <Body>CLI 를 설치하고 "테스트" 버튼을 누르면 INSTALLED · VALID 상태가 자동으로 표시됩니다</Body>
   },
   {
     id: "providers-4",
     title: "Notion 연동 (선택)",
-    image: "/onboarding/providers-list.webp",
+    image: "/onboarding/provider_4.webp",
     body: <Body>Notion MCP 를 연결하면 컨텍스트 문서를 Notion 페이지에서 직접 가져올 수 있습니다</Body>
   }
 ];
@@ -92,31 +92,31 @@ export const PROJECTS_INTRO_SLIDES: readonly OnboardingSlide[] = [
   {
     id: "projects-1",
     title: "지원서 만들기",
-    image: "/onboarding/projects-header.webp",
+    image: "/onboarding/apply_1.webp",
     body: <Body>좌측 상단 "새 지원서" 버튼으로 회사/공고별 지원서를 만듭니다</Body>
   },
   {
     id: "projects-2",
     title: "공고 URL 붙여넣고 자동 분석",
-    image: "/onboarding/projects-header.webp",
+    image: "/onboarding/apply_2.webp",
     body: <Body>공고 URL 을 붙여넣고 "공고 분석" 버튼을 누르면 회사·직무·자소서 문항이 자동으로 파싱됩니다</Body>
   },
   {
     id: "projects-3",
     title: "자소서 문항 입력",
-    image: "/onboarding/projects-essay.webp",
+    image: "/onboarding/apply_3.webp",
     body: <Body>공고에 있는 자소서 문항이 자동으로 등록되며, 직접 수정·추가도 가능합니다</Body>
   },
   {
     id: "projects-4",
     title: "이력서·포트폴리오 업로드",
-    image: "/onboarding/projects-upload.webp",
+    image: "/onboarding/apply_4.webp",
     body: <Body>"+ 파일 추가" 또는 드래그&드롭으로 이력서/포트폴리오 PDF·이미지를 업로드합니다. PDF 텍스트는 자동 추출</Body>
   },
   {
     id: "projects-5",
     title: "인사이트 생성 버튼",
-    image: "/onboarding/projects-header.webp",
+    image: "/onboarding/apply_5.webp",
     body: <Body>"인사이트 생성" 버튼을 누르면 회사 분석·직무 분석·지원 전략·문항 분석이 30초~2분 내에 자동 생성됩니다</Body>
   },
   {
