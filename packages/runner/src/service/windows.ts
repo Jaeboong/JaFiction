@@ -29,6 +29,7 @@ export async function installWindowsService(exePath: string): Promise<void> {
   const child = spawn(exePath, ["start"], {
     detached: true,
     stdio: ["ignore", logFd, logFd],
+    windowsHide: true,
   });
   child.unref();
   fs.closeSync(logFd);

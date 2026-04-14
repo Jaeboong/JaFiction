@@ -527,11 +527,12 @@ export class BackendClient {
     pathname: string,
     init: { method?: string; body?: unknown } = {}
   ): Promise<T> {
+    const hasBody = init.body !== undefined;
     const response = await fetch(`${this.baseUrl}${pathname}`, {
       credentials: "include",
       method: init.method ?? "GET",
-      headers: { "Content-Type": "application/json" },
-      body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+      headers: hasBody ? { "Content-Type": "application/json" } : {},
+      body: hasBody ? JSON.stringify(init.body) : undefined,
     });
 
     if (!response.ok) {

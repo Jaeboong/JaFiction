@@ -10,6 +10,7 @@ const OUTDIR = path.join(__dirname, "dist-bin");
 interface BuildTarget {
   readonly target: string;
   readonly outfile: string;
+  readonly extraFlags?: string;
 }
 
 const isLocal = process.argv.includes("--local");
@@ -19,7 +20,7 @@ const BACKEND_URL = isLocal
   : "https://xn--9l4b13i8j.com";
 
 const TARGETS: readonly BuildTarget[] = [
-  { target: "bun-windows-x64", outfile: path.join(OUTDIR, `jasojeon-runner-windows${suffix}.exe`) },
+  { target: "bun-windows-x64", outfile: path.join(OUTDIR, `jasojeon-runner-windows${suffix}.exe`), extraFlags: "--windows-hide-console" },
   { target: "bun-darwin-arm64", outfile: path.join(OUTDIR, `jasojeon-runner-mac-arm64${suffix}`) },
   { target: "bun-darwin-x64", outfile: path.join(OUTDIR, `jasojeon-runner-mac-x64${suffix}`) },
   { target: "bun-linux-x64", outfile: path.join(OUTDIR, `jasojeon-runner-linux${suffix}`) },
@@ -31,11 +32,11 @@ fs.mkdirSync(OUTDIR, { recursive: true });
 
 console.log(`Mode: ${isLocal ? "local (localhost:4000)" : "production (xn--9l4b13i8j.com)"}`);
 
-for (const { target, outfile } of TARGETS) {
+for (const { target, outfile, extraFlags } of TARGETS) {
   console.log(`Building ${target} → ${outfile}`);
   try {
     execSync(
-      `bun build --compile --target=${target} --outfile="${outfile}" --define="process.env.JASOJEON_DEFAULT_BACKEND_URL='${BACKEND_URL}'" "${ENTRYPOINT}"`,
+      `bun build --compile --target=${target} --outfile="${outfile}" --define="process.env.JASOJEON_DEFAULT_BACKEND_URL='${BACKEND_URL}'" ${extraFlags ?? ""} "${ENTRYPOINT}"`,
       { stdio: "inherit", cwd: __dirname }
     );
     console.log(`  OK: ${path.basename(outfile)}`);

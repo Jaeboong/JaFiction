@@ -264,6 +264,15 @@ export function startHostedOutboundClient(options: OutboundClientOptions): Outbo
         return;
       }
 
+      if (f["type"] === "shutdown") {
+        log.info("[outboundClient] received shutdown from backend — closing");
+        closed = true;
+        connected = false;
+        clearHeartbeat();
+        socket.close();
+        return;
+      }
+
       if (f["type"] === "rpc_request") {
         const parsed = RpcRequestSchema.safeParse(f["payload"] !== undefined
           ? { v: f["v"], id: f["id"], op: f["op"], payload: f["payload"] }

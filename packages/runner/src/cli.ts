@@ -1,5 +1,7 @@
 import { main } from "./index";
 
+process.title = "jasojeon-runner";
+
 // build.ts --local 플래그로 빌드 시 --define으로 주입됨. 기본값은 prod URL.
 // bun --define 은 dot notation만 치환하므로 반드시 dot 접근으로 작성.
 const DEFAULT_BACKEND_URL =

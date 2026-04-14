@@ -61,6 +61,7 @@ interface DeviceEntry {
 export interface DeviceHub {
   attach(deviceId: string, userIds: readonly string[], ws: WebSocket): void;
   detach(deviceId: string): void;
+  disconnectDevice(deviceId: string): void;
   isConnected(deviceId: string): boolean;
   getConnectedDeviceIds(): readonly string[];
   getUserIdsForDevice(deviceId: string): readonly string[] | undefined;
@@ -175,6 +176,21 @@ export function createDeviceHub(deps: {
       devices.delete(deviceId);
       rejectAll(entry, new Error("runner_disconnected"));
       log.info("[deviceHub] runner detached", { deviceId });
+    },
+
+    disconnectDevice(deviceId: string): void {
+      const entry = devices.get(deviceId);
+      if (!entry) return;
+      // Send a graceful shutdown signal to the runner before closing the socket.
+      // The runner handles this frame by calling its own close() path.
+      try {
+        entry.ws.send(JSON.stringify({ type: "shutdown" }));
+      } catch {
+        // best-effort; the close() below will still tear down the connection
+      }
+      entry.ws.close();
+      log.info("[deviceHub] sent shutdown to runner", { deviceId });
+      // The ws "close" event fires next and calls devices.delete + rejectAll via the attach() listener.
     },
 
     isConnected(deviceId: string): boolean {

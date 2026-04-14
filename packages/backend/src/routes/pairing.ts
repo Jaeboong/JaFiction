@@ -560,6 +560,9 @@ export async function registerPairing(
         return reply.code(403).send({ error: "forbidden" });
       }
 
+      // Send shutdown signal to the runner if it is currently connected.
+      deps.hub?.disconnectDevice(id);
+
       return reply.code(200).send({ ok: true });
     }
   );
