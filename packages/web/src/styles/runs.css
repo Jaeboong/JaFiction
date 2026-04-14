@@ -796,6 +796,23 @@
   display: none;
 }
 
+/* 실행 구성 패널: 긴 선택 텍스트가 에이전트 대화섹션을 침범하지 않도록 세로로 공간 확보 */
+.runs-field > .custom-select .custom-select-trigger {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  align-items: flex-start;
+  height: auto;
+}
+
+.runs-field > .custom-select .custom-select-value {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: initial;
+  overflow: hidden;
+}
+
 .runs-role-table {
   position: relative;
   border: 1px solid #e2e8f0;
