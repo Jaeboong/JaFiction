@@ -91,7 +91,7 @@ export function SlideModal({
   };
 
   const handleClose = () => {
-    onDismiss(false);
+    onDismiss(remember);
   };
 
   return (
