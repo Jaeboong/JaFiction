@@ -33,13 +33,13 @@ export function buildOverviewDeckSlides(options: {
     {
       id: "overview-3",
       title: "지원서 단위 관리",
-      image: "/onboarding/projects-header.webp",
+      image: "/onboarding/overview_3.png",
       body: <Body>회사/공고마다 지원서를 만들어 공고·문항·문서·분석 결과를 한 곳에서 관리합니다</Body>
     },
     {
       id: "overview-4",
       title: "컨텍스트 업로드 + 인사이트 자동 생성",
-      image: "/onboarding/insights-modal-crop.webp",
+      image: "/onboarding/overview_4.png",
       body: <Body>이력서·포트폴리오 업로드 후 인사이트 생성 버튼을 누르면 OpenDART 재무 데이터까지 포함된 회사·직무 분석이 자동 생성됩니다</Body>
     },
     {
