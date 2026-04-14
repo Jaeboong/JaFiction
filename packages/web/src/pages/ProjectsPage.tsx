@@ -7,6 +7,7 @@ import type {
 } from "@jasojeon/shared";
 import { useEffect, useRef, useState } from "react";
 import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
+import { OpenDartCandidateModal } from "../components/OpenDartCandidateModal";
 import { ProjectInsightModal } from "../components/ProjectInsightModal";
 import { hasInsightDocuments, isInsightDocumentTitle } from "../insightDocuments";
 import {
@@ -473,6 +474,7 @@ function ProjectWorkspace({
   const [selectedInsightTab, setSelectedInsightTab] = useState<ProjectInsightDocumentKey | undefined>();
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const sawGeneratingStatusRef = useRef(false);
+  const [isDartModalOpen, setIsDartModalOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [editCompanyName, setEditCompanyName] = useState("");
@@ -664,6 +666,10 @@ function ProjectWorkspace({
     if (isInsightGenerationPending) {
       return;
     }
+    if (project.record.openDartCandidates?.length) {
+      setIsDartModalOpen(true);
+      return;
+    }
     setIsGeneratingInsights(true);
 
     try {
@@ -684,6 +690,10 @@ function ProjectWorkspace({
 
   const handleRegenerateInsights = async () => {
     if (isInsightGenerationPending) {
+      return;
+    }
+    if (project.record.openDartCandidates?.length) {
+      setIsDartModalOpen(true);
       return;
     }
     setIsGeneratingInsights(true);
@@ -712,6 +722,23 @@ function ProjectWorkspace({
     }
   };
 
+  const handleDartCandidateConfirm = async (corpCode: string) => {
+    setIsDartModalOpen(false);
+    await onUpdateProject(project.record.slug, { openDartCorpCode: corpCode });
+    setIsGeneratingInsights(true);
+    try {
+      const workspace = await onGenerateInsights(project.record.slug, {});
+      if (workspace) {
+        applyInsightWorkspace(workspace, selectedInsightTab);
+      } else {
+        setIsGeneratingInsights(false);
+      }
+    } catch (error) {
+      setIsGeneratingInsights(false);
+      throw error;
+    }
+  };
+
   return (
     <>
       <div className="projects-workspace projects-workspace-mode">
@@ -723,6 +750,15 @@ function ProjectWorkspace({
               {insightStatusNote ? (
                 <p className={`projects-page-meta ${project.record.insightStatus === "error" ? "is-error" : ""}`}>
                   {insightStatusNote}
+                  {project.record.openDartCandidates?.length ? (
+                    <button
+                      type="button"
+                      className="projects-page-meta-action"
+                      onClick={() => setIsDartModalOpen(true)}
+                    >
+                      회사 선택
+                    </button>
+                  ) : null}
                 </p>
               ) : null}
             </div>
@@ -1192,6 +1228,16 @@ function ProjectWorkspace({
           setIsDeleteModalOpen(false);
         }}
       />
+
+      {project.record.openDartCandidates?.length ? (
+        <OpenDartCandidateModal
+          isOpen={isDartModalOpen}
+          companyName={project.record.companyName}
+          candidates={project.record.openDartCandidates}
+          onCancel={() => setIsDartModalOpen(false)}
+          onConfirm={handleDartCandidateConfirm}
+        />
+      ) : null}
     </>
   );
 }
