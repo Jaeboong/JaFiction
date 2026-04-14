@@ -19,8 +19,11 @@ const BACKEND_URL = isLocal
   ? "http://localhost:4000"
   : "https://xn--9l4b13i8j.com";
 
+// --windows-hide-console 은 Windows 호스트에서만 사용 가능 (Linux CI에서는 생략)
+const isWindowsHost = process.platform === "win32";
+
 const TARGETS: readonly BuildTarget[] = [
-  { target: "bun-windows-x64", outfile: path.join(OUTDIR, `jasojeon-runner-windows${suffix}.exe`), extraFlags: "--windows-hide-console" },
+  { target: "bun-windows-x64", outfile: path.join(OUTDIR, `jasojeon-runner-windows${suffix}.exe`), extraFlags: isWindowsHost ? "--windows-hide-console" : undefined },
   { target: "bun-darwin-arm64", outfile: path.join(OUTDIR, `jasojeon-runner-mac-arm64${suffix}`) },
   { target: "bun-darwin-x64", outfile: path.join(OUTDIR, `jasojeon-runner-mac-x64${suffix}`) },
   { target: "bun-linux-x64", outfile: path.join(OUTDIR, `jasojeon-runner-linux${suffix}`) },
