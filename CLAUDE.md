@@ -2,7 +2,6 @@
 
 > Claude Code reads this file automatically. For other agents, see `AGENTS.md`.
 > On conflict: `CLAUDE.md` > `AGENTS.md` > `docs/development/ARCHITECTURE.md` > `docs/development/OPERATING_RULES.md`
-> 로컬 환경 세팅, 포트 구조, .env.dev, OCI SSH, 자주 발생하는 에러 → `docs/development/LOCAL_SETUP.md` 먼저 읽을 것.
 
 ---
 
@@ -23,8 +22,9 @@ Jasojeon is a web UI + local runner rewrite of the original `forJob` VS Code ext
 
 1. Read `docs/development/ARCHITECTURE.md` before broad structural changes.
 2. Read `docs/development/OPERATING_RULES.md` before touching workflow, validation, or runner entrypoints.
-3. Inspect the current file tree before editing anything.
-4. Run `./scripts/check.sh` after any non-trivial change.
+3. Read `docs/development/LOCAL_SETUP.md` for ports, `.env.dev`, OCI SSH, common errors.
+4. Inspect the current file tree before editing anything.
+5. Run `./scripts/check.sh` after any non-trivial change.
 
 ---
 
@@ -35,17 +35,15 @@ Jasojeon is a web UI + local runner rewrite of the original `forJob` VS Code ext
 ./scripts/dev-stack.sh            # canonical: full dev loop (infra + backend + runner + web)
 ./scripts/start-dev-backend.sh    # start postgres/redis + backend only
 ./scripts/start-dev-runner.sh     # pair (first run) + start runner only
-./scripts/apply-dev-stack.sh      # legacy: web-only restart helper (backend must already be running)
+./scripts/apply-dev-stack.sh      # legacy: web-only restart helper
 ./scripts/status-dev-stack.sh
 ./scripts/stop-dev-stack.sh       # stop all; --all also tears down containers
 ./scripts/with-node.sh <command>
 ./scripts/with-npm.sh run <script>
-./scripts/gh.sh <args>             # GitHub CLI 래퍼 — bash에서 gh.exe 경로 자동 탐색
+./scripts/gh.sh <args>            # GitHub CLI 래퍼 — bash에서 gh.exe 자동 탐색
 ```
 
-**WSL rule**: Raw `node` / `npm` on `PATH` may be the wrong binary. Always prefer `./scripts/*.sh`.
-
-**gh CLI rule**: bash/WSL에서 `gh`는 PATH에 없음. 항상 `./scripts/gh.sh`를 사용할 것. 절대 `gh` 또는 `powershell -Command "gh ..."` 로 직접 호출하지 말 것.
+**WSL rule**: Raw `node` / `npm` / `gh` on `PATH` may be the wrong binary. Always prefer `./scripts/*.sh`.
 
 ---
 
@@ -127,16 +125,14 @@ Limit context negotiation to 3 cycles per subagent. Structure work as:
 | Implementation tasks (multi-file edits, refactors) | Delegate to Codex task |
 | Result summary, user communication, judgment calls | Claude handles directly |
 
-**Companion script path**:
-```
-node "/home/cbkjh0225/.claude/plugins/cache/openai-codex/codex/1.0.3/scripts/codex-companion.mjs"
-```
+**Companion script**: Codex CLI 플러그인이 설치된 환경에서 `codex-companion.mjs`를 통해 실행한다. 경로는 환경마다 다르므로 `find ~/.claude/plugins -name "codex-companion.mjs" | head -1`로 확인한다.
 
 **Rules**:
 - Prefer background execution (`run_in_background: true`) for long-running Codex tasks.
 - Do not duplicate work: if Codex is doing the analysis, Claude does not re-read the same files.
 - Claude reads Codex output and synthesizes; never re-derives what Codex already produced.
 - If Codex is unavailable or fails, fall back to Claude tools silently without explaining the delegation attempt.
+- Every Codex prompt must include: "Do NOT use CDP MCP or browser automation tools."
 
 ---
 

@@ -150,6 +150,30 @@ test(scope): description
 - Local logs and machine-specific temp output
 - `.claude/tmp/` and other local session state
 
+## Subagent Delegation
+
+- Broad codebase searches → use an Explore subagent, not repeated Grep/Glob cycles
+- Planning/architecture → use a Plan subagent
+- Parallel independent concerns → run parallel agents
+
+## Codex Delegation
+
+**Claude's role**: orchestration, judgment, user communication only.  
+**Codex's role**: all heavy code work (multi-file edits, large analysis, refactors).
+
+| Task | Action |
+|------|--------|
+| Codebase exploration / analysis (5+ files) | Delegate to Codex |
+| Code review | Delegate to Codex |
+| Multi-file implementation / refactor | Delegate to Codex |
+| Summary, user communication, judgment | Handle directly |
+
+**Rules**:
+- Prefer background execution for long-running Codex tasks.
+- Do not duplicate work: if Codex is doing the analysis, do not re-read the same files.
+- Every Codex prompt must include: "Do NOT use CDP MCP or browser automation tools."
+- If Codex is unavailable, fall back to direct tools silently.
+
 ## Expected Closeout
 
 When finishing a task, report:

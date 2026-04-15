@@ -2,10 +2,16 @@
 
 Jasojeon is a web UI plus local runner rewrite of the original `forJob` VS Code extension.
 
+## Current Status
+
+- **Stage**: 11.9 — Device Auto-Claim (진행 중)
+- **Branch**: `feat/hosted-migration`
+- **Docs**: [docs/plans/CURRENT_STAGE.md](docs/plans/CURRENT_STAGE.md)
+
 ## Workspace
 
 - `packages/shared`: reusable orchestration, storage, schema, and workflow modules
-- `packages/runner`: localhost HTTP/WebSocket runner for CLI execution and storage access
+- `packages/runner`: hosted-mode outbound runner (WebSocket to backend; no inbound server — local mode retired at Stage 11.7)
 - `packages/web`: React + Vite browser UI
 
 ## Harness
@@ -34,6 +40,17 @@ See:
 - Restart the local runner + web stack: `./scripts/apply-dev-stack.sh`
 - Inspect the local dev stack: `./scripts/status-dev-stack.sh`
 - Stop the local dev stack: `./scripts/stop-dev-stack.sh`
+
+## Key Documents
+
+| 목적 | 파일 |
+|------|------|
+| 현재 스테이지 및 진행 상황 | [docs/plans/CURRENT_STAGE.md](docs/plans/CURRENT_STAGE.md) |
+| 하네스 아키텍처 | [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md) |
+| 파일 위치 네비게이션 | [docs/development/NAVIGATION.md](docs/development/NAVIGATION.md) |
+| 로컬 환경 세팅 | [docs/development/LOCAL_SETUP.md](docs/development/LOCAL_SETUP.md) |
+| Git 워크플로우 | [docs/development/GIT_WORKFLOW.md](docs/development/GIT_WORKFLOW.md) |
+| 에이전트용 가이드 | [AGENTS.md](AGENTS.md) |
 
 ## Local Security Model
 
