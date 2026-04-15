@@ -301,3 +301,60 @@ test("prompt builders embed company bundle and follow-up context explicitly", ()
   assert.match(followUpPrompt, /Company Profile JSON/);
   assert.match(followUpPrompt, /# Company Insight/);
 });
+
+test("buildCompanyAnalysisPrompt contains Source Tier Rules block (Stage D regression guard)", () => {
+  const project = createProjectRecord();
+  const companyResolution = createCompanyResolution();
+  const companySourceBundle = createCompanySourceBundle();
+  const prompt = buildCompanyAnalysisPrompt(project, companyResolution, companySourceBundle);
+
+  assert.match(prompt, /Source Tier Rules/, "should contain Source Tier Rules heading");
+  assert.match(prompt, /FACTUAL/, "should mention FACTUAL tier");
+  assert.match(prompt, /CONTEXTUAL/, "should mention CONTEXTUAL tier");
+  assert.match(prompt, /ROLE/, "should mention ROLE tier");
+  assert.match(prompt, /factual ≻ contextual ≻ role/, "should contain conflict resolution rule");
+  assert.match(prompt, /출처와 근거 강도/, "should reference source evidence section");
+});
+
+test("buildCompanyAnalysisPrompt includes web snippets when companyContext provided", () => {
+  const project = createProjectRecord();
+  const companyResolution = createCompanyResolution();
+  const companySourceBundle = createCompanySourceBundle();
+
+  const mockContext = {
+    collectedAt: "2026-04-15T00:00:00.000Z",
+    companyName: "에코마케팅",
+    sources: {
+      dart: undefined,
+      web: {
+        providerId: "naver" as const,
+        fetchedAt: "2026-04-15T00:00:00.000Z",
+        entries: [],
+        snippets: [
+          {
+            sourceId: "web-search-0",
+            sourceKind: "webNews" as const,
+            sectionLabel: "growth-direction" as const,
+            text: "[최신 뉴스] 에코마케팅 AI 플랫폼 출시",
+            confidence: "medium" as const,
+            publishedAt: "2026-03-01T00:00:00.000Z",
+            sourceTier: "contextual" as const
+          }
+        ],
+        notes: []
+      },
+      posting: {
+        companyName: "에코마케팅",
+        keywords: [],
+        snippets: []
+      }
+    },
+    coverage: companySourceBundle.manifest.coverage
+  };
+
+  const prompt = buildCompanyAnalysisPrompt(project, companyResolution, companySourceBundle, mockContext);
+
+  assert.match(prompt, /Web\/News Source Snippets JSON/, "should include web snippets section");
+  assert.match(prompt, /tier=contextual/, "should label web snippets as contextual");
+  assert.match(prompt, /에코마케팅 AI 플랫폼 출시/, "should contain web snippet content");
+});

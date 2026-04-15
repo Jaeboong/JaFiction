@@ -1,4 +1,5 @@
 import { CompanySourceBundle, CompanySourceCoverage } from "./companySourceModel";
+import type { CompanyContextBundle } from "./companyContext/types";
 import { OpenDartCompanyResolution } from "./openDart";
 import { ProjectRecord } from "./types";
 
@@ -26,7 +27,8 @@ export interface SupportingInsightArtifacts {
 export function buildCompanyAnalysisPrompt(
   project: ProjectRecord,
   companyResolution: OpenDartCompanyResolution | undefined,
-  companySourceBundle: CompanySourceBundle
+  companySourceBundle: CompanySourceBundle,
+  companyContext?: CompanyContextBundle
 ): string {
   return [
     "# ForJob Company Analysis Pre-pass",
@@ -34,6 +36,8 @@ export function buildCompanyAnalysisPrompt(
     "You are generating a source-aware company analysis artifact for a Korean job application workflow.",
     "Use only the supplied source bundle, OpenDART enrichment, and reviewed role inputs.",
     "Do not fabricate unsupported facts. If source coverage is weak, say 'insufficient source coverage' plainly.",
+    "",
+    SOURCE_TIER_RULES_BLOCK,
     "",
     "Return exactly two files using this format:",
     "===BEGIN FILE: company-profile.json===",
@@ -81,9 +85,45 @@ export function buildCompanyAnalysisPrompt(
     JSON.stringify(companySourceBundle.manifest, null, 2),
     "",
     "## Company Source Snippets JSON",
-    JSON.stringify(companySourceBundle.snippets, null, 2)
+    JSON.stringify(companySourceBundle.snippets, null, 2),
+    ...(companyContext ? [
+      "",
+      "## Web/News Source Snippets JSON (tier=contextual)",
+      JSON.stringify(companyContext.sources.web.snippets, null, 2)
+    ] : [])
   ].join("\n");
 }
+
+/**
+ * Source Tier Rules 블록 (LLM에게 소스 권위 순서를 명시).
+ * Stage D에서 추가. Snapshot test로 회귀 방지.
+ */
+export const SOURCE_TIER_RULES_BLOCK = `## Source Tier Rules (MUST follow)
+
+You receive three source tiers. They have different authority levels.
+
+1. FACTUAL (tier=factual) — OpenDART 공식 공시, 재무제표, 기업개황.
+   - 회사명/대표/매출/설립연월/상장여부 등 "사실"은 이 tier가 최종 근거다.
+   - 다른 tier와 충돌하면 factual이 항상 이긴다.
+   - factual 데이터가 부재(dart source 없음)해도 추측으로 채우지 않는다.
+
+2. CONTEXTUAL (tier=contextual) — 뉴스/웹 검색 결과 (최근 6~12개월).
+   - 최근 이슈, 제품 출시, 업계 포지션, 회사 문화 시그널 서술에만 사용.
+   - factual 숫자(매출/임직원 수)를 contextual snippet 기반으로 덮어쓰지 마라.
+   - 인용 시 "~에 따르면 (news, <publishedAt>)" 형식으로 짧게 언급.
+   - publishedAt이 9개월 이상 지났으면 "현재 유효한지 불확실" 표기.
+
+3. ROLE (tier=role) — 공고 원문 + 사용자가 입력한 회사/직무 hints.
+   - 직무 책임/자격요건/우대사항의 근거는 이 tier만 사용.
+   - 회사 전반 사실을 이 tier에서 추론하지 마라 (공고는 자기소개용 마케팅 문구를 포함한다).
+
+## Conflict resolution
+- factual ≻ contextual ≻ role.
+- 모든 tier에서 근거가 없으면 해당 섹션에 "출처 부족"을 명시하고 비워라. 절대 메꾸지 마라.
+
+## Output requirements
+- 각 아티팩트 섹션 말미의 "출처와 근거 강도" 블록에 tier별 근거 개수를 표기.
+- factual 0건이면 "구조화된 공시 자료 없음 (비상장/해외법인/미확인)" 이라고 명기.`;
 
 export function buildSupportingInsightPrompt(
   project: ProjectRecord,

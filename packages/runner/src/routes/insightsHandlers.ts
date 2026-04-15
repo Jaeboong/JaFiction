@@ -1,4 +1,5 @@
 import {
+  collectCompanyContext,
   collectCompanySourceBundle,
   type CompanySourceManifest,
   type CompanyAnalysisPhaseResult,
@@ -6,13 +7,12 @@ import {
   generateSupportingInsightPhase,
   fetchAndExtractJobPosting,
   isJobPostingFetchError,
-  OpenDartClient,
   OpenDartCompanyResolution,
   projectInsightArtifactDefinitions,
   type ProjectInsightInput,
   type ProjectInsightWorkspaceState
 } from "@jasojeon/shared";
-import { getServerDartApiKey, RunnerContext } from "../runnerContext";
+import { createWebSearchProviderFromEnv, getServerDartApiKey, RunnerContext } from "../runnerContext";
 
 // ---------------------------------------------------------------------------
 // Insights service logic
@@ -134,45 +134,60 @@ export async function generateProjectInsightsService(
   await ctx.stateStore.refreshProjects(input.projectSlug);
   await ctx.pushState();
 
-  let companyResolution: OpenDartCompanyResolution | undefined;
+  // --- collectCompanyContext (다중 소스 수집) ---
   const openDartApiKey = getServerDartApiKey();
-  if (openDartApiKey) {
-    try {
-      const openDart = new OpenDartClient(ctx.storageRoot, openDartApiKey);
-      companyResolution = await openDart.resolveAndFetchCompany(project.companyName, project.openDartCorpCode);
-      await storage.saveProjectInsightJson(input.projectSlug, "company-enrichment.json", companyResolution);
+  const webSearchConfig = await ctx.config().getWebSearchConfig();
+  const webProvider = webSearchConfig.enabled
+    ? await createWebSearchProviderFromEnv(ctx.config())
+    : undefined;
+  const companyContext = await collectCompanyContext({
+    project,
+    hints: {
+      companyName: project.companyName,
+      roleName: project.roleName,
+      keywords: project.keywords
+    },
+    storageRoot: ctx.storageRoot,
+    dartApiKey: openDartApiKey,
+    webProvider,
+    webCacheTtlDays: webSearchConfig.cacheTtlDays
+  });
 
-      if (companyResolution.status === "ambiguous") {
-        await storage.updateProject({
-          ...project,
-          openDartCandidates: companyResolution.candidates,
-          insightStatus: "reviewNeeded",
-          insightLastError: "OpenDART 회사 매칭 후보를 선택한 뒤 다시 생성하세요."
-        });
-        return;
-      }
-
-      if (companyResolution.status === "resolved") {
-        project = await storage.updateProject({
-          ...project,
-          openDartCorpCode: companyResolution.match.corpCode,
-          openDartCorpName: companyResolution.match.corpName,
-          openDartStockCode: companyResolution.match.stockCode,
-          openDartCandidates: undefined
-        });
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      companyResolution = {
-        status: "unavailable",
-        notices: [`OpenDART enrichment failed: ${message}`]
-      };
-      await storage.saveProjectInsightJson(input.projectSlug, "company-enrichment.json", {
-        status: "error",
-        message
-      });
-    }
+  if (companyContext.reviewNeeded?.reason === "openDartAmbiguous") {
+    await storage.updateProject({
+      ...project,
+      openDartCandidates: [...companyContext.reviewNeeded.candidates],
+      insightStatus: "reviewNeeded",
+      insightLastError: "OpenDART 회사 매칭 후보를 선택한 뒤 다시 생성하세요."
+    });
+    return;
   }
+
+  // dart resolution 이 resolved 이면 corpCode 등 persist
+  const dartResolution = companyContext.sources.dart?.resolution;
+  if (dartResolution?.status === "resolved") {
+    project = await storage.updateProject({
+      ...project,
+      openDartCorpCode: dartResolution.match.corpCode,
+      openDartCorpName: dartResolution.match.corpName,
+      openDartStockCode: dartResolution.match.stockCode,
+      openDartCandidates: undefined
+    });
+  }
+
+  if (dartResolution) {
+    await storage.saveProjectInsightJson(input.projectSlug, "company-enrichment.json", dartResolution);
+  }
+
+  await storage.saveProjectInsightJson(input.projectSlug, "company-context-manifest.json", {
+    collectedAt: companyContext.collectedAt,
+    companyName: companyContext.companyName,
+    coverage: companyContext.coverage,
+    webNotes: companyContext.sources.web.notes
+  });
+
+  // legacy companyResolution 어댑터 (Stage D 이전까지 companySources / generateCompanyAnalysisPhase 호환용)
+  const companyResolution: OpenDartCompanyResolution | undefined = dartResolution;
 
   const companySourceBundle = await collectCompanySourceBundle(project, companyResolution);
   await storage.saveProjectInsightJson(input.projectSlug, "company-source-manifest.json", companySourceBundle.manifest);
@@ -200,7 +215,8 @@ export async function generateProjectInsightsService(
       companySourceBundle,
       insightPreferredProviderId,
       insightModelOverride,
-      insightEffortOverride
+      insightEffortOverride,
+      companyContext
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

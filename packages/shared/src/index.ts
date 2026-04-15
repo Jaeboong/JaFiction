@@ -1,5 +1,10 @@
 export * from "./controller/runSessionManager";
 export * from "./controller/sidebarStateStore";
+export { collectCompanyContext } from "./core/companyContext";
+export type { CollectCompanyContextOptions } from "./core/companyContext";
+export type { CompanyContextBundle, CompanyContextHints, DartSourcePayload, PostingSourcePayload, WebSourceEntry, WebSourcePayload } from "./core/companyContext/types";
+export { BraveSearchProvider, createBraveSearchProvider, NaverSearchProvider, createNaverSearchProvider, WebSearchError } from "./core/webSearch";
+export type { WebSearchProvider, WebSearchQuery, WebSearchResult } from "./core/webSearch";
 export * from "./core/companyInsightArtifacts";
 export * from "./core/companySourceCoverage";
 export * from "./core/companySourceModel";

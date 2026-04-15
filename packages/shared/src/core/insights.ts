@@ -7,6 +7,7 @@ import {
   parseSupportingInsightResponse,
   SupportingInsightArtifacts
 } from "./companyInsightArtifacts";
+import type { CompanyContextBundle } from "./companyContext/types";
 import { OpenDartCompanyResolution } from "./openDart";
 import { ProjectRecord, ProviderId, ProviderRuntimeState } from "./types";
 
@@ -47,7 +48,8 @@ export async function generateCompanyAnalysisPhase(
   companySourceBundle: CompanySourceBundle,
   preferredProviderId?: ProviderId,
   modelOverride?: string,
-  effortOverride?: string
+  effortOverride?: string,
+  companyContext?: CompanyContextBundle
 ): Promise<CompanyAnalysisPhaseResult> {
   const provider = chooseInsightProvider(await gateway.listRuntimeStates({ refresh: true }), preferredProviderId);
   if (!provider) {
@@ -56,7 +58,7 @@ export async function generateCompanyAnalysisPhase(
 
   const apiKey = await gateway.getApiKey(provider.providerId);
   const result = parseCompanyAnalysisResponse(
-    (await gateway.execute(provider.providerId, buildCompanyAnalysisPrompt(project, companyResolution, companySourceBundle), {
+    (await gateway.execute(provider.providerId, buildCompanyAnalysisPrompt(project, companyResolution, companySourceBundle, companyContext), {
       cwd: workspaceRoot,
       authMode: provider.authMode,
       apiKey,

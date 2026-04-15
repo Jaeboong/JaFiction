@@ -2,13 +2,16 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
   ContextCompiler,
+  createBraveSearchProvider,
+  createNaverSearchProvider,
   ForJobStorage,
   ProviderRegistry,
   ReviewOrchestrator,
   RunEvent,
   RunSessionManager,
   SidebarState,
-  SidebarStateStore
+  SidebarStateStore,
+  type WebSearchProvider
 } from "@jasojeon/shared";
 import { version } from "../package.json";
 import { RunnerConfig } from "./runnerConfig";
@@ -54,6 +57,26 @@ export async function fetchAndCacheDartApiKey(
 /** 캐싱된 OpenDART API 키를 반환한다. 부팅 시 fetchAndCacheDartApiKey 를 호출해야 한다. */
 export function getServerDartApiKey(): string | undefined {
   return _cachedDartApiKey;
+}
+
+/**
+ * 환경 변수와 runner config를 바탕으로 WebSearchProvider를 생성한다.
+ * webSearch.enabled=false 이거나 자격증명이 없으면 undefined 반환.
+ */
+export async function createWebSearchProviderFromEnv(config: RunnerConfig): Promise<WebSearchProvider | undefined> {
+  const webSearchConfig = await config.getWebSearchConfig();
+  if (!webSearchConfig.enabled) {
+    return undefined;
+  }
+
+  if (webSearchConfig.provider === "brave") {
+    return createBraveSearchProvider(process.env["BRAVE_API_KEY"]) ?? undefined;
+  }
+
+  return createNaverSearchProvider(
+    process.env["NAVER_CLIENT_ID"],
+    process.env["NAVER_CLIENT_SECRET"]
+  ) ?? undefined;
 }
 
 export interface RunnerContext {

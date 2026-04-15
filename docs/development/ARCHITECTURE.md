@@ -84,6 +84,43 @@ The dev harness persists runtime metadata under `.harness/`:
 - `.harness/logs/runner.log`
 - `.harness/logs/web.log`
 
+## 인사이트 파이프라인 (2026-04-15 갱신)
+
+인사이트 생성은 3-tier 소스 집합에서 LLM 합성으로 진행된다.
+
+```
+generateProjectInsightsService (insightsHandlers.ts)
+  │
+  └─ collectCompanyContext (shared/core/companyContext/index.ts)
+        ├─ fetchDartSource   — OpenDART resolve/fetch 래퍼
+        ├─ fetchWebSource    — WebSearchProvider (Naver/Brave) + 캐시
+        └─ derivePostingSource — project 필드에서 role 스니펫 파생 (외부 호출 없음)
+  │
+  ├─ ambiguous → reviewNeeded (OpenDartCandidateModal 플로우 그대로 유지)
+  ├─ resolved  → project corpCode/corpName persist
+  │
+  └─ generateCompanyAnalysisPhase → buildCompanyAnalysisPrompt (Source Tier Rules 포함)
+```
+
+### Source Tier Rules
+
+프롬프트에 tier 규칙이 명시되어 있다:
+- `factual` (DART 공시) → 사실 근거, 최우선
+- `contextual` (웹/뉴스) → 최근 이슈/포지션, factual과 충돌 시 패배
+- `role` (공고 파생) → 직무 책임/자격요건 전용
+
+### WebSearch Feature Flag
+
+`runner.json`의 `webSearch.enabled` 기본값은 `false`. 활성화 시:
+- `NAVER_CLIENT_ID` + `NAVER_CLIENT_SECRET` (Naver provider)
+- `BRAVE_API_KEY` (Brave provider)
+- 회사명 단위 캐시: `~/.jasojeon/company-context-cache/<sha1>.json` (TTL 7일)
+
+### 파킹 (별도 스테이지)
+
+- `packages/shared/src/core/jobPosting.ts` — 공고 분석 로직, 이번 스테이지 수정 금지
+- `companyHints` 스키마 확장 / regex→LLM 보정 — 미래 스테이지
+
 ## Review Boundaries
 
 ### High-scrutiny product paths

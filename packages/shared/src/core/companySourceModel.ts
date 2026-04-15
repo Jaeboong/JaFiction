@@ -7,16 +7,21 @@ export const companySourceKinds = [
   "officialHiring",
   "officialIr",
   "officialPress",
-  "officialTechBlog"
+  "officialTechBlog",
+  "webNews",
+  "webGeneral",
+  "postingDerived"
 ] as const;
 
 export type CompanySourceKind = (typeof companySourceKinds)[number];
 export type CompanySourceStatus = "available" | "fetched" | "failed" | "missing";
 export type CompanySourceSection = "company-summary" | "business-model" | "offerings" | "growth-direction" | "role-context" | "financial";
+export type CompanySourceTier = "official" | "web" | "posting";
+export type SnippetSourceTier = "factual" | "contextual" | "role";
 
 export interface CompanySourceEntry {
   id: string;
-  tier: "official";
+  tier: CompanySourceTier;
   kind: CompanySourceKind;
   label: string;
   status: CompanySourceStatus;
@@ -24,7 +29,7 @@ export interface CompanySourceEntry {
   title?: string;
   fetchedAt?: string;
   note?: string;
-  discoveredFrom?: "openDart" | "homepage" | "jobPosting";
+  discoveredFrom?: "openDart" | "homepage" | "jobPosting" | "webSearch";
 }
 
 export interface CompanySourceSnippet {
@@ -33,6 +38,8 @@ export interface CompanySourceSnippet {
   sectionLabel: CompanySourceSection;
   text: string;
   confidence: "high" | "medium" | "low";
+  publishedAt?: string;
+  sourceTier?: SnippetSourceTier;
 }
 
 export interface CompanySourceCoverage {
@@ -64,7 +71,10 @@ export const companySourceLabels: Record<CompanySourceKind, string> = {
   officialHiring: "공식 채용 페이지",
   officialIr: "공식 IR",
   officialPress: "공식 보도자료/뉴스",
-  officialTechBlog: "공식 기술 블로그"
+  officialTechBlog: "공식 기술 블로그",
+  webNews: "웹 뉴스 검색",
+  webGeneral: "웹 일반 검색",
+  postingDerived: "공고 파생 정보"
 };
 
 export const companySourceRequestHeaders = {

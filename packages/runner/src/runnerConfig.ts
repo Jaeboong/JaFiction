@@ -17,11 +17,24 @@ interface ProviderConfigRecord {
   effort: string;
 }
 
+interface WebSearchConfig {
+  enabled: boolean;
+  provider: "naver" | "brave";
+  cacheTtlDays: number;
+}
+
 interface RunnerConfigData {
   port: number;
   providers: Record<ProviderId, ProviderConfigRecord>;
   agentDefaults: AgentDefaults;
+  webSearch: WebSearchConfig;
 }
+
+const defaultWebSearchConfig = (): WebSearchConfig => ({
+  enabled: false,
+  provider: "naver",
+  cacheTtlDays: 7
+});
 
 const defaultConfig = (): RunnerConfigData => ({
   port: 4123,
@@ -30,7 +43,8 @@ const defaultConfig = (): RunnerConfigData => ({
     claude: { command: defaultProviderCommands.claude, authMode: "cli", model: "", effort: "" },
     gemini: { command: defaultProviderCommands.gemini, authMode: "cli", model: "", effort: "" }
   },
-  agentDefaults: {}
+  agentDefaults: {},
+  webSearch: defaultWebSearchConfig()
 });
 
 export class RunnerConfig {
@@ -84,6 +98,11 @@ export class RunnerConfig {
     return config.agentDefaults;
   }
 
+  async getWebSearchConfig(): Promise<WebSearchConfig> {
+    const config = await this.readConfig();
+    return config.webSearch;
+  }
+
   async setAgentDefaults(raw: unknown): Promise<void> {
     const config = await this.readConfig();
     config.agentDefaults = sanitizeAgentDefaults(raw);
@@ -129,7 +148,21 @@ function sanitizeConfig(raw: Partial<RunnerConfigData>): RunnerConfigData {
   return {
     port: Number.isInteger(raw.port) && Number(raw.port) > 0 ? Number(raw.port) : base.port,
     providers,
-    agentDefaults: sanitizeAgentDefaults(raw.agentDefaults)
+    agentDefaults: sanitizeAgentDefaults(raw.agentDefaults),
+    webSearch: sanitizeWebSearchConfig(raw.webSearch)
+  };
+}
+
+function sanitizeWebSearchConfig(raw: unknown): WebSearchConfig {
+  const base = defaultWebSearchConfig();
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
+  const candidate = raw as Record<string, unknown>;
+  return {
+    enabled: typeof candidate.enabled === "boolean" ? candidate.enabled : base.enabled,
+    provider: candidate.provider === "brave" ? "brave" : base.provider,
+    cacheTtlDays: Number.isInteger(candidate.cacheTtlDays) && Number(candidate.cacheTtlDays) > 0
+      ? Number(candidate.cacheTtlDays)
+      : base.cacheTtlDays
   };
 }
 
