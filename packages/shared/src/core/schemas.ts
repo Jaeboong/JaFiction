@@ -206,6 +206,7 @@ export const ProjectRecordSchema = z.object({
   openDartCorpName: z.string().optional(),
   openDartStockCode: z.string().optional(),
   openDartCandidates: z.array(OpenDartCandidateSchema).optional(),
+  openDartSkipRequested: z.boolean().optional(),
   postingAnalyzedAt: z.string().optional(),
   jobPostingManualFallback: z.boolean().optional(),
   insightStatus: InsightStatusSchema.optional(),

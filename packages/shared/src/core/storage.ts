@@ -3,6 +3,7 @@ import * as path from "node:path";
 import {
   AppPreferences,
   ContextDocument,
+  OpenDartCandidate,
   ProjectInsightInput,
   ProjectEssayAnswerState,
   ProjectRecord,
@@ -192,6 +193,8 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       jobPostingText: input.jobPostingText?.trim() || undefined,
       essayQuestions: sanitizeQuestions(input.essayQuestions),
       openDartCorpCode: input.openDartCorpCode?.trim() || undefined,
+      openDartCandidates: sanitizeOpenDartCandidates(input.openDartCandidates),
+      openDartSkipRequested: input.openDartSkipRequested ? true : undefined,
       jobPostingManualFallback: false,
       rubric: defaultRubric(),
       pinnedDocumentIds: [],
@@ -271,6 +274,12 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
     const hasOpenDartCorpCode = typeof inputOrCompanyName === "string"
       ? false
       : hasOwnField(input, "openDartCorpCode");
+    const hasOpenDartCandidates = typeof inputOrCompanyName === "string"
+      ? false
+      : hasOwnField(input, "openDartCandidates");
+    const hasOpenDartSkipRequested = typeof inputOrCompanyName === "string"
+      ? false
+      : hasOwnField(input, "openDartSkipRequested");
 
     const nextRoleName = hasRoleName ? input.roleName?.trim() || undefined : project.roleName;
     const nextDeadline = hasDeadline ? input.deadline?.trim() || undefined : project.deadline;
@@ -300,12 +309,22 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
     const nextOpenDartStockCode = hasOpenDartCorpCode
       ? selectedCandidate?.stockCode ?? (nextOpenDartCorpCode ? project.openDartStockCode : undefined)
       : project.openDartStockCode;
-    const nextOpenDartCandidates = hasOpenDartCorpCode
-      ? (nextOpenDartCorpCode ? project.openDartCandidates : undefined)
-      : project.openDartCandidates;
+    const companyNameChanged = trimmedCompanyName !== project.companyName;
+    const nextOpenDartCandidates = companyNameChanged
+      ? undefined
+      : hasOpenDartCandidates
+        ? sanitizeOpenDartCandidates(input.openDartCandidates)
+        : hasOpenDartCorpCode
+          ? (nextOpenDartCorpCode ? project.openDartCandidates : undefined)
+          : project.openDartCandidates;
+    const nextOpenDartSkipRequested = companyNameChanged
+      ? undefined
+      : hasOpenDartSkipRequested
+        ? (input.openDartSkipRequested ? true : undefined)
+        : project.openDartSkipRequested;
     const nextAnswerStates = reconcileEssayAnswerStates(project.essayQuestions, nextQuestions, project.essayAnswerStates);
     const insightSourceChanged =
-      trimmedCompanyName !== project.companyName ||
+      companyNameChanged ||
       nextRoleName !== project.roleName ||
       nextDeadline !== project.deadline ||
       nextOverview !== project.overview ||
@@ -320,7 +339,8 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       nextJobPostingUrl !== project.jobPostingUrl ||
       nextJobPostingText !== project.jobPostingText ||
       JSON.stringify(nextQuestions ?? []) !== JSON.stringify(project.essayQuestions ?? []) ||
-      nextOpenDartCorpCode !== project.openDartCorpCode;
+      nextOpenDartCorpCode !== project.openDartCorpCode ||
+      nextOpenDartSkipRequested !== project.openDartSkipRequested;
 
     for (const documentId of nextAnswerStates.removedDocumentIds) {
       await this.setProjectDocumentPinned(projectSlug, documentId, false);
@@ -351,6 +371,7 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       openDartCorpName: nextOpenDartCorpName,
       openDartStockCode: nextOpenDartStockCode,
       openDartCandidates: nextOpenDartCandidates,
+      openDartSkipRequested: nextOpenDartSkipRequested,
       jobPostingManualFallback: refreshedProject.jobPostingManualFallback,
       insightStatus: insightSourceChanged && refreshedProject.insightLastGeneratedAt ? "reviewNeeded" : refreshedProject.insightStatus,
       insightLastError: insightSourceChanged ? undefined : refreshedProject.insightLastError,
@@ -741,6 +762,17 @@ function sanitizeKeywords(keywords?: string[]): string[] | undefined {
 
 function sanitizeQuestions(questions?: string[]): string[] | undefined {
   const values = (questions ?? []).map((question) => question.trim()).filter(Boolean);
+  return values.length > 0 ? values : undefined;
+}
+
+function sanitizeOpenDartCandidates(candidates?: OpenDartCandidate[]): OpenDartCandidate[] | undefined {
+  const values = (candidates ?? [])
+    .map((candidate) => ({
+      corpCode: candidate.corpCode.trim(),
+      corpName: candidate.corpName.trim(),
+      stockCode: candidate.stockCode?.trim() || undefined
+    }))
+    .filter((candidate) => candidate.corpCode && candidate.corpName);
   return values.length > 0 ? values : undefined;
 }
 

@@ -165,6 +165,8 @@ export interface ProjectInsightInput {
   jobPostingText?: string;
   essayQuestions?: string[];
   openDartCorpCode?: string;
+  openDartCandidates?: OpenDartCandidate[];
+  openDartSkipRequested?: boolean;
 }
 
 export interface ProjectEssayAnswerState {
@@ -196,6 +198,7 @@ export interface ProjectRecord {
   openDartCorpName?: string;
   openDartStockCode?: string;
   openDartCandidates?: OpenDartCandidate[];
+  openDartSkipRequested?: boolean;
   postingAnalyzedAt?: string;
   jobPostingManualFallback?: boolean;
   insightStatus?: InsightStatus;

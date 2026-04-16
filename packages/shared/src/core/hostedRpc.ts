@@ -6,6 +6,7 @@ import {
   RoleAssignmentsSchema,
   ProviderRuntimeStateSchema,
   ContextDocumentSchema,
+  OpenDartCandidateSchema,
   RunRecordSchema,
   RunChatMessageSchema,
   RunLedgerEntrySchema,
@@ -58,6 +59,8 @@ const ProjectDetailSchema = z.object({
   openDartCorpCode: z.string().optional(),
   openDartCorpName: z.string().optional(),
   openDartStockCode: z.string().optional(),
+  openDartCandidates: z.array(OpenDartCandidateSchema).optional(),
+  openDartSkipRequested: z.boolean().optional(),
   rubric: z.string(),
   pinnedDocumentIds: z.array(z.string()),
   charLimit: z.number().int().min(1).optional(),
@@ -100,7 +103,9 @@ const ProjectPatchSchema = z.object({
   jobPostingUrl: z.string().optional(),
   jobPostingText: z.string().optional(),
   essayQuestions: z.array(z.string()).optional(),
-  openDartCorpCode: z.string().optional()
+  openDartCorpCode: z.string().optional(),
+  openDartCandidates: z.array(OpenDartCandidateSchema).nullable().optional(),
+  openDartSkipRequested: z.boolean().optional()
 }).strict();
 
 // ProviderConfig for save_provider_config
