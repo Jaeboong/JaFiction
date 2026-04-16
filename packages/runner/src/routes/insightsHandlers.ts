@@ -8,6 +8,7 @@ import {
   fetchAndExtractJobPosting,
   isJobPostingFetchError,
   OpenDartCompanyResolution,
+  type OpenDartCandidate,
   projectInsightArtifactDefinitions,
   type ProjectInsightInput,
   type ProjectInsightWorkspaceState
@@ -135,7 +136,8 @@ export async function generateProjectInsightsService(
   await ctx.pushState();
 
   // --- collectCompanyContext (다중 소스 수집) ---
-  const openDartApiKey = getServerDartApiKey();
+  const skipDartRequested = project.openDartSkipRequested === true;
+  const openDartApiKey = skipDartRequested ? undefined : getServerDartApiKey();
   const webSearchConfig = await ctx.config().getWebSearchConfig();
   const webProvider = webSearchConfig.enabled
     ? await createWebSearchProviderFromEnv(ctx.config())
@@ -153,7 +155,7 @@ export async function generateProjectInsightsService(
     webCacheTtlDays: webSearchConfig.cacheTtlDays
   });
 
-  if (companyContext.reviewNeeded?.reason === "openDartAmbiguous") {
+  if (!skipDartRequested && companyContext.reviewNeeded?.reason === "openDartAmbiguous") {
     await storage.updateProject({
       ...project,
       openDartCandidates: [...companyContext.reviewNeeded.candidates],
@@ -164,7 +166,12 @@ export async function generateProjectInsightsService(
   }
 
   // dart resolution 이 resolved 이면 corpCode 등 persist
-  const dartResolution = companyContext.sources.dart?.resolution;
+  const dartResolution = skipDartRequested
+    ? ({
+        status: "unavailable",
+        notices: ["dart: skipped by user"]
+      } satisfies OpenDartCompanyResolution)
+    : companyContext.sources.dart?.resolution;
   if (dartResolution?.status === "resolved") {
     project = await storage.updateProject({
       ...project,
@@ -322,6 +329,39 @@ function buildProjectInput(body: Record<string, unknown>): ProjectInsightInput {
   const asStringArray = (value: unknown): string[] | undefined => Array.isArray(value)
     ? value.map((item) => String(item)).filter(Boolean)
     : undefined;
+  const asBoolean = (value: unknown): boolean | undefined => typeof value === "boolean" ? value : undefined;
+  const asOpenDartCandidate = (value: unknown): OpenDartCandidate | undefined => {
+    if (!isRecord(value)) {
+      return undefined;
+    }
+
+    const corpCode = typeof value["corpCode"] === "string" ? value["corpCode"] : undefined;
+    const corpName = typeof value["corpName"] === "string" ? value["corpName"] : undefined;
+    const stockCode = typeof value["stockCode"] === "string" ? value["stockCode"] : undefined;
+
+    if (!corpCode || !corpName) {
+      return undefined;
+    }
+
+    return {
+      corpCode,
+      corpName,
+      stockCode
+    };
+  };
+  const asOpenDartCandidates = (value: unknown): OpenDartCandidate[] | undefined => {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+
+    const candidates = value
+      .map((item) => asOpenDartCandidate(item))
+      .filter((candidate): candidate is OpenDartCandidate => Boolean(candidate));
+    return candidates.length > 0 ? candidates : undefined;
+  };
   const hasField = (field: string): boolean => Object.prototype.hasOwnProperty.call(body, field);
   const input: ProjectInsightInput = {
     companyName: String(body.companyName ?? "")
@@ -353,6 +393,12 @@ function buildProjectInput(body: Record<string, unknown>): ProjectInsightInput {
   if (hasField("essayQuestions")) {
     input["essayQuestions"] = asStringArray(body["essayQuestions"]);
   }
+  if (hasField("openDartCandidates")) {
+    input["openDartCandidates"] = asOpenDartCandidates(body["openDartCandidates"]);
+  }
+  if (hasField("openDartSkipRequested")) {
+    input["openDartSkipRequested"] = asBoolean(body["openDartSkipRequested"]);
+  }
 
   return input;
 }
@@ -362,4 +408,8 @@ function buildJobPostingFallbackMessage(error: unknown): string {
     return error.message;
   }
   return error instanceof Error ? error.message : String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

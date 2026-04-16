@@ -4,6 +4,7 @@ import {
   GetProjectResult,
   ListProjectsPayload,
   ListProjectsResult,
+  type ProjectInsightInput,
   SaveProjectPayload,
   SaveProjectResult,
   UploadDocumentPayload,
@@ -59,12 +60,8 @@ export async function saveProject(
 ): Promise<SaveProjectResult> {
   const { slug, patch } = payload;
   await ctx.runBusy("프로젝트 정보를 업데이트하는 중...", async () => {
-    // updateProjectInfo requires companyName; fetch current value as fallback
     const current = await ctx.storage().getProject(slug);
-    await ctx.storage().updateProjectInfo(slug, {
-      companyName: patch.companyName ?? current.companyName,
-      ...patch
-    });
+    await ctx.storage().updateProjectInfo(slug, normalizeProjectPatch(current.companyName, patch));
     await ctx.stateStore.refreshProjects(slug);
   });
   return ctx.storage().getProject(slug);
@@ -387,4 +384,49 @@ export async function uploadDocumentChunk(
   }
 
   return { status: "complete", uploadId, docId };
+}
+
+function normalizeProjectPatch(
+  companyName: string,
+  patch: SaveProjectPayload["patch"]
+): ProjectInsightInput {
+  const normalized: ProjectInsightInput = {
+    companyName: patch.companyName ?? companyName
+  };
+  const stringFields = [
+    "roleName",
+    "deadline",
+    "overview",
+    "mainResponsibilities",
+    "qualifications",
+    "preferredQualifications",
+    "benefits",
+    "hiringProcess",
+    "insiderView",
+    "otherInfo",
+    "jobPostingUrl",
+    "jobPostingText",
+    "openDartCorpCode"
+  ] as const;
+
+  for (const field of stringFields) {
+    if (Object.prototype.hasOwnProperty.call(patch, field)) {
+      normalized[field] = patch[field] ?? undefined;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "keywords")) {
+    normalized.keywords = patch.keywords ?? undefined;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "essayQuestions")) {
+    normalized.essayQuestions = patch.essayQuestions ?? undefined;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "openDartCandidates")) {
+    normalized.openDartCandidates = patch.openDartCandidates ?? undefined;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "openDartSkipRequested")) {
+    normalized.openDartSkipRequested = patch.openDartSkipRequested ?? undefined;
+  }
+
+  return normalized;
 }
