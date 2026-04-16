@@ -5,7 +5,7 @@ import { XMLParser } from "fast-xml-parser";
 import { OpenDartCandidate } from "./types";
 import { ensureDir, fileExists, nowIso, readJsonFile, writeJsonFile } from "./utils";
 
-interface CorpCodeEntry extends OpenDartCandidate {
+export interface CorpCodeEntry extends OpenDartCandidate {
   modifyDate?: string;
 }
 
@@ -301,7 +301,7 @@ export class OpenDartApiError extends Error {
   }
 }
 
-function resolveCompanyCandidates(
+export function resolveCompanyCandidates(
   entries: CorpCodeEntry[],
   companyName: string,
   selectedCorpCode?: string
@@ -325,31 +325,35 @@ function resolveCompanyCandidates(
     }
   }
 
-  const exact = entries.filter((entry) => normalizeCorpName(entry.corpName) === normalizedQuery);
+  const exact = dedupeCorpCodeEntries(
+    entries.filter((entry) => normalizeCorpName(entry.corpName) === normalizedQuery)
+  );
   if (exact.length === 1) {
     return {
       status: "resolved",
-      match: exact[0]
+      match: toOpenDartCandidate(exact[0])
     };
   }
   if (exact.length > 1) {
     return {
       status: "ambiguous",
-      candidates: exact.slice(0, 8)
+      candidates: exact.slice(0, 10).map((entry) => toOpenDartCandidate(entry))
     };
   }
 
-  const fuzzy = entries.filter((entry) => normalizeCorpName(entry.corpName).includes(normalizedQuery) || normalizedQuery.includes(normalizeCorpName(entry.corpName)));
+  const fuzzy = dedupeCorpCodeEntries(
+    entries.filter((entry) => isMeaningfulFuzzyMatch(normalizedQuery, normalizeCorpName(entry.corpName)))
+  );
   if (fuzzy.length === 1) {
     return {
       status: "resolved",
-      match: fuzzy[0]
+      match: toOpenDartCandidate(fuzzy[0])
     };
   }
   if (fuzzy.length > 1) {
     return {
       status: "ambiguous",
-      candidates: fuzzy.slice(0, 8)
+      candidates: fuzzy.slice(0, 10).map((entry) => toOpenDartCandidate(entry))
     };
   }
 
@@ -365,6 +369,65 @@ function normalizeCorpName(name: string): string {
     .replace(/\s+/g, "")
     .replace(/\(주\)|주식회사|corporation|corp\.?|inc\.?|ltd\.?/g, "")
     .trim();
+}
+
+function dedupeCorpCodeEntries(entries: CorpCodeEntry[]): CorpCodeEntry[] {
+  const deduped = new Map<string, CorpCodeEntry>();
+
+  for (const entry of entries) {
+    const key = normalizeCorpName(entry.corpName);
+    if (!key) {
+      continue;
+    }
+
+    const current = deduped.get(key);
+    if (!current || compareCorpCodeEntryPriority(entry, current) < 0) {
+      deduped.set(key, entry);
+    }
+  }
+
+  return [...deduped.values()].sort(compareCorpCodeEntryPriority);
+}
+
+function compareCorpCodeEntryPriority(left: CorpCodeEntry, right: CorpCodeEntry): number {
+  const leftListed = left.stockCode ? 1 : 0;
+  const rightListed = right.stockCode ? 1 : 0;
+  if (leftListed !== rightListed) {
+    return rightListed - leftListed;
+  }
+
+  const modifyDateOrder = (right.modifyDate ?? "").localeCompare(left.modifyDate ?? "");
+  if (modifyDateOrder !== 0) {
+    return modifyDateOrder;
+  }
+
+  return left.corpCode.localeCompare(right.corpCode);
+}
+
+function isMeaningfulFuzzyMatch(query: string, candidate: string): boolean {
+  const shorterLength = Math.min(query.length, candidate.length);
+  const longerLength = Math.max(query.length, candidate.length);
+  if (shorterLength < 2) {
+    return false;
+  }
+
+  if (!(candidate.includes(query) || query.includes(candidate))) {
+    return false;
+  }
+
+  if (shorterLength === 2) {
+    return longerLength <= 4;
+  }
+
+  return shorterLength / longerLength >= 0.5;
+}
+
+function toOpenDartCandidate(entry: CorpCodeEntry): OpenDartCandidate {
+  return {
+    corpCode: entry.corpCode,
+    corpName: entry.corpName,
+    stockCode: entry.stockCode
+  };
 }
 
 function asArray<T>(value: T | T[] | undefined): T[] {

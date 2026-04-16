@@ -79,7 +79,7 @@ test("openDart client resolves corp code, overview, and financials with cached c
   assert.equal(corpCodeFetches, 1);
 });
 
-test("openDart client returns ambiguous matches when corp names collide", async (t) => {
+test("openDart client resolves deterministic candidate when corp names collide", async (t) => {
   const workspaceRoot = await createTempWorkspace();
   t.after(async () => cleanupTempWorkspace(workspaceRoot));
 
@@ -107,13 +107,26 @@ test("openDart client returns ambiguous matches when corp names collide", async 
     if (url.pathname.endsWith("/corpCode.xml")) {
       return new Response(new Uint8Array(corpCodeBuffer), { status: 200 });
     }
+    if (url.pathname.endsWith("/company.json")) {
+      return Response.json({
+        status: "000",
+        corp_name: "에코마케팅",
+        stock_code: "111111"
+      });
+    }
+    if (url.pathname.endsWith("/fnlttSinglAcntAll.json")) {
+      return Response.json({
+        status: "000",
+        list: []
+      });
+    }
     throw new Error(`Unexpected URL: ${url.toString()}`);
   });
 
   const resolution = await client.resolveAndFetchCompany("에코마케팅");
-  assert.equal(resolution.status, "ambiguous");
-  if (resolution.status !== "ambiguous") {
+  assert.equal(resolution.status, "resolved");
+  if (resolution.status !== "resolved") {
     return;
   }
-  assert.equal(resolution.candidates.length, 2);
+  assert.equal(resolution.match.corpCode, "001");
 });
