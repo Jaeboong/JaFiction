@@ -662,6 +662,22 @@ function ProjectWorkspace({
     void loadInsightWorkspace();
   };
 
+  const startInsightGeneration = async () => {
+    setIsGeneratingInsights(true);
+
+    try {
+      const workspace = await onGenerateInsights(project.record.slug, {});
+      if (workspace) {
+        applyInsightWorkspace(workspace, selectedInsightTab);
+      } else {
+        setIsGeneratingInsights(false);
+      }
+    } catch (error) {
+      setIsGeneratingInsights(false);
+      throw error;
+    }
+  };
+
   const handleGenerateInsights = async () => {
     if (isInsightGenerationPending) {
       return;
@@ -670,22 +686,7 @@ function ProjectWorkspace({
       setIsDartModalOpen(true);
       return;
     }
-    setIsGeneratingInsights(true);
-
-    try {
-      const workspace = await onGenerateInsights(project.record.slug, {});
-      if (workspace) {
-        applyInsightWorkspace(workspace, selectedInsightTab);
-        // 버튼은 state_snapshot 이 insightStatus:"generating" → 다른 상태로
-        // 전환될 때 useEffect 에서 자동 해제됨.
-      } else {
-        // runAction 이 오류를 삼킨 뒤 undefined 반환 (device_offline 등) → 즉시 해제
-        setIsGeneratingInsights(false);
-      }
-    } catch (error) {
-      setIsGeneratingInsights(false);
-      throw error;
-    }
+    await startInsightGeneration();
   };
 
   const handleRegenerateInsights = async () => {
@@ -725,18 +726,16 @@ function ProjectWorkspace({
   const handleDartCandidateConfirm = async (corpCode: string) => {
     setIsDartModalOpen(false);
     await onUpdateProject(project.record.slug, { openDartCorpCode: corpCode });
-    setIsGeneratingInsights(true);
-    try {
-      const workspace = await onGenerateInsights(project.record.slug, {});
-      if (workspace) {
-        applyInsightWorkspace(workspace, selectedInsightTab);
-      } else {
-        setIsGeneratingInsights(false);
-      }
-    } catch (error) {
-      setIsGeneratingInsights(false);
-      throw error;
-    }
+    await startInsightGeneration();
+  };
+
+  const handleDartSkip = async () => {
+    setIsDartModalOpen(false);
+    await onUpdateProject(project.record.slug, {
+      openDartCandidates: null,
+      openDartSkipRequested: true
+    });
+    await startInsightGeneration();
   };
 
   return (
@@ -1236,6 +1235,7 @@ function ProjectWorkspace({
           candidates={project.record.openDartCandidates}
           onCancel={() => setIsDartModalOpen(false)}
           onConfirm={handleDartCandidateConfirm}
+          onSkipDart={handleDartSkip}
         />
       ) : null}
     </>

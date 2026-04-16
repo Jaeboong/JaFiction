@@ -100,6 +100,7 @@
 }
 
 .dart-candidate-cancel,
+.dart-candidate-skip,
 .dart-candidate-confirm {
   padding: 8px 18px;
   border-radius: 8px;
@@ -120,6 +121,16 @@
   background: #e2e8f0;
 }
 
+.dart-candidate-skip {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+
+.dart-candidate-skip:hover:not(:disabled) {
+  background: #ffedd5;
+}
+
 .dart-candidate-confirm {
   background: #4f46e5;
   color: #ffffff;
@@ -130,7 +141,8 @@
 }
 
 .dart-candidate-confirm:disabled,
-.dart-candidate-cancel:disabled {
+.dart-candidate-cancel:disabled,
+.dart-candidate-skip:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

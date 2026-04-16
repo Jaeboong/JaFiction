@@ -8,6 +8,7 @@ export interface OpenDartCandidateModalProps {
   readonly candidates: readonly OpenDartCandidate[];
   readonly onCancel: () => void;
   readonly onConfirm: (corpCode: string) => void | Promise<void>;
+  readonly onSkipDart: () => void | Promise<void>;
 }
 
 export function OpenDartCandidateModal({
@@ -15,15 +16,17 @@ export function OpenDartCandidateModal({
   companyName,
   candidates,
   onCancel,
-  onConfirm
+  onConfirm,
+  onSkipDart
 }: OpenDartCandidateModalProps) {
   const [selected, setSelected] = useState<string | undefined>(candidates[0]?.corpCode);
-  const [busy, setBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"confirm" | "skip" | undefined>();
+  const busy = pendingAction !== undefined;
 
   useEffect(() => {
     if (isOpen) {
       setSelected(candidates[0]?.corpCode);
-      setBusy(false);
+      setPendingAction(undefined);
     }
   }, [isOpen, candidates]);
 
@@ -75,6 +78,21 @@ export function OpenDartCandidateModal({
         <div className="dart-candidate-actions">
           <button
             type="button"
+            className="dart-candidate-skip"
+            disabled={busy}
+            onClick={async () => {
+              setPendingAction("skip");
+              try {
+                await onSkipDart();
+              } finally {
+                setPendingAction(undefined);
+              }
+            }}
+          >
+            {pendingAction === "skip" ? "진행 시작 중..." : "일치하는 회사 없음 (DART 없이 진행)"}
+          </button>
+          <button
+            type="button"
             className="dart-candidate-cancel"
             disabled={busy}
             onClick={onCancel}
@@ -87,15 +105,15 @@ export function OpenDartCandidateModal({
             disabled={!selected || busy}
             onClick={async () => {
               if (!selected) return;
-              setBusy(true);
+              setPendingAction("confirm");
               try {
                 await onConfirm(selected);
               } finally {
-                setBusy(false);
+                setPendingAction(undefined);
               }
             }}
           >
-            {busy ? "생성 시작 중..." : "선택 후 생성"}
+            {pendingAction === "confirm" ? "생성 시작 중..." : "선택 후 생성"}
           </button>
         </div>
       </div>
