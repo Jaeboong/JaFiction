@@ -97,10 +97,13 @@ generateProjectInsightsService (insightsHandlers.ts)
         └─ derivePostingSource — project 필드에서 role 스니펫 파생 (외부 호출 없음)
   │
   ├─ ambiguous → reviewNeeded (OpenDartCandidateModal 플로우 그대로 유지)
+  ├─ user skip → dart unavailable (`dart: skipped by user`) 로 기록하고 web+posting tier 로 계속 진행
   ├─ resolved  → project corpCode/corpName persist
   │
   └─ generateCompanyAnalysisPhase → buildCompanyAnalysisPrompt (Source Tier Rules 포함)
 ```
+
+사용자가 회사 선택 모달에서 "일치하는 회사 없음 (DART 없이 진행)"을 선택하면 `openDartSkipRequested=true` 가 저장된다. 이 플래그가 켜진 상태의 재생성은 DART 조회를 다시 시도하지 않고 `unavailable` 해상도로 처리하며, `companyName` 이 바뀌면 skip/candidate 상태를 함께 초기화한다.
 
 ### Source Tier Rules
 
