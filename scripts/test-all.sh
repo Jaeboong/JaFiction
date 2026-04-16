@@ -20,7 +20,7 @@ echo "[jasojeon] Running runner tests..."
 echo "[jasojeon] Running web tests..."
 (
   cd "${ROOT_DIR}/packages/web"
-  "${ROOT_DIR}/scripts/with-node.sh" "${ROOT_DIR}/node_modules/.bin/vitest" run
+  "${ROOT_DIR}/scripts/with-node.sh" "${ROOT_DIR}/node_modules/vitest/vitest.mjs" run
 )
 
 echo "[jasojeon] Running backend tests..."

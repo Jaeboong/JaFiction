@@ -157,3 +157,7 @@ Run this to cleanly stop the local stack:
 ### 운영 배포 주의
 - `docker compose` 실행 시 **반드시 `--env-file .env.production` 플래그 포함**. 누락 시 postgres 환경변수가 빈 값이 되어 backend restart loop 발생 이력 있음.
 - `DART_API_KEY` 등 필수 env 는 zod 스키마에 `min(1)` 로 강제되어 있어 누락 시 부팅 즉시 실패 (의도적).
+
+## 플랫폼 가드 사용 규칙
+
+테스트가 특정 OS에서만 의미 있거나 외부 환경에 의존하는 경우, `packages/shared/src/test/_helpers/env.ts`의 `IS_WIN`, `IS_LINUX`, `hasNvm()`, `hasCommand()` 등을 사용하여 `node:test`의 `test("name", { skip: condition ? "reason" : false }, fn)` 형식으로 플랫폼 가드를 적용한다. skip 적용 시 reason 문자열은 반드시 명시해야 하며, 실제 버그(코드 레벨 race condition 등)는 skip 대신 코드를 수정한다.

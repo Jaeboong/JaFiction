@@ -41,6 +41,29 @@ export async function readJsonFile<T>(filePath: string, fallback: T): Promise<T>
   }
 }
 
+const RENAME_RETRY_DELAYS_MS = [10, 30, 100, 200, 400] as const;
+const RENAME_RETRYABLE_CODES = new Set(["EPERM", "EBUSY", "EACCES"]);
+
+async function renameWithRetry(src: string, dest: string): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= RENAME_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      await fs.rename(src, dest);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (!RENAME_RETRYABLE_CODES.has(code ?? "")) {
+        throw err;
+      }
+      lastError = err;
+      if (attempt < RENAME_RETRY_DELAYS_MS.length) {
+        await new Promise<void>((resolve) => setTimeout(resolve, RENAME_RETRY_DELAYS_MS[attempt]));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export async function writeJsonFile(filePath: string, data: unknown): Promise<void> {
   await ensureDir(path.dirname(filePath));
   const tempPath = path.join(
@@ -49,7 +72,7 @@ export async function writeJsonFile(filePath: string, data: unknown): Promise<vo
   );
   try {
     await fs.writeFile(tempPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
-    await fs.rename(tempPath, filePath);
+    await renameWithRetry(tempPath, filePath);
   } finally {
     await fs.rm(tempPath, { force: true }).catch(() => undefined);
   }

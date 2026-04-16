@@ -6,6 +6,8 @@ import test from "node:test";
 
 import { createFileRpc, FileRpc } from "../hosted/fileRpc";
 
+const IS_WIN = process.platform === "win32";
+
 interface Fixture {
   root: string;
   rpc: FileRpc;
@@ -114,7 +116,7 @@ test("fileRpc: rejects empty path", async () => {
 // ---------------------------------------------------------------------------
 // Symlink escape
 // ---------------------------------------------------------------------------
-test("fileRpc: rejects read via symlink escaping the root", async () => {
+test("fileRpc: rejects read via symlink escaping the root", { skip: IS_WIN ? "Windows에서 symlink 생성에 관리자 권한 또는 Developer Mode가 필요하여 EPERM 발생" : false }, async () => {
   const f = await makeFixture();
   const outside = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-outside-"));
   try {
@@ -132,7 +134,7 @@ test("fileRpc: rejects read via symlink escaping the root", async () => {
   }
 });
 
-test("fileRpc: rejects write into symlinked-out directory", async () => {
+test("fileRpc: rejects write into symlinked-out directory", { skip: IS_WIN ? "Windows에서 symlink 생성에 관리자 권한 또는 Developer Mode가 필요하여 EPERM 발생" : false }, async () => {
   const f = await makeFixture();
   const outside = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-outside-"));
   try {

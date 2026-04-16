@@ -9,6 +9,7 @@ import { resolveProviderCommand, withCommandDirectoryInPath } from "../core/prov
 import { ProviderRegistry } from "../core/providers";
 import { ProviderId, ProviderRuntimeState, RunAbortedError } from "../core/types";
 import { cleanupTempWorkspace, createTempWorkspace } from "./helpers";
+import { IS_WIN } from "./_helpers/env";
 
 const FAKE_NODE_BIN_DIR = "/fake/node/bin";
 
@@ -26,7 +27,7 @@ function seedFakeNodeRuntime(): void {
   );
 }
 
-test("provider command resolver prefers the newest nvm-installed CLI", async (t) => {
+test("provider command resolver prefers the newest nvm-installed CLI", { skip: IS_WIN ? "Windows PATH resolver는 시스템 설치 CLI를 nvm 경로보다 우선 반환하여 nvm 우선순위 검증 불가" : false }, async (t) => {
   const fakeHome = await createTempWorkspace();
   t.after(async () => cleanupTempWorkspace(fakeHome));
 
@@ -46,7 +47,7 @@ test("provider command resolver keeps explicit custom commands untouched", async
   assert.equal(command, "/custom/tools/gemini");
 });
 
-test("runtime environment prepends the node runtime bin dir and command directory to PATH", () => {
+test("runtime environment prepends the node runtime bin dir and command directory to PATH", { skip: IS_WIN ? "Linux PATH 구분자(:) 전용 테스트. Windows(;) 에서는 경로 조합이 다름" : false }, () => {
   seedFakeNodeRuntime();
 
   const env = withCommandDirectoryInPath(
@@ -62,7 +63,7 @@ test("runtime environment prepends the node runtime bin dir and command director
   );
 });
 
-test("runtime environment moves command directory to front, node runtime bin dir is first", () => {
+test("runtime environment moves command directory to front, node runtime bin dir is first", { skip: IS_WIN ? "Linux PATH 구분자(:) 전용 테스트. Windows(;) 에서는 경로 조합이 다름" : false }, () => {
   seedFakeNodeRuntime();
 
   const env = withCommandDirectoryInPath(
@@ -78,7 +79,7 @@ test("runtime environment moves command directory to front, node runtime bin dir
   );
 });
 
-test("provider execution rejects with RunAbortedError when aborted", async (t) => {
+test("provider execution rejects with RunAbortedError when aborted", { skip: IS_WIN ? "Windows에서 bash shebang 스크립트를 실행할 수 없어 ENOENT 발생" : false }, async (t) => {
   const workspaceRoot = await createTempWorkspace();
   t.after(async () => cleanupTempWorkspace(workspaceRoot));
 
@@ -132,7 +133,7 @@ test("provider execution rejects with RunAbortedError when aborted", async (t) =
   await assert.rejects(execution, RunAbortedError);
 });
 
-test("gemini notion connect runs OAuth after MCP plan refresh", async (t) => {
+test("gemini notion connect runs OAuth after MCP plan refresh", { skip: IS_WIN ? "Windows에서 bash shebang 스크립트를 실행할 수 없어 ENOENT 발생" : false }, async (t) => {
   const workspaceRoot = await createTempWorkspace();
   t.after(async () => cleanupTempWorkspace(workspaceRoot));
 

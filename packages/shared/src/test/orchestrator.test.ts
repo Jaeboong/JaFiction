@@ -671,7 +671,7 @@ test("orchestrator routes role assignments and override settings to researcher a
     selectedDocumentIds: []
   });
 
-  assert.equal(result.run.roleAssignments?.length, 8);
+  assert.equal(result.run.roleAssignments?.length, 7);
   const researcherCall = gateway.calls.find((call) => call.participantId === "context-researcher");
   assert.ok(researcherCall);
   assert.equal(researcherCall.providerId, "codex");

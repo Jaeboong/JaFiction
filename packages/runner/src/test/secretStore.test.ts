@@ -5,7 +5,9 @@ import * as path from "node:path";
 import test from "node:test";
 import { FileSecretStore } from "../secretStore";
 
-test("file secret store initializes a machine-local key file with strict permissions", async () => {
+const IS_WIN = process.platform === "win32";
+
+test("file secret store initializes a machine-local key file with strict permissions", { skip: IS_WIN ? "Windows 파일 시스템은 Unix chmod 0o600 permission model을 지원하지 않음" : false }, async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jasojeon-secret-store-"));
   const filePath = path.join(tempDir, "secrets.enc");
   const keyFilePath = path.join(tempDir, "secret.key");

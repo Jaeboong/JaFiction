@@ -92,7 +92,8 @@ async function makeHarness(opts: HarnessOpts = {}): Promise<Harness> {
 
   // Fake registry
   const fakeRegistry = {
-    testProvider: async () => ({ providerId: "claude", authStatus: "healthy", installed: true }),
+    testProvider: async (providerId: string) => ({ providerId, authStatus: "healthy", installed: true }),
+    getCachedRuntimeState: async (providerId: string) => ({ providerId, authStatus: "healthy", installed: true }),
     refreshRuntimeState: async (providerId: string) => ({ providerId, authStatus: "healthy", installed: true }),
     listRuntimeStates: async () => [],
     setAuthMode: async () => undefined,
@@ -1014,8 +1015,8 @@ test("B3: rpc:save_project — accepts supported field (companyName) and persist
 // ---------------------------------------------------------------------------
 // OP_NAMES count sanity
 // ---------------------------------------------------------------------------
-test("OP_NAMES contains exactly 46 ops", () => {
-  assert.equal(OP_NAMES.length, 46);
+test("OP_NAMES contains exactly 47 ops", () => {
+  assert.equal(OP_NAMES.length, 47);
 });
 
 // ---------------------------------------------------------------------------

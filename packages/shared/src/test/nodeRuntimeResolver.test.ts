@@ -130,10 +130,11 @@ test("throws with candidate list and JASOJEON_NODE_BIN hint when all candidates 
 test("does not skip .exe realpath on Windows", () => {
   resetNodeRuntimeCacheForTests();
 
-  // Use forward-slash paths so path.join works correctly on the Linux test runner
-  const winNode = "/c/Program Files/nodejs/node.exe";
-  const winNpm = "/c/Program Files/nodejs/npm.cmd";
-  const winNpx = "/c/Program Files/nodejs/npx.cmd";
+  // Use path.join so paths are consistent across platforms (backslash on Windows, forward-slash on Linux)
+  const winBinDir = path.join("c", "Program Files", "nodejs");
+  const winNode = path.join(winBinDir, "node.exe");
+  const winNpm = path.join(winBinDir, "npm.cmd");
+  const winNpx = path.join(winBinDir, "npx.cmd");
 
   const realpathMap = new Map([[winNode, winNode]]);
   const executableSet = new Set([winNode, winNpm, winNpx]);
@@ -148,10 +149,11 @@ test("does not skip .exe realpath on Windows", () => {
 test("returns npm.cmd and npx.cmd on Windows", () => {
   resetNodeRuntimeCacheForTests();
 
-  const winBinDir = "/c/Program Files/nodejs";
-  const winNode = `${winBinDir}/node.exe`;
-  const winNpmCmd = `${winBinDir}/npm.cmd`;
-  const winNpxCmd = `${winBinDir}/npx.cmd`;
+  // Use path.join so paths are consistent across platforms (backslash on Windows, forward-slash on Linux)
+  const winBinDir = path.join("c", "Program Files", "nodejs");
+  const winNode = path.join(winBinDir, "node.exe");
+  const winNpmCmd = path.join(winBinDir, "npm.cmd");
+  const winNpxCmd = path.join(winBinDir, "npx.cmd");
 
   const realpathMap = new Map([[winNode, winNode]]);
   const executableSet = new Set([winNode, winNpmCmd, winNpxCmd]);
@@ -167,9 +169,11 @@ test("returns npm.cmd and npx.cmd on Windows", () => {
 test("caches result so second call returns the same object", () => {
   resetNodeRuntimeCacheForTests();
 
-  const nodebin = "/usr/local/bin/node";
-  const npmbin = "/usr/local/bin/npm";
-  const npxbin = "/usr/local/bin/npx";
+  // Use os.homedir() so paths are well-formed on both Windows and Linux
+  const binDir = path.join(os.homedir(), ".local", "share", "test-runtime", "bin");
+  const nodebin = path.join(binDir, "node");
+  const npmbin = path.join(binDir, "npm");
+  const npxbin = path.join(binDir, "npx");
 
   const executableSet = new Set([nodebin, npmbin, npxbin]);
   const provider = makeProvider([nodebin]);
