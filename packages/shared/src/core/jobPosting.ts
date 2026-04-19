@@ -1,4 +1,22 @@
 import { nowIso } from "./utils";
+import type { SourceTier } from "./sourceTier";
+import { filterAtsFromTitle } from "./atsBlacklist";
+
+export const JOB_POSTING_FIELD_KEYS = [
+  "companyName",
+  "roleName",
+  "deadline",
+  "overview",
+  "mainResponsibilities",
+  "qualifications",
+  "preferredQualifications",
+  "benefits",
+  "hiringProcess",
+  "insiderView",
+  "otherInfo"
+] as const;
+
+export type JobPostingFieldKey = (typeof JOB_POSTING_FIELD_KEYS)[number];
 
 export interface JobPostingExtractionRequest {
   jobPostingUrl?: string;
@@ -26,6 +44,7 @@ export interface JobPostingExtractionResult {
   otherInfo?: string;
   keywords: string[];
   warnings: string[];
+  fieldSources: Partial<Record<JobPostingFieldKey, SourceTier>>;
 }
 
 export interface JobPostingFetchDiagnostics {
@@ -217,7 +236,8 @@ export async function fetchAndExtractJobPosting(
 
   const embeddedSource = extractEmbeddedJobPostingSource(html);
   const normalizedText = normalizeJobPostingHtml(embeddedSource?.detailHtml || html);
-  const resolvedPageTitle = embeddedSource?.pageTitle || extractTitle(html);
+  // ATS 사이트명이 포함된 title은 companyName/roleName 추출에 사용하면 안 되므로 필터링
+  const resolvedPageTitle = filterAtsFromTitle(embeddedSource?.pageTitle || extractTitle(html));
   return buildExtractionResult("url", normalizedText, {
     fetchedUrl: response.url || jobPostingUrl,
     pageTitle: resolvedPageTitle,
@@ -257,7 +277,10 @@ export function extractStructuredJobPostingFields(
 ): Omit<JobPostingExtractionResult, "source" | "fetchedAt" | "fetchedUrl" | "normalizedText"> {
   const lines = normalizedText.split("\n").map((line) => line.trim()).filter(Boolean);
   const warnings: string[] = [];
-  const roleName = inferRoleName(lines, options.pageTitle, options.seedRoleName);
+
+  const roleResult = inferRoleNameWithTier(lines, options.pageTitle, options.seedRoleName);
+  const roleName = roleResult?.value;
+
   const deadlineSection = findSection(lines, sectionHeadingPatterns.deadline, 8);
   const deadline = extractDeadline(lines, deadlineSection);
   const roleHintKeywords = buildRoleHintKeywords(options.seedRoleName || roleName);
@@ -269,7 +292,8 @@ export function extractStructuredJobPostingFields(
   const hiringProcess = findSection(lines, sectionHeadingPatterns.hiringProcess);
   const insiderView = findSection(lines, sectionHeadingPatterns.insiderView);
   const otherInfo = findSection(lines, sectionHeadingPatterns.otherInfo, 25);
-  const companyName = inferCompanyName(lines, options.pageTitle, options.seedCompanyName, roleName);
+  const companyResult = inferCompanyNameWithTier(lines, options.pageTitle, options.seedCompanyName, roleName);
+  const companyName = companyResult?.value;
   const keywords = collectKeywords([mainResponsibilities, qualifications, preferredQualifications, roleName].filter(Boolean).join("\n"));
 
   if (!mainResponsibilities) {
@@ -277,6 +301,14 @@ export function extractStructuredJobPostingFields(
   }
   if (!qualifications) {
     warnings.push("자격요건 섹션을 명확히 찾지 못했습니다.");
+  }
+
+  const fieldSources: Partial<Record<JobPostingFieldKey, SourceTier>> = {};
+  if (companyResult) {
+    fieldSources.companyName = companyResult.tier;
+  }
+  if (roleResult) {
+    fieldSources.roleName = roleResult.tier;
   }
 
   return {
@@ -293,7 +325,8 @@ export function extractStructuredJobPostingFields(
     insiderView,
     otherInfo,
     keywords,
-    warnings
+    warnings,
+    fieldSources
   };
 }
 
@@ -447,7 +480,8 @@ function buildExtractionResult(
     insiderView: extracted.insiderView,
     otherInfo: extracted.otherInfo,
     keywords: extracted.keywords,
-    warnings: extracted.warnings
+    warnings: extracted.warnings,
+    fieldSources: {}
   };
 }
 
@@ -485,13 +519,34 @@ function findBestSection(lines: string[], headingPatterns: RegExp[], roleHintKey
 }
 
 function inferRoleName(lines: string[], pageTitle?: string, seedRoleName?: string): string | undefined {
+  return inferRoleNameWithTier(lines, pageTitle, seedRoleName)?.value;
+}
+
+interface FieldWithTier {
+  value: string;
+  tier: SourceTier;
+}
+
+// Tier 분류 규칙:
+// - factual: seed(사용자 직접 입력) 경로
+// - contextual: body에서 추출한 값이 pageTitle에도 동일하게 포함됨 (교차 확인)
+// - role: body 단독 추출 or title 단독 폴백
+function inferRoleNameWithTier(
+  lines: string[],
+  pageTitle?: string,
+  seedRoleName?: string
+): FieldWithTier | undefined {
   if (seedRoleName?.trim()) {
-    return seedRoleName.trim();
+    return { value: seedRoleName.trim(), tier: "factual" };
   }
 
   const fromDetail = extractRoleFromDetailLines(lines);
   if (fromDetail) {
-    return fromDetail;
+    // body에서 추출된 값이 pageTitle에도 포함되면 contextual (교차 확인)
+    if (pageTitle && pageTitle.toLowerCase().includes(fromDetail.toLowerCase())) {
+      return { value: fromDetail, tier: "contextual" };
+    }
+    return { value: fromDetail, tier: "role" };
   }
 
   const titleCandidates = [
@@ -501,7 +556,11 @@ function inferRoleName(lines: string[], pageTitle?: string, seedRoleName?: strin
   const match = titleCandidates.find((candidate) =>
     /개발|엔지니어|backend|frontend|full[- ]?stack|data|java|ios|android|pm|designer|research/i.test(candidate)
   );
-  return match?.trim();
+  if (match?.trim()) {
+    return { value: match.trim(), tier: "role" };
+  }
+
+  return undefined;
 }
 
 const rolePattern = /개발|엔지니어|backend|frontend|full[- ]?stack|data|java|ios|android|pm|designer|research/i;
@@ -526,17 +585,39 @@ function inferCompanyName(
   seedCompanyName: string | undefined,
   roleName: string | undefined
 ): string | undefined {
+  return inferCompanyNameWithTier(lines, pageTitle, seedCompanyName, roleName)?.value;
+}
+
+// Tier 분류 규칙:
+// - factual: seed(사용자 직접 입력) 경로
+// - contextual: body에서 company 패턴 매칭 + pageTitle에도 동일 포함
+// - role: title 단독 폴백 or body 단독
+function inferCompanyNameWithTier(
+  lines: string[],
+  pageTitle: string | undefined,
+  seedCompanyName: string | undefined,
+  roleName: string | undefined
+): FieldWithTier | undefined {
   if (seedCompanyName?.trim()) {
-    return seedCompanyName.trim();
+    return { value: seedCompanyName.trim(), tier: "factual" };
   }
 
   const titleCandidates = pageTitle ? splitTitleCandidates(pageTitle) : [];
   const companyCandidate = titleCandidates.find((candidate) => candidate.trim() && candidate.trim() !== roleName?.trim());
   if (companyCandidate) {
-    return companyCandidate.trim();
+    return { value: companyCandidate.trim(), tier: "role" };
   }
 
-  return lines.find((line) => /주식회사|\(주\)|corp|inc\.?|ltd\.?/i.test(line))?.trim();
+  const bodyMatch = lines.find((line) => /주식회사|\(주\)|corp|inc\.?|ltd\.?/i.test(line))?.trim();
+  if (bodyMatch) {
+    // body에서 추출한 값이 pageTitle에도 포함되면 contextual
+    if (pageTitle && pageTitle.toLowerCase().includes(bodyMatch.toLowerCase())) {
+      return { value: bodyMatch, tier: "contextual" };
+    }
+    return { value: bodyMatch, tier: "role" };
+  }
+
+  return undefined;
 }
 
 function splitTitleCandidates(title: string): string[] {

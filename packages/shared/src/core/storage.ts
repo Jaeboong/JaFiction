@@ -199,6 +199,8 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       rubric: defaultRubric(),
       pinnedDocumentIds: [],
       insightStatus: "idle",
+      postingReviewReasons: [],
+      jobPostingFieldConfidence: {},
       createdAt: now,
       updatedAt: now
     };

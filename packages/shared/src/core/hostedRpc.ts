@@ -13,6 +13,9 @@ import {
   AgentDefaultsSchema
 } from "./schemas";
 import { SidebarStateSchema } from "./viewModels";
+import { SourceTierSchema } from "./sourceTier";
+import { JOB_POSTING_FIELD_KEYS } from "./jobPosting";
+import { REVIEW_NEEDED_REASONS } from "./types";
 
 // SidebarState and RunEvent types are already exported from viewModels.ts and schemas.ts
 // respectively. We import them here for use in this file only.
@@ -39,6 +42,9 @@ export function assertNever(x: never): never {
 // ---------------------------------------------------------------------------
 // ProjectSummary / ProjectDetail — mirrors ProjectRecord exactly
 // ---------------------------------------------------------------------------
+const _rpcJobPostingFieldKeySchema = z.enum(JOB_POSTING_FIELD_KEYS);
+const _rpcReviewNeededReasonSchema = z.enum(REVIEW_NEEDED_REASONS);
+
 const ProjectDetailSchema = z.object({
   slug: z.string(),
   companyName: z.string(),
@@ -66,7 +72,9 @@ const ProjectDetailSchema = z.object({
   charLimit: z.number().int().min(1).optional(),
   notionPageIds: z.array(z.string()).optional(),
   createdAt: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
+  postingReviewReasons: z.array(_rpcReviewNeededReasonSchema).readonly().default([]),
+  jobPostingFieldConfidence: z.record(_rpcJobPostingFieldKeySchema, SourceTierSchema).default({})
 }).strict();
 
 const ProjectSummarySchema = ProjectDetailSchema;
@@ -105,7 +113,9 @@ const ProjectPatchSchema = z.object({
   essayQuestions: z.array(z.string()).optional(),
   openDartCorpCode: z.string().optional(),
   openDartCandidates: z.array(OpenDartCandidateSchema).nullable().optional(),
-  openDartSkipRequested: z.boolean().optional()
+  openDartSkipRequested: z.boolean().optional(),
+  postingReviewReasons: z.array(_rpcReviewNeededReasonSchema).optional(),
+  jobPostingFieldConfidence: z.record(_rpcJobPostingFieldKeySchema, SourceTierSchema).optional()
 }).strict();
 
 // ProviderConfig for save_provider_config
@@ -475,7 +485,8 @@ const JobPostingExtractionResultSchema = z.object({
   insiderView: z.string().optional(),
   otherInfo: z.string().optional(),
   keywords: z.array(z.string()),
-  warnings: z.array(z.string())
+  warnings: z.array(z.string()),
+  fieldSources: z.record(_rpcJobPostingFieldKeySchema, SourceTierSchema).optional().default({})
 }).strict();
 
 export const AnalyzePostingPayloadSchema = z.object({

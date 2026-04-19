@@ -10,6 +10,10 @@ worktrees/
 .harness/
 dist-tools/
 *.tsbuildinfo
+*.bun-build
+
+# 공고 파서 fixture HTML (원본만, 커밋 방지)
+docs/plans/2026-04-17-posting-parser-fixtures/fetched/
 
 # Claude Code local state (never commit)
 .claude/tmp/

@@ -1,3 +1,13 @@
+import type { SourceTier } from "./sourceTier";
+import type { JobPostingFieldKey } from "./jobPosting";
+
+export const REVIEW_NEEDED_REASONS = [
+  "lowConfidenceExtraction",
+  "extractionError",
+  "postingAmbiguous"
+] as const;
+export type ReviewNeededReason = (typeof REVIEW_NEEDED_REASONS)[number];
+
 export const providerIds = ["codex", "claude", "gemini"] as const;
 export type ProviderId = (typeof providerIds)[number];
 
@@ -211,6 +221,8 @@ export interface ProjectRecord {
   notionPageIds?: string[];
   createdAt: string;
   updatedAt: string;
+  postingReviewReasons: readonly ReviewNeededReason[];
+  jobPostingFieldConfidence: Partial<Record<JobPostingFieldKey, SourceTier>>;
 }
 
 export interface AppPreferences {
