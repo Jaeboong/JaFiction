@@ -49,6 +49,11 @@ jobs:
           PUPPETEER_SKIP_DOWNLOAD: "true"
         run: npm ci
 
+      # bun --compile 이 runner/src 의 `@jasojeon/shared` import 를 resolve 하려면
+      # shared 의 JS 산출물이 있어야 한다. deploy.yml 과 동일 패턴.
+      - name: Build shared (required for @jasojeon/shared resolution)
+        run: npx tsc -p packages/shared/tsconfig.json
+
       - name: Build runner binaries (BACKEND_URL=자소전.shop, --local suffix)
         env:
           JASOJEON_RUNNER_BACKEND_URL: "https://xn--9l4b13i8j.shop"
