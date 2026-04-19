@@ -1,6 +1,6 @@
 ---
 date: 2026-04-19
-status: draft
+status: in_progress
 parent: docs/plans/2026-04-17-posting-parser-refactor.md
 prev: docs/plans/2026-04-17-posting-parser-p0-handoff.md
 ---
@@ -12,6 +12,11 @@ prev: docs/plans/2026-04-17-posting-parser-p0-handoff.md
 **Scope:** 국내 전용 공고 파서
 **Goal:** success 분류 **8 → 18 이상** + `fieldSources = factual` 비율 ≥ **40%** (분모 5필드 기준, §7.2)
 **예상 공수:** 1~2일 (Chunk 1~6 합 ~9시간)
+
+## Progress
+
+- 2026-04-19: Chunk 3 파이프라인 통합과 Chunk 4 jobkorea golden 재동결을 워킹트리에 반영했다.
+- 2026-04-19: shared/runner/backend 직접 빌드 및 테스트, posting golden 5/5, `jobPosting.tier` 확장, `jobPosting.jsonLd` 회귀 검증을 완료했다.
 
 ---
 
