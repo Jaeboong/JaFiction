@@ -3,11 +3,14 @@ import type {
   ProjectInsightDocumentKey,
   ProjectInsightWorkspaceState,
   ProjectRecord,
-  ProjectViewModel
+  ProjectViewModel,
+  ReviewNeededReason
 } from "@jasojeon/shared";
 import { useEffect, useRef, useState } from "react";
 import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
 import { OpenDartCandidateModal } from "../components/OpenDartCandidateModal";
+import { PostingFieldConfidenceBadge } from "../components/PostingFieldConfidenceBadge";
+import { PostingLowConfidenceBanner } from "../components/PostingLowConfidenceBanner";
 import { ProjectInsightModal } from "../components/ProjectInsightModal";
 import { hasInsightDocuments, isInsightDocumentTitle } from "../insightDocuments";
 import {
@@ -17,6 +20,16 @@ import {
   sourceTypeLabel
 } from "../formatters";
 import "../styles/projects.css";
+
+const LOW_CONFIDENCE_REASON: ReviewNeededReason = "lowConfidenceExtraction";
+
+function isLowConfidence(reasons: readonly ReviewNeededReason[]): boolean {
+  return reasons.includes(LOW_CONFIDENCE_REASON);
+}
+
+function needsFieldBadge(value: string | undefined, tier: string | undefined): boolean {
+  return !value?.trim() || tier === "role";
+}
 
 interface ProjectsPageProps {
   projects: ProjectViewModel[];
@@ -309,6 +322,10 @@ function CreateProjectWorkspace({
               </div>
             ) : null}
 
+            {analysisResult && needsFieldBadge(analysisResult.companyName, analysisResult.fieldSources.companyName) && needsFieldBadge(analysisResult.roleName, analysisResult.fieldSources.roleName) ? (
+              <PostingLowConfidenceBanner reasons={[LOW_CONFIDENCE_REASON]} />
+            ) : null}
+
             {analysisError ? <p className="projects-analysis-error">{analysisError}</p> : null}
 
             {analysisResult?.warnings.length ? (
@@ -321,11 +338,27 @@ function CreateProjectWorkspace({
 
             <div className="projects-form-grid">
               <label className="projects-field">
-                <span>회사명</span>
+                <span className="projects-info-field-label">
+                  회사명
+                  {analysisResult ? (
+                    <PostingFieldConfidenceBadge
+                      value={companyName}
+                      tier={analysisResult.fieldSources.companyName}
+                    />
+                  ) : null}
+                </span>
                 <input value={companyName} onChange={(event) => setCompanyName(event.target.value)} />
               </label>
               <label className="projects-field">
-                <span>직무명</span>
+                <span className="projects-info-field-label">
+                  직무명
+                  {analysisResult ? (
+                    <PostingFieldConfidenceBadge
+                      value={roleName}
+                      tier={analysisResult.fieldSources.roleName}
+                    />
+                  ) : null}
+                </span>
                 <input value={roleName} onChange={(event) => setRoleName(event.target.value)} />
               </label>
               <label className="projects-field">
@@ -506,6 +539,7 @@ function ProjectWorkspace({
   const isInsightReady = project.record.insightStatus === "ready" || projectHasInsightDocuments;
   const isInsightGenerationPending = isGeneratingInsights || project.record.insightStatus === "generating";
   const insightStatusNote = buildInsightStatusNote(project.record);
+  const isPostingLowConfidence = isLowConfidence(project.record.postingReviewReasons);
 
   const handleFileSelection = (incoming: FileList | File[]) => {
     const { acceptedFiles, rejectedNames } = partitionContextUploadFiles(Array.from(incoming));
@@ -618,14 +652,35 @@ function ProjectWorkspace({
   const handleSaveInfo = async () => {
     setIsSavingInfo(true);
     try {
-      await onUpdateProject(project.record.slug, {
-        ...project.record,
+      const trimmedCompany = editCompanyName.trim();
+      const trimmedRole = (editRoleName || "").trim();
+      const prevTrimmedCompany = project.record.companyName.trim();
+      const prevTrimmedRole = (project.record.roleName ?? "").trim();
+      const companyChanged = trimmedCompany !== prevTrimmedCompany;
+      const roleChanged = trimmedRole !== prevTrimmedRole;
+
+      const patch: Record<string, unknown> = {
         companyName: editCompanyName,
         roleName: editRoleName || undefined,
         deadline: editDeadline || undefined,
         jobPostingUrl: editJobPostingUrl || undefined,
         essayQuestions: editEssayQuestions.filter((q) => q.trim())
-      });
+      };
+
+      if (companyChanged || roleChanged) {
+        const bothFilled = trimmedCompany.length > 0 && trimmedRole.length > 0;
+        const existing = project.record.postingReviewReasons ?? [];
+        patch.postingReviewReasons = bothFilled
+          ? existing.filter((r) => r !== LOW_CONFIDENCE_REASON)
+          : [...existing];
+
+        const nextConfidence = { ...(project.record.jobPostingFieldConfidence ?? {}) };
+        if (companyChanged) nextConfidence.companyName = "factual";
+        if (roleChanged) nextConfidence.roleName = "factual";
+        patch.jobPostingFieldConfidence = nextConfidence;
+      }
+
+      await onUpdateProject(project.record.slug, patch);
       setIsEditingInfo(false);
     } catch {
       // Global action notice already reports the failure.
@@ -775,9 +830,14 @@ function ProjectWorkspace({
                 </button>
                 {isInsightReady ? (
                   <>
-                    <button className="projects-secondary-button" disabled={isInsightGenerationPending} onClick={() => {
-                      void handleRegenerateInsights();
-                    }}>
+                    <button
+                      className="projects-secondary-button"
+                      disabled={isInsightGenerationPending || isPostingLowConfidence}
+                      title={isPostingLowConfidence ? "공고 필드 신뢰도가 낮아 인사이트 생성이 차단되어 있습니다. 회사명·직무를 확인·수정한 뒤 다시 시도해주세요." : undefined}
+                      onClick={() => {
+                        void handleRegenerateInsights();
+                      }}
+                    >
                       {isInsightGenerationPending ? "다시 생성중..." : "다시 생성"}
                     </button>
                     <button className="projects-primary-button" disabled={insightModalStatus === "loading"} onClick={handleOpenInsightModal}>
@@ -787,7 +847,8 @@ function ProjectWorkspace({
                 ) : (
                   <button
                     className="projects-primary-button"
-                    disabled={isInsightGenerationPending}
+                    disabled={isInsightGenerationPending || isPostingLowConfidence}
+                    title={isPostingLowConfidence ? "공고 필드 신뢰도가 낮아 인사이트 생성이 차단되어 있습니다. 회사명·직무를 확인·수정한 뒤 다시 시도해주세요." : undefined}
                     onClick={() => {
                       void handleGenerateInsights();
                     }}
@@ -880,11 +941,18 @@ function ProjectWorkspace({
                 </button>
               )}
             </div>
+            <PostingLowConfidenceBanner reasons={project.record.postingReviewReasons} />
             {isEditingInfo ? (
               <div className="projects-info-edit-form">
                 <div className="projects-info-grid">
                   <div className="projects-info-field">
-                    <span>회사명</span>
+                    <span className="projects-info-field-label">
+                      회사명
+                      <PostingFieldConfidenceBadge
+                        value={editCompanyName}
+                        tier={project.record.jobPostingFieldConfidence.companyName}
+                      />
+                    </span>
                     <input
                       className="projects-info-input"
                       value={editCompanyName}
@@ -893,7 +961,13 @@ function ProjectWorkspace({
                     />
                   </div>
                   <div className="projects-info-field">
-                    <span>직무명</span>
+                    <span className="projects-info-field-label">
+                      직무명
+                      <PostingFieldConfidenceBadge
+                        value={editRoleName}
+                        tier={project.record.jobPostingFieldConfidence.roleName}
+                      />
+                    </span>
                     <input
                       className="projects-info-input"
                       value={editRoleName}
@@ -962,8 +1036,26 @@ function ProjectWorkspace({
             ) : (
               <>
                 <div className="projects-info-grid">
-                  <InfoField label="회사명" value={project.record.companyName} />
-                  <InfoField label="직무명" value={project.record.roleName ?? "직무 미정"} />
+                  <div className="projects-info-field">
+                    <span className="projects-info-field-label">
+                      회사명
+                      <PostingFieldConfidenceBadge
+                        value={project.record.companyName}
+                        tier={project.record.jobPostingFieldConfidence.companyName}
+                      />
+                    </span>
+                    <strong>{project.record.companyName}</strong>
+                  </div>
+                  <div className="projects-info-field">
+                    <span className="projects-info-field-label">
+                      직무명
+                      <PostingFieldConfidenceBadge
+                        value={project.record.roleName}
+                        tier={project.record.jobPostingFieldConfidence.roleName}
+                      />
+                    </span>
+                    <strong>{project.record.roleName ?? "직무 미정"}</strong>
+                  </div>
                   <InfoField label="마감기한" value={project.record.deadline ?? "미정"} />
                   <div className="projects-info-field">
                     <span>채용공고 URL</span>
