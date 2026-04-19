@@ -1,0 +1,10 @@
+{
+  "sourceUrl": "https://echomarketing.career.greetinghr.com/ko/o/209703",
+  "expected": {
+    "companyName": "에코마케팅",
+    "roleName": "프론트엔드 개발자",
+    "normalizedTextMinLength": 2400,
+    "fieldSources": {},
+    "mustNotContain": ["원티드", "점핏", "사람인", "잡코리아", "기아 탤런트 라운지"]
+  }
+}

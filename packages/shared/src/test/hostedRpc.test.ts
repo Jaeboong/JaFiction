@@ -259,6 +259,23 @@ test("save_project: patch extra field rejected", () => {
   assert.equal(result.success, false);
 });
 
+test("save_project: patch accepts postingReviewReasons and jobPostingFieldConfidence", () => {
+  const emptyFields = SaveProjectPayloadSchema.safeParse({
+    slug: "alpha",
+    patch: { postingReviewReasons: [], jobPostingFieldConfidence: {} }
+  });
+  assert.equal(emptyFields.success, true);
+
+  const withValues = SaveProjectPayloadSchema.safeParse({
+    slug: "alpha",
+    patch: {
+      postingReviewReasons: ["lowConfidenceExtraction"],
+      jobPostingFieldConfidence: { companyName: "factual" }
+    }
+  });
+  assert.equal(withValues.success, true);
+});
+
 test("upload_document: requires slug, filename, contentBase64", () => {
   const ok = RpcRequestSchema.safeParse({
     v: 1, id: "r5", op: "upload_document",

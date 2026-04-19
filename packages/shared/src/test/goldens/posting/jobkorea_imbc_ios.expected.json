@@ -1,0 +1,11 @@
+{
+  "sourceUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48910001?Oem_Code=C1&rPageCode=TL",
+  "note": "잡코리아 title 기반 추출 — '채용' suffix 잔재. roleName에 회사명 prefix 혼입. fieldSources 비어있음(title 폴백 추출이 tier 미태깅). P1 JSON-LD 도입 시 회사명/직무명 정제 및 fieldSources 태깅 예정.",
+  "expected": {
+    "companyName": "㈜아이엠비씨 채용",
+    "roleName": "㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영)",
+    "normalizedTextMinLength": 900,
+    "fieldSources": {},
+    "mustNotContain": ["원티드", "점핏", "사람인", "잡코리아", "기아 탤런트 라운지"]
+  }
+}

@@ -9,6 +9,8 @@ function createProject(slug: string, companyName: string): ProjectRecord {
     companyName,
     rubric: "- fit",
     pinnedDocumentIds: [],
+    postingReviewReasons: [],
+    jobPostingFieldConfidence: {},
     createdAt: "2026-03-31T00:00:00.000Z",
     updatedAt: "2026-03-31T00:00:00.000Z"
   };

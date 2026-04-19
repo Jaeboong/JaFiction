@@ -1,0 +1,11 @@
+{
+  "sourceUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48898459?Oem_Code=C1&rPageCode=TL",
+  "note": "잡코리아 title 기반 추출 — '채용' suffix 잔재. fieldSources 비어있음(title 폴백 추출이 tier 미태깅). P1 JSON-LD 도입 시 회사명/직무명 정제 및 fieldSources 태깅 예정.",
+  "expected": {
+    "companyName": "㈜다산소프트 채용",
+    "roleName": "자바개발자 정규직 모집 (신입)",
+    "normalizedTextMinLength": 540,
+    "fieldSources": {},
+    "mustNotContain": ["원티드", "점핏", "사람인", "잡코리아", "기아 탤런트 라운지"]
+  }
+}
