@@ -481,7 +481,7 @@ function buildExtractionResult(
     otherInfo: extracted.otherInfo,
     keywords: extracted.keywords,
     warnings: extracted.warnings,
-    fieldSources: {}
+    fieldSources: extracted.fieldSources
   };
 }
 

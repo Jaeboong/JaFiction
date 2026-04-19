@@ -5,7 +5,7 @@
     "companyName": "㈜네오정보시스템 채용",
     "roleName": "소프트웨어 개발자 채용",
     "normalizedTextMinLength": 600,
-    "fieldSources": {},
+    "fieldSources": { "companyName": "role", "roleName": "role" },
     "mustNotContain": ["원티드", "점핏", "사람인", "잡코리아", "기아 탤런트 라운지"]
   }
 }

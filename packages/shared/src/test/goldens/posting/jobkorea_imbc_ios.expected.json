@@ -5,7 +5,7 @@
     "companyName": "㈜아이엠비씨 채용",
     "roleName": "㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영)",
     "normalizedTextMinLength": 900,
-    "fieldSources": {},
+    "fieldSources": { "companyName": "role", "roleName": "role" },
     "mustNotContain": ["원티드", "점핏", "사람인", "잡코리아", "기아 탤런트 라운지"]
   }
 }

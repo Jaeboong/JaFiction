@@ -5,7 +5,7 @@
     "companyName": "㈜다산소프트 채용",
     "roleName": "자바개발자 정규직 모집 (신입)",
     "normalizedTextMinLength": 540,
-    "fieldSources": {},
+    "fieldSources": { "companyName": "role", "roleName": "role" },
     "mustNotContain": ["원티드", "점핏", "사람인", "잡코리아", "기아 탤런트 라운지"]
   }
 }
