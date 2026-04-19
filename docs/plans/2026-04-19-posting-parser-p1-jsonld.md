@@ -1,8 +1,9 @@
 ---
 date: 2026-04-19
-status: in_progress
+status: completed
 parent: docs/plans/2026-04-17-posting-parser-refactor.md
 prev: docs/plans/2026-04-17-posting-parser-p0-handoff.md
+completed_at: 2026-04-19
 ---
 
 # P1 — JSON-LD `JobPosting` 파서 + fieldSources 복구
@@ -496,6 +497,9 @@ Daangn 33자 case 는 이 floor 로 자동 차단됨.
 
 ## 11. 준비 스테이지 — CDP 검증용 dev-login 엔드포인트 (~1-2h)
 
+> **이 섹션은 별도 plan 으로 분리됨** → [`docs/plans/2026-04-19-posting-parser-dev-login-l3-verification.md`](./2026-04-19-posting-parser-dev-login-l3-verification.md)
+> 구현은 후속 이슈로 보류. 이 PR (posting parser P1) 범위에 포함되지 않음.
+
 P1 Chunk 6 의 L3 CDP 자동화가 P0 검증 때 **Google OAuth 벽**에 막혀 실행되지 못함 (handoff 실행 기록). 재발 방지용 준비 작업을 Chunk 6 착수 전에 수행.
 
 ### 범위
@@ -521,6 +525,24 @@ P1 Chunk 6 의 L3 CDP 자동화가 P0 검증 때 **Google OAuth 벽**에 막혀 
 ## 12. 추정 공수
 
 합산 ~8시간 (1~2일). 상세 §6 표.
+
+---
+
+## Final L2 gate (Chunk 3.5.E 로 갈음)
+
+Chunk 3.5.E fixture 재측정 (커밋 ce0ed6c) 으로 Final L2 gate 갈음. 별도 재실행 불필요.
+
+- factual 비율: 43.8% (46/105)
+- 베이스라인 (Chunk 3+4, 52b410c): 27.3% (30/110)
+- 델타: +16.5p
+- gate 40%: **PASS**
+
+기여 breakdown:
+- wanted mainResponsibilities +9 (Chunk 3.5.D JSON-LD description 교차)
+- greetinghr roleName +2 (Chunk 3.5.A body cross-validate)
+- idis companyName +3 (Chunk 3.5.C hostname hint)
+
+특이: jumpit `53460085` (이비즈테크) success → partial. 길이 ≤40 필터로 garbage 긴 companyName 제거 부작용. 파서 품질 향상이라 회귀 아님.
 
 ---
 
