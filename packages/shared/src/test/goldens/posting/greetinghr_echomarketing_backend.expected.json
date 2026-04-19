@@ -1,0 +1,10 @@
+{
+  "sourceUrl": "https://echomarketing.career.greetinghr.com/ko/o/209705",
+  "expected": {
+    "companyName": "에코마케팅",
+    "roleName": "백엔드 개발자(Python, Java)",
+    "normalizedTextMinLength": 2300,
+    "fieldSources": { "companyName": "factual", "roleName": "factual" },
+    "mustNotContain": ["원티드", "점핏", "사람인", "잡코리아", "기아 탤런트 라운지"]
+  }
+}

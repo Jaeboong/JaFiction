@@ -1,0 +1,16 @@
+{
+  "sourceUrl": "https://www.wanted.co.kr/wd/353223",
+  "note": "P1 Chunk 3.5.D JSON-LD description × mainResponsibilities 교차 승격 회귀 방지. 넵튠(Neptune) H5개발팀 클라이언트 개발 포지션. mainResponsibilities=factual 고정.",
+  "expected": {
+    "companyName": "넵튠(Neptune)",
+    "roleName": "H5개발팀 클라이언트 개발",
+    "normalizedTextMinLength": 1800,
+    "fieldSources": {
+      "companyName": "factual",
+      "roleName": "factual",
+      "overview": "factual",
+      "mainResponsibilities": "factual"
+    },
+    "mustNotContain": ["원티드", "wanted", "점핏", "사람인", "잡코리아"]
+  }
+}

@@ -1,0 +1,154 @@
+# 공고 파서 fixture 수집용 URL 리스트
+# 포맷: 각 URL 위 줄에 "# <카테고리> | <회사> | <직무> | <마감>" 메타 코멘트
+# 중복 URL은 그대로 두고 Codex가 dedupe + 사유 기록
+
+# AI | 포스코DX | AI 서비스 설계 및 알고리즘, 센서 모델링 등 (판교) | 2026-04-27
+https://recruit.posco.com/h22a01-front/H22A1001.html?id=609000
+# AI | 당근 | [2026 당근 ML] Software Engineer, Machine Learning (서울) | 2026-04-17
+https://about.daangn.com/jobs/7647097003/
+# AI | 보스반도체 | AI SW Engineer [신입/병특가능] (경기 성남) | 2026-05-13
+https://jumpit.saramin.co.kr/position/53594223
+# AI | 보스반도체 | ML Systems Runtime Engineer [신입/병특가능] (경기 성남) | 2026-05-13
+https://jumpit.saramin.co.kr/position/53593664
+# AI | 애자일소다 | AI 플랫폼 시스템 엔지니어(신입) (서울) | 2026-05-12
+https://jumpit.saramin.co.kr/position/53612996
+# AI | 애자일소다 | 생성형 AI 데이터사이언티스트 (서울) | 2026-05-12
+https://jumpit.saramin.co.kr/position/53613019
+# SW | HL만도 | SW개발 계약직 (경기 성남) | 2026-04-19
+https://hlcompany.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250304
+# SW | 케이뱅크 | 백엔드 개발 (서울) | 2026-04-24
+https://recruit.kbanknow.com/Recruit/RecruitView/250627
+# SW | 보스반도체 | SOC Design Verification Engineer [신입/병특가능] (경기 성남) | 2026-05-13
+https://jumpit.saramin.co.kr/position/53593479
+# SW | 아이엠비씨 | iOS 앱개발 (서울) | 2026-04-17
+https://www.jobkorea.co.kr/Recruit/GI_Read/48910001?Oem_Code=C1&rPageCode=TL
+# SW | 보스반도체 | Embedded System SW Engineer [신입/병특가능] (경기 성남) | 2026-05-13
+https://jumpit.saramin.co.kr/position/53593568
+# SW | 쿤텍 | 임베디드 SW 또는 FW (경기 성남) | 2026-05-12
+https://jumpit.saramin.co.kr/position/53611604
+# SW | 아이엠티 | 반도체 전공정장비 SW 개발 (신입) (경기 화성) | 2026-05-11
+https://jumpit.saramin.co.kr/position/53588444
+# SW | 넵튠 | H5개발팀 클라이언트 개발 (서울) | 상시
+https://www.wanted.co.kr/wd/353223
+# SW | 넥슨코리아 | [개발관리그룹] 엔진실 서버 엔진 프로그래머 (경기 성남) | 상시
+https://www.wanted.co.kr/wd/322564
+# SW | 넛지헬스케어 | [병역특례] 프론트엔드 개발자 (서울) | 상시
+https://www.wanted.co.kr/wd/168257
+# SW | 넛지헬스케어 | [병역특례] 백엔드 개발자(Node.js) (서울) | 상시
+https://www.wanted.co.kr/wd/85836
+# SW | 넛지헬스케어 | [병역특례] 풀스택 개발자 (서울) | 상시
+https://www.wanted.co.kr/wd/134887
+# SW | 마이다스그룹 | 백엔드 개발자 채용 (경기 성남) | 2026-04-19
+https://midas.recruiter.co.kr/career/jobs/106460
+# SW | 업스테이지 | Software Engineer - Console (경기 용인) | 상시
+https://careers.upstage.ai/ko/o/204305
+# IT | 아우토클립트 | 자동차 사이버보안 테스팅 솔루션 엔지니어 (서울) | 상시
+https://www.wanted.co.kr/wd/257130
+# IT | 포스코DX | 통신설계-네트워크 인프라 (광양) | 2026-04-27
+https://recruit.posco.com/h22a01-front/H22A1001.html?id=609000
+# IT | 씨앤지 마이크로웨이브 | S/W 소프트웨어 개발 - 신입 (대전) | 2026-05-09
+https://jumpit.saramin.co.kr/position/53568665
+# IT | IBK캐피탈 | 전산분야-IT (서울) | 2026-04-22
+https://ibkc.incruit.com/hire/viewhire.asp?projectid=106
+# IT | 현대종합금속 | S/W개발 (성남) | 2026-04-22
+https://hyundaiweld.saramin.co.kr/apply_site/recruit/view
+# IT | 빗썸 | Wallet Security Engineer (블록체인) (서울) | 상시
+https://www.wanted.co.kr/wd/353806
+# IT | 빗썸 | Research Engineer (블록체인) (서울) | 상시
+https://www.wanted.co.kr/wd/353810
+# IT | 현대글로비스 | 2026년 상반기 채용연계형 인턴십 - IT&Security (서울) | 2026-04-18
+https://glovis.recruiter.co.kr/career/jobs/105909
+# IT | 포스코DX | IT인프라 (판교/광양) | 2026-04-27
+https://recruit.posco.com/h22a01-front/H22A1001.html?id=609000
+# IT | 한국교육학술정보원 | 정보기술 서비스 기획 (대구) | 2026-04-27
+https://keris.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250774
+# IT | 한국교육학술정보원 | 인프라 유지 관리 및 프로젝트 기획 (서울) | 2026-04-27
+https://keris.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250776
+# IT | 디지털대성 | IT인프라 및 보안 운영 (서울) | 상시
+https://seasoned-oregano-ae8.notion.site/IT-336fd7779e9d80f9b0f7f0435ee515fe
+# IT | 한국언론진흥재단 | IT 시스템 운영 (서울) | 2026-04-24
+https://kpf.plusrecruit.co.kr/#/recruitment/detail/34
+# AI | 동진쎄미켐 | 머신러닝 코드 개발 및 적용 (판교) | 2026-04-16
+https://dongjin.careerlink.kr/jobs/RC20260403026668
+# AI | 한국선급 | AI융합기술연구 및 AI서비스 개발 (서울) | 2026-04-23
+https://krs.career.co.kr/jobs/jobs_view.asp?ID=1001
+# AI | 연합인포맥스 | IT/AI부문(전문연구요원 포함)신입 (서울) | 2026-05-04
+https://jumpit.saramin.co.kr/position/53502070
+# AI | 에너자이 | AI 컴파일러 엔지니어 (신입) (서울) | 2026-04-30
+https://jumpit.saramin.co.kr/position/53500132
+# AI | LG생활건강 | AX신입 (서울) | 2026-04-14
+https://careers.lg.com/apply/detail?id=1001576
+# AI | 현대위아 | 석사이상 - 데이터사이언티스트, 컴퓨터비전 엔지니어 (경기 의왕) | 2026-04-16
+https://hyundai-wia.recruiter.co.kr/career/jobs/105662
+# AI | 기아 | Mobile Developer (서울 양재) | 2026-04-13
+https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=28
+# AI | 한화손보 | 사이버보험-AI연계 상품개발 등 (서울) | 2026-04-20
+https://www.hanwhain.com/portal/apply/recruit/detail?rtSeq=18568
+# AI | 미래에셋자산운용 | AI기반 운용프로세스 효율화 및 DB구축 | 2026-04-20
+https://career.miraeasset.com/job_posting/LmYO48wF
+# AI | 한국전기안전공사 | 정보운영-AI 전략 기획, IT 인프라 구축 등 (전북 완주) | 2026-04-09
+https://kesco.scout.co.kr/jobinfo/jobinfo_view.asp?ID=1007
+# AI | 기아 | Data Scientist (서울 서초) | 2026-04-13
+https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=29
+# SW | 업스테이지 | Software Engineer - Console (경기 용인) | 상시
+https://www.wanted.co.kr/company/16049
+# SW | 디엑스솔루션 | 임베디드 소프트웨어 개발자 (Junior) (경기 성남) | 2026-04-30
+https://jumpit.saramin.co.kr/position/53491555
+# SW | 엠투아이코퍼레이션 | 펌웨어 개발 신입 채용 (경기 안양) | 2026-04-30
+https://jumpit.saramin.co.kr/position/53446521
+# SW | 두산로보틱스 | Robot Control Engineer(석사이상) (경기 분당) | 2026-04-12
+https://career.doosan.com/dsp/sa/RecList.jsp
+# SW | 아이디스 | SW 연구개발 (판교) | 2026-04-13
+https://careers.idis.co.kr/job/6
+# SW | iMBC | iOS 앱개발 (서울) | 2026-04-17
+https://imbc.careerlink.kr/jobs/RC20260403026692
+# SW | 와이어바알리 | 안드로이드(Android) 개발자 (서울) | 2026-04-09
+https://www.wanted.co.kr/wd/324771
+# SW | 모비루스 | SW 개발자 신입 [Android, C, C++, QT] (서울) | 2026-05-02
+https://jumpit.saramin.co.kr/position/53526814
+# SW | 페이타랩 | Windows개발자(신입) (부산) | 2026-04-30
+https://jumpit.saramin.co.kr/position/53500369
+# SW | 에코마케팅 | 프론트엔드 개발자 (서울) | 2026-04-19
+https://echomarketing.career.greetinghr.com/ko/o/209703
+# SW | 에코마케팅 | 백엔드 개발자 (서울) | 2026-04-19
+https://echomarketing.career.greetinghr.com/ko/o/209705
+# SW | 네오정보시스템 | 소프트웨어 개발자 채용 (경기 성남) | 2026-05-01
+https://www.jobkorea.co.kr/Recruit/GI_Read/48896788?Oem_Code=C1&rPageCode=TL
+# SW | 다산소프트 | 자바개발자 정규직 모집 (신입) (서울) | 2026-05-02
+https://www.jobkorea.co.kr/Recruit/GI_Read/48898459?Oem_Code=C1&rPageCode=TL
+# SW | 아이디스 | SW개발(신입) 인재 모집 (대전) | 2026-04-13
+https://careers.idis.co.kr/job/6
+# IT | 두산로보틱스 | 품질보증 엔지니어(제품 개발) (수원) | 2026-04-12
+https://career.doosan.com/dsp/sa/RecList.jsp
+# IT | 아이디스 | HW 연구개발 (판교) | 2026-04-13
+https://careers.idis.co.kr/job/8
+# IT | 파이오링크 | SQA실 테스터 신입 채용 (서울) | 2026-04-29
+https://jumpit.saramin.co.kr/position/53484407
+# IT | 디알텍 | 시스템HW개발 (경기 성남) | 2026-04-30
+https://www.jobkorea.co.kr/Recruit/GI_Read/48891846?Oem_Code=C1&rPageCode=TL
+# IT | 카카오모빌리티 | 자율주행 E/E 엔지니어 (R&D) (경기 성남) | 상시
+https://www.wanted.co.kr/wd/351737
+# IT | 펄어비스 | [신입] 시스템 엔지니어 모집 (경기 과천) | 상시
+https://www.pearlabyss.com/ko-KR/Company/Careers/detail?_jobOpeningNo=674
+# IT | 한국공항공사 | 공항 운영 관련 IT시스템 운영 및 연계 시스템 관리 등 | 2026-04-14
+https://kac.careerlink.kr/jobs/RC20260326026238
+# IT | 한국의약품수출입협회 | 전산 (서울) | 2026-04-19
+https://kpta.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250155
+# IT | 기아 | Machine Learning Engineer (서울 양재) | 2026-04-13
+https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=39
+# IT | 한국투자증권 | IT/Digital (서울) | 2026-04-22
+https://recruit.truefriend.com/announcementView?_ev=mF2cVoL6gkMUC2jrpZOfBrgGuQuZ2TOKWg5pOufQHunjizlNbJd9p0c5536WUTWvjRNB%2FHD7qxrUUUM26Q7piq56GAee7V%2FY6yI1dx%2BUurj9Wj2lnYKA1w1Qs6WGHcBLyeNX%2BbSGkrdsvte%2FtyyOfnqxiBiwfHSv65IKGuUd1eznAMLb%2B3jp00hFFM7bdr5gT%2Fie%2FAF0Dia6vy4bbyRMuSYm%2FNFiXQ9%2FUhUiqwDV8gNDgGhi8%2BRTyec1T8outWN1w0KJqiqK1LwNm2u6PZ56BTlJ6R5Y7fl26kF1W4zPfysg28Zmos2qttnoDXons%2B91s65GZw0htgtbk9flxhRWSQ%3D%3D&_ec=PUsFO8QcZLFizgsEBOdnONniqVo%2BtY3vzcVlrBDOuBg%3D
+# IT | 이비즈테크 | 시스템 사업부 엔지니어 신입 (서울) | 2026-04-29
+https://jumpit.saramin.co.kr/position/53460085
+# IT | 기아 | IT Project Manage (서울 양재) | 2026-04-13
+https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=45
+# IT | 기아 | Solution Architect (ERP FI 모듈 재무회계-서울 양재) | 2026-04-13
+https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=44
+# IT | 기아 | 글로벌 CRM (서울 양재) | 2026-04-13
+https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=41
+# IT | 윈스테크넷 | 정보보호 서비스, 보안서비스 영업, 클라우드 영업 (판교) | 2026-04-19
+https://wins21.recruiter.co.kr/career/jobs/105993
+# IT | 한화손보 | 사이버보험 (서울) | 2026-04-20
+https://www.hanwhain.com/portal/apply/recruit/detail?rtSeq=18568
+# IT | 제주은행 | ICT (제주, 서울 등) | 2026-04-15
+https://jejubank.recruiter.co.kr/career/jobs/105612

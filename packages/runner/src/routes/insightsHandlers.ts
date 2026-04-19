@@ -11,7 +11,9 @@ import {
   type OpenDartCandidate,
   projectInsightArtifactDefinitions,
   type ProjectInsightInput,
-  type ProjectInsightWorkspaceState
+  type ProjectInsightWorkspaceState,
+  type JobPostingExtractionResult,
+  type ReviewNeededReason
 } from "@jasojeon/shared";
 import { createWebSearchProviderFromEnv, getServerDartApiKey, RunnerContext } from "../runnerContext";
 
@@ -24,6 +26,18 @@ import { createWebSearchProviderFromEnv, getServerDartApiKey, RunnerContext } fr
 // caller can return a jobId immediately and let the state_snapshot event
 // deliver the final result.
 // ---------------------------------------------------------------------------
+
+function evaluatePostingConfidence(result: JobPostingExtractionResult): ReviewNeededReason[] {
+  const reasons: ReviewNeededReason[] = [];
+  const missingFields = !result.companyName || !result.roleName;
+  const bothNonFactual =
+    result.fieldSources.companyName !== "factual" &&
+    result.fieldSources.roleName !== "factual";
+  if (missingFields || bothNonFactual) {
+    reasons.push("lowConfidenceExtraction");
+  }
+  return reasons;
+}
 
 export interface AnalyzeProjectInsightsInput {
   readonly projectSlug: string;
@@ -48,6 +62,7 @@ export async function analyzeProjectInsightsService(
     });
 
     await storage.saveProjectInsightJson(input.projectSlug, "job-extraction.json", extraction);
+    const newReasons = evaluatePostingConfidence(extraction);
     await storage.updateProject({
       ...baseProject,
       companyName: extraction.companyName || baseProject.companyName,
@@ -62,7 +77,9 @@ export async function analyzeProjectInsightsService(
       jobPostingManualFallback: false,
       insightStatus: "reviewNeeded",
       insightLastError: extraction.warnings.length > 0 ? extraction.warnings.join(" ") : undefined,
-      openDartCandidates: undefined
+      openDartCandidates: undefined,
+      postingReviewReasons: newReasons,
+      jobPostingFieldConfidence: extraction.fieldSources
     });
   } catch (error) {
     await storage.updateProject({
@@ -121,6 +138,15 @@ export async function generateProjectInsightsService(
       });
       return;
     }
+  }
+
+  if (project.postingReviewReasons.includes("lowConfidenceExtraction")) {
+    await storage.updateProject({
+      ...project,
+      insightStatus: "reviewNeeded",
+      insightLastError: "공고 신뢰도가 낮아 인사이트 생성이 차단되었습니다. 회사명·직무를 확인·수정한 뒤 다시 시도해주세요."
+    });
+    return;
   }
 
   project = await storage.updateProject({

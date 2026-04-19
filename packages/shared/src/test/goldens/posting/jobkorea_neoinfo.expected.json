@@ -1,0 +1,16 @@
+{
+  "sourceUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48896788?Oem_Code=C1&rPageCode=TL",
+  "note": "P1 JSON-LD 통합 반영본. hiringOrganization/title/description/validThrough 기반 factual 승격과 roleName prefix 정규화가 적용됨.",
+  "expected": {
+    "companyName": "㈜네오정보시스템",
+    "roleName": "소프트웨어 개발자",
+    "normalizedTextMinLength": 600,
+    "fieldSources": {
+      "companyName": "factual",
+      "roleName": "factual",
+      "overview": "factual",
+      "deadline": "factual"
+    },
+    "mustNotContain": ["원티드", "점핏", "사람인", "잡코리아", "기아 탤런트 라운지"]
+  }
+}

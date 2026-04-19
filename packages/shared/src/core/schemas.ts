@@ -11,8 +11,11 @@ import {
   providerIds,
   reviewModes,
   runStatuses,
-  sourceTypes
+  sourceTypes,
+  REVIEW_NEEDED_REASONS
 } from "./types";
+import { SourceTierSchema } from "./sourceTier";
+import { JOB_POSTING_FIELD_KEYS } from "./jobPosting";
 
 const reviewRoles = ["reviewer", "coordinator", "researcher", "drafter", "finalizer"] as const;
 const runEventTypes = [
@@ -185,6 +188,9 @@ export const ProjectEssayAnswerStateSchema = z.object({
   lastRunId: z.string().optional()
 });
 
+const ReviewNeededReasonSchema = z.enum(REVIEW_NEEDED_REASONS);
+const JobPostingFieldKeySchema = z.enum(JOB_POSTING_FIELD_KEYS);
+
 export const ProjectRecordSchema = z.object({
   slug: z.string(),
   companyName: z.string(),
@@ -218,7 +224,9 @@ export const ProjectRecordSchema = z.object({
   charLimit: z.number().int().min(1).optional(),
   notionPageIds: z.array(z.string()).optional(),
   createdAt: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
+  postingReviewReasons: z.array(ReviewNeededReasonSchema).readonly().default([]),
+  jobPostingFieldConfidence: z.record(JobPostingFieldKeySchema, SourceTierSchema).default({})
 });
 
 export const AppPreferencesSchema = z.object({

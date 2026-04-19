@@ -1,0 +1,16 @@
+{
+  "sourceUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48910001?Oem_Code=C1&rPageCode=TL",
+  "note": "P1 JSON-LD 통합 반영본. hiringOrganization/title/description/validThrough 기반 factual 승격과 roleName prefix 정규화가 적용됨.",
+  "expected": {
+    "companyName": "㈜아이엠비씨",
+    "roleName": "iOS 앱개발, SNS 운영",
+    "normalizedTextMinLength": 900,
+    "fieldSources": {
+      "companyName": "factual",
+      "roleName": "factual",
+      "overview": "factual",
+      "deadline": "factual"
+    },
+    "mustNotContain": ["원티드", "점핏", "사람인", "잡코리아", "기아 탤런트 라운지"]
+  }
+}

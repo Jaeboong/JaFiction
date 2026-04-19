@@ -1,4 +1,38 @@
 import { nowIso } from "./utils";
+import type { SourceTier } from "./sourceTier";
+import { filterAtsFromTitle } from "./atsBlacklist";
+import { deriveCompanyNameHintsFromHostname } from "./jobPosting/companyHostnames";
+import {
+  DEFAULT_STOP_TOKENS,
+  crossValidateCandidates,
+  tokenOverlapAtLeast,
+  type CrossValidateCandidate
+} from "./jobPosting/crossValidate";
+import {
+  extractJsonLdJobPosting,
+  extractOgSiteName,
+  normalizeEmploymentType,
+  normalizeJobPostingRoleName,
+  normalizeValidThroughIso,
+  stripJobPostingDescriptionHtml,
+  type JsonLdJobPostingFields
+} from "./jobPosting/jsonLd";
+
+export const JOB_POSTING_FIELD_KEYS = [
+  "companyName",
+  "roleName",
+  "deadline",
+  "overview",
+  "mainResponsibilities",
+  "qualifications",
+  "preferredQualifications",
+  "benefits",
+  "hiringProcess",
+  "insiderView",
+  "otherInfo"
+] as const;
+
+export type JobPostingFieldKey = (typeof JOB_POSTING_FIELD_KEYS)[number];
 
 export interface JobPostingExtractionRequest {
   jobPostingUrl?: string;
@@ -26,6 +60,7 @@ export interface JobPostingExtractionResult {
   otherInfo?: string;
   keywords: string[];
   warnings: string[];
+  fieldSources: Partial<Record<JobPostingFieldKey, SourceTier>>;
 }
 
 export interface JobPostingFetchDiagnostics {
@@ -65,6 +100,7 @@ interface EmbeddedJobPostingSource {
   detailHtml: string;
   pageTitle?: string;
   companyName?: string;
+  roleTitle?: string;
 }
 
 interface SectionCandidate {
@@ -154,6 +190,9 @@ const deadlineDatePatterns = [
   /(?:(\d{4})\s*년\s*)?(\d{1,2})\s*월\s*(\d{1,2})\s*일(?:\s*\([^)]*\))?(?:\s*(?:(\d{1,2})\s*:\s*(\d{2})|(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분?)?))?/g,
   /(?:(\d{4})\s*[./-]\s*)?(\d{1,2})\s*[./-]\s*(\d{1,2})(?:\s*\([^)]*\))?(?:\s*(?:(\d{1,2})\s*:\s*(\d{2})|(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분?)?))?/g
 ] as const;
+const jsonLdOverviewMinLength = 50;
+const companyLinePattern = /주식회사|\(주\)|corp|inc\.?|ltd\.?/i;
+const companyLineMaxLength = 40;
 
 export async function fetchAndExtractJobPosting(
   request: JobPostingExtractionRequest,
@@ -216,13 +255,20 @@ export async function fetchAndExtractJobPosting(
   }
 
   const embeddedSource = extractEmbeddedJobPostingSource(html);
+  const jsonLdFields = extractJsonLdJobPosting(html);
   const normalizedText = normalizeJobPostingHtml(embeddedSource?.detailHtml || html);
-  const resolvedPageTitle = embeddedSource?.pageTitle || extractTitle(html);
+  // ATS 사이트명이 포함된 title은 companyName/roleName 추출에 사용하면 안 되므로 필터링
+  const resolvedPageTitle = embeddedSource?.pageTitle || filterAtsFromTitle(extractTitle(html));
+  const finalUrl = response.url || jobPostingUrl;
   return buildExtractionResult("url", normalizedText, {
-    fetchedUrl: response.url || jobPostingUrl,
+    fetchedUrl: finalUrl,
     pageTitle: resolvedPageTitle,
     seedCompanyName: embeddedSource?.companyName || request.seedCompanyName,
-    seedRoleName: request.seedRoleName
+    seedRoleName: request.seedRoleName,
+    jsonLdFields,
+    nextDataRoleTitle: embeddedSource?.roleTitle,
+    hostname: extractHostname(finalUrl),
+    html
   });
 }
 
@@ -253,11 +299,28 @@ export function normalizeJobPostingText(text: string): string {
 
 export function extractStructuredJobPostingFields(
   normalizedText: string,
-  options: { pageTitle?: string; seedCompanyName?: string; seedRoleName?: string } = {}
+  options: {
+    pageTitle?: string;
+    seedCompanyName?: string;
+    seedRoleName?: string;
+    nextDataRoleTitle?: string;
+    jsonLdSeed?: JsonLdJobPostingFields;
+    hostname?: string;
+    html?: string;
+  } = {}
 ): Omit<JobPostingExtractionResult, "source" | "fetchedAt" | "fetchedUrl" | "normalizedText"> {
   const lines = normalizedText.split("\n").map((line) => line.trim()).filter(Boolean);
   const warnings: string[] = [];
-  const roleName = inferRoleName(lines, options.pageTitle, options.seedRoleName);
+  const ogSiteName = options.html ? extractOgSiteName(options.html) : undefined;
+
+  const roleResult = inferRoleNameWithTier(lines, {
+    pageTitle: options.pageTitle,
+    seedRoleName: options.seedRoleName,
+    jsonLdSeed: options.jsonLdSeed,
+    nextDataRoleTitle: options.nextDataRoleTitle
+  });
+  const roleName = roleResult?.value;
+
   const deadlineSection = findSection(lines, sectionHeadingPatterns.deadline, 8);
   const deadline = extractDeadline(lines, deadlineSection);
   const roleHintKeywords = buildRoleHintKeywords(options.seedRoleName || roleName);
@@ -269,7 +332,15 @@ export function extractStructuredJobPostingFields(
   const hiringProcess = findSection(lines, sectionHeadingPatterns.hiringProcess);
   const insiderView = findSection(lines, sectionHeadingPatterns.insiderView);
   const otherInfo = findSection(lines, sectionHeadingPatterns.otherInfo, 25);
-  const companyName = inferCompanyName(lines, options.pageTitle, options.seedCompanyName, roleName);
+  const companyResult = inferCompanyNameWithTier(lines, {
+    pageTitle: options.pageTitle,
+    seedCompanyName: options.seedCompanyName,
+    jsonLdSeed: options.jsonLdSeed,
+    roleName,
+    hostname: options.hostname,
+    ogSiteName
+  });
+  const companyName = companyResult?.value;
   const keywords = collectKeywords([mainResponsibilities, qualifications, preferredQualifications, roleName].filter(Boolean).join("\n"));
 
   if (!mainResponsibilities) {
@@ -277,6 +348,14 @@ export function extractStructuredJobPostingFields(
   }
   if (!qualifications) {
     warnings.push("자격요건 섹션을 명확히 찾지 못했습니다.");
+  }
+
+  const fieldSources: Partial<Record<JobPostingFieldKey, SourceTier>> = {};
+  if (companyResult) {
+    fieldSources.companyName = companyResult.tier;
+  }
+  if (roleResult) {
+    fieldSources.roleName = roleResult.tier;
   }
 
   return {
@@ -293,7 +372,8 @@ export function extractStructuredJobPostingFields(
     insiderView,
     otherInfo,
     keywords,
-    warnings
+    warnings,
+    fieldSources
   };
 }
 
@@ -421,13 +501,52 @@ function buildExtractionResult(
     pageTitle?: string;
     seedCompanyName?: string;
     seedRoleName?: string;
+    jsonLdFields?: JsonLdJobPostingFields;
+    nextDataRoleTitle?: string;
+    hostname?: string;
+    html?: string;
   }
 ): JobPostingExtractionResult {
   const extracted = extractStructuredJobPostingFields(normalizedText, {
     pageTitle: options.pageTitle,
     seedCompanyName: options.seedCompanyName,
-    seedRoleName: options.seedRoleName
+    seedRoleName: options.seedRoleName,
+    nextDataRoleTitle: options.nextDataRoleTitle,
+    jsonLdSeed: options.jsonLdFields,
+    hostname: options.hostname,
+    html: options.html
   });
+  const jsonLdOverview = resolveJsonLdOverview(options.jsonLdFields);
+  const jsonLdDeadline = resolveJsonLdDeadline(options.jsonLdFields);
+  const mergedOtherInfo = mergeJsonLdOtherInfo(extracted.otherInfo, options.jsonLdFields);
+
+  if (jsonLdOverview) {
+    extracted.overview = jsonLdOverview;
+    extracted.fieldSources.overview = "factual";
+  }
+
+  if (jsonLdDeadline) {
+    extracted.deadline = jsonLdDeadline;
+    extracted.fieldSources.deadline = "factual";
+  }
+
+  if (mergedOtherInfo) {
+    extracted.otherInfo = mergedOtherInfo;
+  }
+
+  const jsonLdDescription = options.jsonLdFields?.description?.trim();
+  if (jsonLdDescription && extracted.mainResponsibilities?.trim()) {
+    const descriptionText = stripJobPostingDescriptionHtml(jsonLdDescription);
+    if (
+      descriptionText.length >= jsonLdOverviewMinLength
+      && tokenOverlapAtLeast(extracted.mainResponsibilities, descriptionText, 5, {
+        minTokenLen: 2,
+        stopTokens: DEFAULT_STOP_TOKENS
+      })
+    ) {
+      extracted.fieldSources.mainResponsibilities = "factual";
+    }
+  }
 
   return {
     source,
@@ -447,7 +566,8 @@ function buildExtractionResult(
     insiderView: extracted.insiderView,
     otherInfo: extracted.otherInfo,
     keywords: extracted.keywords,
-    warnings: extracted.warnings
+    warnings: extracted.warnings,
+    fieldSources: extracted.fieldSources
   };
 }
 
@@ -485,23 +605,64 @@ function findBestSection(lines: string[], headingPatterns: RegExp[], roleHintKey
 }
 
 function inferRoleName(lines: string[], pageTitle?: string, seedRoleName?: string): string | undefined {
-  if (seedRoleName?.trim()) {
-    return seedRoleName.trim();
+  return inferRoleNameWithTier(lines, { pageTitle, seedRoleName })?.value;
+}
+
+interface FieldWithTier {
+  value: string;
+  tier: SourceTier;
+}
+
+// Tier 분류 규칙:
+// - factual: seed(사용자 직접 입력) 경로
+// - contextual: body에서 추출한 값이 pageTitle에도 동일하게 포함됨 (교차 확인)
+// - role: body 단독 추출 or title 단독 폴백
+function inferRoleNameWithTier(
+  lines: string[],
+  options: {
+    pageTitle?: string;
+    seedRoleName?: string;
+    jsonLdSeed?: JsonLdJobPostingFields;
+    nextDataRoleTitle?: string;
+  } = {}
+): FieldWithTier | undefined {
+  if (options.seedRoleName?.trim()) {
+    return { value: options.seedRoleName.trim(), tier: "factual" };
+  }
+
+  if (options.jsonLdSeed?.title?.trim()) {
+    const normalizedTitle = normalizeJobPostingRoleName(
+      options.jsonLdSeed.title,
+      options.jsonLdSeed.companyName
+    );
+    if (normalizedTitle) {
+      return { value: normalizedTitle, tier: "factual" };
+    }
   }
 
   const fromDetail = extractRoleFromDetailLines(lines);
   if (fromDetail) {
-    return fromDetail;
+    if (options.nextDataRoleTitle && tokenOverlapAtLeast(fromDetail, options.nextDataRoleTitle, 2)) {
+      return { value: fromDetail, tier: "factual" };
+    }
+    if (options.pageTitle && options.pageTitle.toLowerCase().includes(fromDetail.toLowerCase())) {
+      return { value: fromDetail, tier: "contextual" };
+    }
+    return { value: fromDetail, tier: "role" };
   }
 
   const titleCandidates = [
-    ...(pageTitle ? splitTitleCandidates(pageTitle) : []),
-    ...(normalizeOpeningTitle(pageTitle) ? [normalizeOpeningTitle(pageTitle)!] : [])
+    ...(options.pageTitle ? splitTitleCandidates(options.pageTitle) : []),
+    ...(normalizeOpeningTitle(options.pageTitle) ? [normalizeOpeningTitle(options.pageTitle)!] : [])
   ];
   const match = titleCandidates.find((candidate) =>
     /개발|엔지니어|backend|frontend|full[- ]?stack|data|java|ios|android|pm|designer|research/i.test(candidate)
   );
-  return match?.trim();
+  if (match?.trim()) {
+    return { value: match.trim(), tier: "role" };
+  }
+
+  return undefined;
 }
 
 const rolePattern = /개발|엔지니어|backend|frontend|full[- ]?stack|data|java|ios|android|pm|designer|research/i;
@@ -526,17 +687,122 @@ function inferCompanyName(
   seedCompanyName: string | undefined,
   roleName: string | undefined
 ): string | undefined {
-  if (seedCompanyName?.trim()) {
-    return seedCompanyName.trim();
+  return inferCompanyNameWithTier(lines, {
+    pageTitle,
+    seedCompanyName,
+    roleName
+  })?.value;
+}
+
+// Tier 분류 규칙:
+// - factual: seed(사용자 직접 입력) 경로
+// - contextual: body에서 company 패턴 매칭 + pageTitle에도 동일 포함
+// - role: title 단독 폴백 or body 단독
+function inferCompanyNameWithTier(
+  lines: string[],
+  options: {
+    pageTitle?: string;
+    seedCompanyName?: string;
+    jsonLdSeed?: JsonLdJobPostingFields;
+    roleName?: string;
+    hostname?: string;
+    ogSiteName?: string;
+  } = {}
+): FieldWithTier | undefined {
+  if (options.seedCompanyName?.trim()) {
+    return { value: options.seedCompanyName.trim(), tier: "factual" };
   }
 
-  const titleCandidates = pageTitle ? splitTitleCandidates(pageTitle) : [];
-  const companyCandidate = titleCandidates.find((candidate) => candidate.trim() && candidate.trim() !== roleName?.trim());
-  if (companyCandidate) {
-    return companyCandidate.trim();
+  if (options.jsonLdSeed?.companyName?.trim()) {
+    return { value: options.jsonLdSeed.companyName.trim(), tier: "factual" };
   }
 
-  return lines.find((line) => /주식회사|\(주\)|corp|inc\.?|ltd\.?/i.test(line))?.trim();
+  const titleStripCandidate = extractCompanyNameFromTitleStrip(options.pageTitle, options.roleName);
+  const footerCandidate = extractFooterCompanyCandidate(lines);
+  const bodyCandidate = extractBodyCompanyCandidate(lines);
+  const candidates: CrossValidateCandidate[] = [];
+
+  for (const companyNameHint of deriveCompanyNameHintsFromHostname(options.hostname)) {
+    candidates.push({ value: companyNameHint, source: "hostname" });
+  }
+  if (titleStripCandidate) {
+    candidates.push({ value: titleStripCandidate, source: "titleStrip" });
+  }
+  if (options.ogSiteName?.trim()) {
+    candidates.push({ value: options.ogSiteName.trim(), source: "ogSiteName" });
+  }
+  if (footerCandidate) {
+    candidates.push({ value: footerCandidate, source: "footer" });
+  }
+  if (bodyCandidate) {
+    candidates.push({ value: bodyCandidate, source: "body" });
+  }
+
+  const crossValidated = crossValidateCandidates(candidates, { minAgreeCount: 2 });
+  if (crossValidated.tier === "factual" && crossValidated.value) {
+    return { value: crossValidated.value, tier: "factual" };
+  }
+
+  if (titleStripCandidate) {
+    return { value: titleStripCandidate, tier: "role" };
+  }
+
+  if (bodyCandidate) {
+    if (options.pageTitle && options.pageTitle.toLowerCase().includes(bodyCandidate.toLowerCase())) {
+      return { value: bodyCandidate, tier: "contextual" };
+    }
+    return { value: bodyCandidate, tier: "role" };
+  }
+
+  return undefined;
+}
+
+function resolveJsonLdOverview(jsonLdFields?: JsonLdJobPostingFields): string | undefined {
+  const description = jsonLdFields?.description?.trim();
+  if (!description) {
+    return undefined;
+  }
+
+  const normalized = stripJobPostingDescriptionHtml(description);
+  return normalized.length >= jsonLdOverviewMinLength ? normalized : undefined;
+}
+
+function resolveJsonLdDeadline(jsonLdFields?: JsonLdJobPostingFields): string | undefined {
+  const validThrough = jsonLdFields?.validThrough?.trim();
+  return validThrough ? normalizeValidThroughIso(validThrough) : undefined;
+}
+
+function mergeJsonLdOtherInfo(
+  existingOtherInfo: string | undefined,
+  jsonLdFields?: JsonLdJobPostingFields
+): string | undefined {
+  const jsonLdLines = collectJsonLdOtherInfoLines(jsonLdFields);
+  if (jsonLdLines.length === 0) {
+    return existingOtherInfo;
+  }
+
+  return [jsonLdLines.join("\n"), existingOtherInfo].filter(Boolean).join("\n");
+}
+
+function collectJsonLdOtherInfoLines(jsonLdFields?: JsonLdJobPostingFields): string[] {
+  if (!jsonLdFields) {
+    return [];
+  }
+
+  const lines: string[] = [];
+  const employmentType = jsonLdFields.employmentType
+    ? normalizeEmploymentType(jsonLdFields.employmentType) || jsonLdFields.employmentType.trim()
+    : undefined;
+  if (employmentType) {
+    lines.push(`고용형태: ${employmentType}`);
+  }
+
+  const locationText = jsonLdFields.locationText?.trim();
+  if (locationText) {
+    lines.push(`근무지역: ${locationText}`);
+  }
+
+  return lines;
 }
 
 function splitTitleCandidates(title: string): string[] {
@@ -544,6 +810,40 @@ function splitTitleCandidates(title: string): string[] {
     .split(/\||-|—|·|:/)
     .map((part) => normalizeOpeningTitle(part) || part.trim())
     .filter(Boolean);
+}
+
+function extractCompanyNameFromTitleStrip(pageTitle: string | undefined, roleName: string | undefined): string | undefined {
+  const filteredTitle = filterAtsFromTitle(pageTitle);
+  if (!filteredTitle) {
+    return undefined;
+  }
+
+  const normalizedRoleName = roleName?.trim().toLowerCase();
+  const candidates = splitTitleCandidates(filteredTitle)
+    .map((candidate) => stripCompanyTitleSuffix(candidate))
+    .filter(Boolean);
+
+  return candidates.find((candidate) => candidate.toLowerCase() !== normalizedRoleName);
+}
+
+function stripCompanyTitleSuffix(value: string): string {
+  return value.replace(/\s*(?:채용\s*공고|채용공고|채용|공고)\s*$/i, "").trim();
+}
+
+function extractFooterCompanyCandidate(lines: string[]): string | undefined {
+  const footerLines = lines.slice(-30);
+  for (let index = footerLines.length - 1; index >= 0; index -= 1) {
+    const candidate = footerLines[index]?.trim();
+    if (candidate && candidate.length <= companyLineMaxLength && companyLinePattern.test(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+function extractBodyCompanyCandidate(lines: string[]): string | undefined {
+  const candidate = lines.find((line) => companyLinePattern.test(line))?.trim();
+  return candidate && candidate.length <= companyLineMaxLength ? candidate : undefined;
 }
 
 function stripBulletPrefix(line: string): string {
@@ -683,6 +983,18 @@ function normalizeOpeningTitle(title?: string): string | undefined {
     .trim();
 }
 
+function extractHostname(url: string | undefined): string | undefined {
+  if (!url?.trim()) {
+    return undefined;
+  }
+
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
+}
+
 function extractEmbeddedJobPostingSource(html: string): EmbeddedJobPostingSource | undefined {
   const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/i);
   if (!nextDataMatch?.[1]) {
@@ -713,7 +1025,8 @@ function extractEmbeddedJobPostingSource(html: string): EmbeddedJobPostingSource
     return {
       detailHtml,
       pageTitle: extractString((openingPayload as Record<string, unknown> | undefined)?.openingsInfo, "title"),
-      companyName: extractString((openingPayload as Record<string, unknown> | undefined)?.groupInfo, "name")
+      companyName: extractString((openingPayload as Record<string, unknown> | undefined)?.groupInfo, "name"),
+      roleTitle: extractString((openingPayload as Record<string, unknown> | undefined)?.openingsInfo, "title")
     };
   } catch {
     return undefined;
