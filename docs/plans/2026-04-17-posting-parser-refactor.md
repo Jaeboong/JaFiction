@@ -75,7 +75,7 @@ Parser는 `analyzeJobPostingHtml(html: string, sourceUrl: string): JobPostingExt
 
 ### P0 — 오인식 방어 + `fieldConfidence` 스키마 (1~2일)
 
-**세부 플랜**: [`2026-04-17-posting-parser-p0-field-confidence.md`](./2026-04-17-posting-parser-p0-field-confidence.md)
+**세부 플랜**: [`2026-04-17-posting-parser-p0-field-confidence.md`](./completed_plans/2026-04-17-posting-parser-p0-field-confidence.md)
 
 **목표**: 오인식 32건 → ≤ 5건 (fixture 측정)
 
