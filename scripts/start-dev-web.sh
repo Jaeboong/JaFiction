@@ -8,7 +8,7 @@ ensure_harness_dirs
 if [ "${1:-}" = "--foreground" ]; then
   cd "${ROOT_DIR}/packages/web"
   exec "${ROOT_DIR}/scripts/with-node.sh" "${ROOT_DIR}/node_modules/vite/bin/vite.js" \
-    --host 127.0.0.1 --port "${WEB_PORT}" --strictPort
+    --host "${JASOJEON_WEB_HOST:-0.0.0.0}" --port "${WEB_PORT}" --strictPort
 fi
 
 stop_pid_file "web" "${WEB_PID_FILE}" || true
@@ -17,7 +17,7 @@ kill_port_listeners "web" "${WEB_PORT}"
 : > "${WEB_LOG_FILE}"
 setsid bash -lc '
   cd "$1"
-  exec "$2" "$3" --host 127.0.0.1 --port "$4" --strictPort
+  exec "$2" "$3" --host "${JASOJEON_WEB_HOST:-0.0.0.0}" --port "$4" --strictPort
 ' _ \
   "${ROOT_DIR}/packages/web" \
   "${ROOT_DIR}/scripts/with-node.sh" \
