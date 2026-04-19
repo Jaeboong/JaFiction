@@ -50,11 +50,14 @@ services:
     env_file:
       - packages/backend/.env.dev
     environment:
+      # 주의: docker-compose 는 `environment` > `env_file` 우선.
+      # 아래 키들은 container-internal 이라 env_file 과 값이 같거나 override 용.
+      # PUBLIC_BASE_URL / WEB_BASE_URL / GOOGLE_CLIENT_* 은 env_file 에 맡긴다
+      # (로컬: localhost, 서버: xn--9l4b13i8j.shop).
       NODE_ENV: development
       PORT: "4000"
       DATABASE_URL: postgres://jasojeon:devpass@postgres:5432/jasojeon
       REDIS_URL: redis://redis:6379
-      PUBLIC_BASE_URL: http://localhost:4000
     ports:
       - "4000:4000"
     volumes:
