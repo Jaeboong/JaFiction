@@ -17,7 +17,9 @@ import {
   extractStructuredJobPostingFields,
   fetchAndExtractJobPosting,
   type JobPostingExtractionResult,
+  type JobPostingFieldKey,
 } from "../packages/shared/src/core/jobPosting";
+import type { SourceTier } from "../packages/shared/src/core/sourceTier";
 
 // ─── 상수 ───────────────────────────────────────────────────────────────────
 
@@ -446,6 +448,7 @@ interface EntryResult {
     normalizedTextLength: number;
     normalizedTextHead: string;
     warnings: string[];
+    fieldSources: Partial<Record<JobPostingFieldKey, SourceTier>>;
   };
   match: { score: number; companyMatch: boolean; roleMatch: boolean };
   structure?: StructureSignals;
@@ -608,6 +611,7 @@ async function processUrl(
           normalizedTextLength,
           normalizedTextHead,
           warnings: parseResult.warnings,
+          fieldSources: parseResult.fieldSources,
         }
       : undefined,
     match,
@@ -726,6 +730,76 @@ function generateReport(entries: EntryResult[], generatedAt: string): string {
     for (const e of spaCandidates) {
       lines.push(`| ${e.url} | ${e.domainGroup} | ${e.structure?.bodyTextLength ?? "?"} | ${e.classification} |`);
     }
+  }
+
+  // ─── Factual 비율 Gate 판정 ─────────────────────────────────────────────────
+  const FACTUAL_GATE_FIELDS: readonly JobPostingFieldKey[] = [
+    "companyName",
+    "roleName",
+    "mainResponsibilities",
+    "qualifications",
+    "preferredQualifications",
+  ] as const;
+  const successEntries = entries.filter((e) => e.classification === "success");
+  const factualDenominator = successEntries.length * FACTUAL_GATE_FIELDS.length;
+  let factualNumerator = 0;
+  const factualFieldCounts: Record<string, number> = {};
+  for (const field of FACTUAL_GATE_FIELDS) factualFieldCounts[field] = 0;
+
+  for (const e of successEntries) {
+    if (!e.parse?.fieldSources) continue;
+    for (const field of FACTUAL_GATE_FIELDS) {
+      if (e.parse.fieldSources[field] === "factual") {
+        factualNumerator += 1;
+        factualFieldCounts[field] = (factualFieldCounts[field] ?? 0) + 1;
+      }
+    }
+  }
+
+  const factualPct = factualDenominator > 0
+    ? ((factualNumerator / factualDenominator) * 100).toFixed(1)
+    : "0.0";
+  const gatePass = parseFloat(factualPct) >= 40;
+  const gateLabel = gatePass ? "PASS" : "FAIL";
+
+  lines.push(`\n## P1 Gate §7.2 — factual 비율 판정\n`);
+  lines.push(`**베이스라인**: 30/110 = 27.3% (Chunk 3+4, 52b410c)`);
+  lines.push(`**Chunk 3.5 결과**: ${factualNumerator}/${factualDenominator} = **${factualPct}%**`);
+  lines.push(`**Gate 기준**: ≥ 40%`);
+  lines.push(`**판정**: **${gateLabel}** (${factualPct}% ${gatePass ? "≥" : "<"} 40%)\n`);
+  lines.push(`### 필드별 factual 건수 (success ${successEntries.length}건 기준)\n`);
+  lines.push(`| 필드 | factual 건수 | 비율 |`);
+  lines.push(`|------|-------------|------|`);
+  for (const field of FACTUAL_GATE_FIELDS) {
+    const cnt = factualFieldCounts[field] ?? 0;
+    const fieldPct = successEntries.length > 0 ? ((cnt / successEntries.length) * 100).toFixed(0) : "0";
+    lines.push(`| ${field} | ${cnt} | ${fieldPct}% |`);
+  }
+
+  lines.push(`\n### 도메인 그룹별 factual 내역 (success 건)\n`);
+  lines.push(`| 도메인 그룹 | success | factual 합계 | 필드별 (cn/rn/mr/q/pq) |`);
+  lines.push(`|-------------|---------|-------------|------------------------|`);
+  const domainFactual: Map<string, { success: number; factual: number; fields: string[] }> = new Map();
+  for (const e of successEntries) {
+    if (!domainFactual.has(e.domainGroup)) {
+      domainFactual.set(e.domainGroup, { success: 0, factual: 0, fields: [] });
+    }
+    const df = domainFactual.get(e.domainGroup)!;
+    df.success += 1;
+    let rowFactual = 0;
+    const fieldBits: string[] = [];
+    for (const field of FACTUAL_GATE_FIELDS) {
+      const isF = e.parse?.fieldSources?.[field] === "factual";
+      if (isF) { rowFactual += 1; df.factual += 1; }
+      fieldBits.push(isF ? "F" : "-");
+    }
+    df.fields.push(fieldBits.join("/"));
+    void rowFactual;
+  }
+  for (const [group, df] of [...domainFactual.entries()].sort((a, b) => b[1].success - a[1].success)) {
+    const maxDenominator = df.success * FACTUAL_GATE_FIELDS.length;
+    const dPct = maxDenominator > 0 ? ((df.factual / maxDenominator) * 100).toFixed(0) : "0";
+    lines.push(`| ${group} | ${df.success} | ${df.factual}/${maxDenominator} (${dPct}%) | ${df.fields.join(", ").slice(0, 60)} |`);
   }
 
   lines.push(`\n## 가설 검증\n`);

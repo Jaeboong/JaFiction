@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-17T06:38:49.217Z",
+  "generatedAt": "2026-04-19T07:46:48.194Z",
   "totalUrls": 75,
   "uniqueUrls": 70,
   "entries": [
@@ -33,7 +33,8 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {}
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -65,27 +66,38 @@
       },
       "domainGroup": "other_corporate",
       "match": {
-        "score": 0,
-        "companyMatch": false,
-        "roleMatch": false
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://about.daangn.com/jobs/7647097003/",
-        "bytes": 158701,
+        "bytes": 156546,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "Software Engineer, Machine Learning (학사)",
-        "keywords": [],
+        "companyName": "당근",
+        "roleName": "[2026 당근 ML] Software Engineer, Machine Learning (학사)",
+        "keywords": [
+          "ML",
+          "Software",
+          "Engineer",
+          "Machine",
+          "Learning"
+        ],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 395,
         "normalizedTextLength": 2703,
         "normalizedTextHead": "팀문화\n서비스\n콘텐츠\n팀 블로그\n팀 유튜브\n테크 블로그\n채용공고\n[2026 당근 ML] Software Engineer, Machine Learning (학사)\n당근\n정규직\n경력/신입\n영입정보\n지원하기\nSoftware Engineer, Machine Learning을 소개해요\n당근의 Software Engineer, Machine Learning은 머신러닝",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -104,9 +116,8 @@
         "bodyTextLength": 2720,
         "spaCandidate": false
       },
-      "classification": "partial",
+      "classification": "success",
       "missingFields": [
-        "roleName",
         "mainResponsibilities"
       ],
       "htmlPath": "fetched/about.daangn.com_001.html"
@@ -127,9 +138,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53594223",
-        "bytes": 78909,
+        "bytes": 78919,
         "charset": "utf-8"
       },
       "parse": {
@@ -137,12 +148,15 @@
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 1907,
+        "normalizedTextLength": 1910,
         "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nAI SW Engineer [신입/병특가능]\n보스반도체\n💰 취업축하금 50만원\n💰 평균연봉 상위 10%\n📈 급성장중\n🍚 점심지원\n💰 평균연봉 7,000 이상\n포지션 상세 정보\n기술스택\nPyTorch\nDeepLearning\nAI/인공지능\nTransformers\n",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -156,7 +170,7 @@
           "ogDescription": "보스반도체 - AI SW Engineer [신입/병특가능] 채용",
           "ogSiteName": "개발자 커리어 점프, 점핏"
         },
-        "bodyTextLength": 1911,
+        "bodyTextLength": 1914,
         "spaCandidate": false
       },
       "classification": "partial",
@@ -183,9 +197,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53593664",
-        "bytes": 79010,
+        "bytes": 79019,
         "charset": "utf-8"
       },
       "parse": {
@@ -193,12 +207,15 @@
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 1885,
+        "normalizedTextLength": 1888,
         "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nML Systems Runtime Engineer [신입/병특가능]\n보스반도체\n💰 취업축하금 50만원\n💰 평균연봉 상위 10%\n📈 급성장중\n🍚 점심지원\n💰 평균연봉 7,000 이상\n포지션 상세 정보\n기술스택\nC++\nAI/인공지능\nAndroid OS\nC\nLinu",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -212,7 +229,7 @@
           "ogDescription": "보스반도체 - ML Systems Runtime Engineer [신입/병특가능] 채용",
           "ogSiteName": "개발자 커리어 점프, 점핏"
         },
-        "bodyTextLength": 1889,
+        "bodyTextLength": 1892,
         "spaCandidate": false
       },
       "classification": "partial",
@@ -239,7 +256,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53612996",
         "bytes": 80795,
         "charset": "utf-8"
@@ -254,7 +271,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -295,9 +315,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53613019",
-        "bytes": 78626,
+        "bytes": 78653,
         "charset": "utf-8"
       },
       "parse": {
@@ -310,7 +330,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -351,7 +374,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=UTF-8",
+        "contentType": "text/html",
         "finalUrl": "https://hlcompany.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250304",
         "bytes": 14450,
         "charset": "utf-8"
@@ -365,11 +388,14 @@
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
         "normalizedTextLength": 98,
-        "normalizedTextHead": "채용공고 내용\n공고명\n[HL만도] SW개발 계약직 채용\n접수기간\n2026.04.07(화) 09:00\n~\n2026.04.19(일) 23:59\nD-2\n목록\n지원서 작성\n지원서 수정",
+        "normalizedTextHead": "채용공고 내용\n공고명\n[HL만도] SW개발 계약직 채용\n접수기간\n2026.04.07(화) 09:00\n~\n2026.04.19(일) 23:59\nD-0\n목록\n지원서 작성\n지원서 수정",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -415,7 +441,7 @@
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "케이뱅크 채용",
+        "companyName": "케이뱅크",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
@@ -424,7 +450,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -466,9 +495,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53593479",
-        "bytes": 77731,
+        "bytes": 77698,
         "charset": "utf-8"
       },
       "parse": {
@@ -476,12 +505,15 @@
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 1939,
+        "normalizedTextLength": 1942,
         "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nSOC Design Verification Engineer [신입/병특가능]\n보스반도체\n💰 취업축하금 50만원\n💰 평균연봉 상위 10%\n📈 급성장중\n🍚 점심지원\n💰 평균연봉 7,000 이상\n포지션 상세 정보\n기술스택\nVerilog\n주요업무 ㆍUVM (Unive",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -495,7 +527,7 @@
           "ogDescription": "보스반도체 - SOC Design Verification Engineer [신입/병특가능] 채용",
           "ogSiteName": "개발자 커리어 점프, 점핏"
         },
-        "bodyTextLength": 1943,
+        "bodyTextLength": 1946,
         "spaCandidate": false
       },
       "classification": "partial",
@@ -522,26 +554,31 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48910001?Oem_Code=C1&rPageCode=TL",
-        "bytes": 142508,
+        "bytes": 118463,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "㈜아이엠비씨 채용",
-        "roleName": "㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영)",
+        "companyName": "㈜아이엠비씨",
+        "roleName": "iOS 앱개발, SNS 운영",
         "keywords": [
-          "AI",
           "TOP",
           "SNS"
         ],
         "mainResponsibilitiesLength": 0,
-        "qualificationsLength": 137,
-        "normalizedTextLength": 928,
-        "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n㈜아이엠비씨\n㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영)\n상세요강 접수기간∙방법 기업정보 추천공고 디자인 직무채용관\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\n홈페이지 지원\n모집인원 ○ 명\n고용형태\n정규직\n급여 회사 내규에 ",
+        "qualificationsLength": 109,
+        "normalizedTextLength": 885,
+        "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n㈜아이엠비씨\n㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영)\n상세요강 접수기간∙방법 기업정보\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\n홈페이지 지원\n모집인원 ○ 명\n고용형태\n정규직\n급여 회사 내규에 따름\n근무지주소\n서울 마포구",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "deadline": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -558,7 +595,7 @@
           "ogDescription": "경력 : 신입·경력 2년이상, 학력 : 대졸↑, 급여 : 회사 내규에 따름, 마감일 : 2026.04.17",
           "ogSiteName": "잡코리아"
         },
-        "bodyTextLength": 928,
+        "bodyTextLength": 885,
         "spaCandidate": false
       },
       "classification": "success",
@@ -583,9 +620,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53593568",
-        "bytes": 79225,
+        "bytes": 79235,
         "charset": "utf-8"
       },
       "parse": {
@@ -593,12 +630,15 @@
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 2270,
+        "normalizedTextLength": 2273,
         "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nEmbedded System SW Engineer [신입/병특가능]\n보스반도체\n💰 취업축하금 50만원\n💰 평균연봉 상위 10%\n📈 급성장중\n🍚 점심지원\n💰 평균연봉 7,000 이상\n포지션 상세 정보\n기술스택\nLinux\nAI/인공지능\nMfc\nRTOS\n주요업무 ㆍ",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -612,7 +652,7 @@
           "ogDescription": "보스반도체 - Embedded System SW Engineer [신입/병특가능] 채용",
           "ogSiteName": "개발자 커리어 점프, 점핏"
         },
-        "bodyTextLength": 2274,
+        "bodyTextLength": 2277,
         "spaCandidate": false
       },
       "classification": "partial",
@@ -639,9 +679,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53611604",
-        "bytes": 76479,
+        "bytes": 76505,
         "charset": "utf-8"
       },
       "parse": {
@@ -655,7 +695,11 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -695,7 +739,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53588444",
         "bytes": 80631,
         "charset": "utf-8"
@@ -710,7 +754,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -745,19 +792,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
-        "companyMatch": false,
-        "roleMatch": false
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/353223",
-        "bytes": 126531,
+        "bytes": 127883,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "넵튠(Neptune)",
+        "roleName": "H5개발팀 클라이언트 개발",
         "keywords": [
           "Unity",
           "Cocos2d-x",
@@ -769,7 +817,13 @@
         "qualificationsLength": 201,
         "normalizedTextLength": 2005,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 7\n넵튠(Neptune) ∙ 서울 강남구 ∙ 신입\nH5개발팀 클라이언트 개발\n포지션 상세\n“넵튠은 게임과 애드테크의 융합으로 새로운 가치를 창조합니다”\n‘무한의 계단’, ‘이터널리턴’, ‘고양이 스낵바’ 등 글로벌 히트작을 통해 게임 본연의 재미와 완성도를 증명했으며,",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -790,9 +844,8 @@
         "bodyTextLength": 2019,
         "spaCandidate": false
       },
-      "classification": "partial",
+      "classification": "success",
       "missingFields": [
-        "roleName",
         "deadline"
       ],
       "htmlPath": "fetched/www.wanted.co.kr_001.html"
@@ -807,19 +860,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
-        "companyMatch": false,
-        "roleMatch": false
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/322564",
-        "bytes": 128166,
+        "bytes": 129518,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "넥슨코리아(NEXON)",
+        "roleName": "[개발관리그룹] 엔진실 서버 엔진 프로그래머",
         "keywords": [
           "Unreal",
           "Engine",
@@ -836,7 +890,14 @@
         "qualificationsLength": 480,
         "normalizedTextLength": 2210,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 8\n넥슨코리아(NEXON) ∙ 경기 성남시 ∙ 신입\n[개발관리그룹] 엔진실 서버 엔진 프로그래머\n포지션 상세\n엔진실\n개발관리그룹 엔진실은 넥슨에서 개발 중이거나 서비스 중인 게임들의 전사적인 기술 지원과 노하우 축적을 목표로 클라이언트, 서버 엔진 및 개발 인프라를 개",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "deadline": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -857,11 +918,8 @@
         "bodyTextLength": 2216,
         "spaCandidate": false
       },
-      "classification": "partial",
-      "missingFields": [
-        "roleName",
-        "deadline"
-      ],
+      "classification": "success",
+      "missingFields": [],
       "htmlPath": "fetched/www.wanted.co.kr_002.html"
     },
     {
@@ -874,19 +932,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
-        "companyMatch": false,
+        "score": 0.6,
+        "companyMatch": true,
         "roleMatch": false
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/168257",
-        "bytes": 129673,
+        "bytes": 131025,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "넛지헬스케어(캐시워크)",
+        "roleName": "[병역특례 현역/보충역] 프론트엔드 개발자",
         "keywords": [
           "AWS",
           "Next.js",
@@ -897,7 +956,13 @@
         "qualificationsLength": 48,
         "normalizedTextLength": 2100,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 7\n넛지헬스케어(캐시워크) ∙ 서울 강남구 ∙ 신입\n[병역특례 현역/보충역] 프론트엔드 개발자\n포지션 상세\n[회사소개]\nㆍ넛지헬스케어는 행동경제학 이론을 실생활에 적용하여 비만, 당뇨, 고혈압과 같은 만성질환을 예방하고 관리할 수 있도록 돕는 것을 목표로 2016년 설",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -918,9 +983,8 @@
         "bodyTextLength": 2106,
         "spaCandidate": false
       },
-      "classification": "partial",
+      "classification": "success",
       "missingFields": [
-        "roleName",
         "deadline"
       ],
       "htmlPath": "fetched/www.wanted.co.kr_003.html"
@@ -935,19 +999,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
-        "companyMatch": false,
+        "score": 0.6,
+        "companyMatch": true,
         "roleMatch": false
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/85836",
-        "bytes": 129641,
+        "bytes": 130993,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "넛지헬스케어(캐시워크)",
+        "roleName": "[병역특례 현역/보충역] 백엔드 개발자(Node.js)",
         "keywords": [
           "MySQL",
           "PostgreSQL",
@@ -956,13 +1021,20 @@
           "GraphQL",
           "REST",
           "DynamoDB",
-          "Elasticsearch"
+          "Elasticsearch",
+          "Node.js"
         ],
         "mainResponsibilitiesLength": 165,
         "qualificationsLength": 49,
         "normalizedTextLength": 2140,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 7\n넛지헬스케어(캐시워크) ∙ 서울 강남구 ∙ 신입\n[병역특례 현역/보충역] 백엔드 개발자(Node.js)\n포지션 상세\n[회사소개]\nㆍ넛지헬스케어는 행동경제학 이론을 실생활에 적용하여 비만, 당뇨, 고혈압과 같은 만성질환을 예방하고 관리할 수 있도록 돕는 것을 목표로 ",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -983,9 +1055,8 @@
         "bodyTextLength": 2146,
         "spaCandidate": false
       },
-      "classification": "partial",
+      "classification": "success",
       "missingFields": [
-        "roleName",
         "deadline"
       ],
       "htmlPath": "fetched/www.wanted.co.kr_004.html"
@@ -1000,19 +1071,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
-        "companyMatch": false,
+        "score": 0.6,
+        "companyMatch": true,
         "roleMatch": false
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/134887",
-        "bytes": 130112,
+        "bytes": 131464,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "넛지헬스케어(캐시워크)",
+        "roleName": "[병역특례 현역/보충역] 풀스택 개발자",
         "keywords": [
           "MySQL",
           "PostgreSQL",
@@ -1030,7 +1102,13 @@
         "qualificationsLength": 49,
         "normalizedTextLength": 2227,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 7\n넛지헬스케어(캐시워크) ∙ 서울 강남구 ∙ 신입\n[병역특례 현역/보충역] 풀스택 개발자\n포지션 상세\n[회사소개]\nㆍ넛지헬스케어는 행동경제학 이론을 실생활에 적용하여 비만, 당뇨, 고혈압과 같은 만성질환을 예방하고 관리할 수 있도록 돕는 것을 목표로 2016년 설립되",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1051,9 +1129,8 @@
         "bodyTextLength": 2233,
         "spaCandidate": false
       },
-      "classification": "partial",
+      "classification": "success",
       "missingFields": [
-        "roleName",
         "deadline"
       ],
       "htmlPath": "fetched/www.wanted.co.kr_005.html"
@@ -1074,13 +1151,13 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://midas.recruiter.co.kr/career/jobs/106460",
         "bytes": 21002,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "마이다스그룹 채용",
+        "companyName": "마이다스그룹",
         "roleName": "백엔드 개발자 채용(채용서비스)",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
@@ -1090,7 +1167,11 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "role",
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1131,7 +1212,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://careers.upstage.ai/ko/o/204305",
         "bytes": 178013,
         "charset": "utf-8"
@@ -1151,7 +1232,10 @@
         "normalizedTextHead": "업스테이지는 AI 기술을 활용하여 비즈니스 문제를 해결하는 데 주력하고 있습니다. “Making AI Beneficial” 이라는 비전과 “Artificial General Intelligence (AGI) for Work” 라는 미션을 바탕으로, 단순한 업무 자동화를 넘어서 복잡한 의사결정 지원 및 비용 절감을 통해 기업의 생산성을 증진시킬 수 있는 AI",
         "warnings": [
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1191,19 +1275,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
+        "score": 0.4,
         "companyMatch": false,
-        "roleMatch": false
+        "roleMatch": true
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/257130",
-        "bytes": 125461,
+        "bytes": 126813,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "아우토크립트",
+        "roleName": "자동차 사이버보안 테스팅 솔루션 엔지니어",
         "keywords": [
           "CI/CD",
           "DevOps",
@@ -1217,7 +1302,13 @@
         "qualificationsLength": 189,
         "normalizedTextLength": 1930,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 6\n아우토크립트 ∙ 서울 강남구 ∙ 신입 이상\n자동차 사이버보안 테스팅 솔루션 엔지니어\n포지션 상세\n글로벌 TOP3 자동차 소프트웨어 선도기ㅁ업 아우토크립트입니다.\n모든 모빌리티는 '안전함' 없이는 아무런 의미가 없습니다.\n우리는 차량 내부와 외부 모두 안전하게 운행할",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1240,7 +1331,6 @@
       },
       "classification": "partial",
       "missingFields": [
-        "roleName",
         "deadline"
       ],
       "htmlPath": "fetched/www.wanted.co.kr_006.html"
@@ -1275,7 +1365,8 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {}
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1313,7 +1404,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53568665",
         "bytes": 75370,
         "charset": "utf-8"
@@ -1328,7 +1419,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1363,19 +1457,19 @@
       },
       "domainGroup": "other_corporate",
       "match": {
-        "score": 0.6,
-        "companyMatch": true,
+        "score": 0,
+        "companyMatch": false,
         "roleMatch": false
       },
       "http": {
         "status": 200,
         "contentType": "text/html",
         "finalUrl": "https://ibkc.incruit.com/hire/viewhire.asp?projectid=106",
-        "bytes": 19131,
-        "charset": "euc-kr"
+        "bytes": 20890,
+        "charset": "utf-8"
       },
       "parse": {
-        "companyName": "IBK캐피탈 채용정보",
+        "companyName": "copyright incruit. all rights reserver",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
@@ -1384,7 +1478,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1416,28 +1513,31 @@
       },
       "domainGroup": "other_corporate",
       "match": {
-        "score": 0.6,
-        "companyMatch": true,
+        "score": 0,
+        "companyMatch": false,
         "roleMatch": false
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=UTF-8",
-        "finalUrl": "https://hyundaiweld.saramin.co.kr/main/index",
-        "bytes": 19713,
+        "contentType": "text/html",
+        "finalUrl": "https://hyundaiweld.saramin.co.kr/apply_site/recruit/view",
+        "bytes": 19715,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "현대종합금속㈜ 채용",
+        "companyName": "&copy; Saramin Co.,Ltd.",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 412,
-        "normalizedTextHead": "회사소개\n채용공고\n지원서확인\n합격자발표\n채용문의\n게시판\n공고확인\n바로가기\nD - 9\n[현대종합금속] 본사 중앙연구소 신입/경력사원 모집\n2026-04-26 23:59까지\n더보기\nD - 9\n[현대종합금속] 본사 회장 비서실 신입사원 모집\n2026-04-26 23:59까지\n더보기\nD - 2\n[현대종합금속] 기계사업본부 설계부 신입/경력사원 모집\n2026-04-",
+        "normalizedTextLength": 414,
+        "normalizedTextHead": "회사소개\n채용공고\n지원서확인\n합격자발표\n채용문의\n게시판\n공고확인\n바로가기\nD - 7\n[현대종합금속] 본사 중앙연구소 신입/경력사원 모집\n2026-04-26 23:59까지\n더보기\nD - 7\n[현대종합금속] 본사 회장 비서실 신입사원 모집\n2026-04-26 23:59까지\n더보기\nD - DAY\n[현대종합금속] 기계사업본부 설계부 신입/경력사원 모집\n2026-0",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1448,7 +1548,7 @@
         "meta": {
           "title": "현대종합금속㈜ 채용"
         },
-        "bodyTextLength": 444,
+        "bodyTextLength": 446,
         "spaCandidate": true
       },
       "classification": "partial",
@@ -1470,19 +1570,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
-        "companyMatch": false,
-        "roleMatch": false
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/353806",
-        "bytes": 131662,
+        "bytes": 133014,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "빗썸",
+        "roleName": "Wallet Security Engineer (블록체인)",
         "keywords": [
           "Java",
           "Kotlin",
@@ -1501,7 +1602,13 @@
         "qualificationsLength": 289,
         "normalizedTextLength": 2456,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 5\n빗썸 ∙ 서울 강남구 ∙ 신입 이상\nWallet Security Engineer (블록체인)\n포지션 상세\n빗썸은 대한민국 대표 가상자산거래소입니다.\n디지털 자산이 일상이 되는 금융의 미래를 만들어가고 있습니다.\n빗썸은 대규모 트래픽 환경에서도 안정적으로 작동하는 고",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1522,9 +1629,8 @@
         "bodyTextLength": 2462,
         "spaCandidate": false
       },
-      "classification": "partial",
+      "classification": "success",
       "missingFields": [
-        "roleName",
         "deadline"
       ],
       "htmlPath": "fetched/www.wanted.co.kr_007.html"
@@ -1539,19 +1645,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
-        "companyMatch": false,
-        "roleMatch": false
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/353810",
-        "bytes": 130967,
+        "bytes": 132319,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "빗썸",
+        "roleName": "Research Engineer (블록체인)",
         "keywords": [
           "L1/L2",
           "DeFi",
@@ -1561,13 +1668,21 @@
           "Python",
           "Go",
           "Rust",
-          "PoC"
+          "PoC",
+          "Research",
+          "Engineer"
         ],
         "mainResponsibilitiesLength": 362,
         "qualificationsLength": 303,
         "normalizedTextLength": 2467,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 5\n빗썸 ∙ 서울 강남구 ∙ 신입 이상\nResearch Engineer (블록체인)\n포지션 상세\n빗썸은 대한민국 ​대표 ​가상자산거래소입니다.\n디지털 ​자산이 일상이 ​되는 금융의 미래를 만들어가고 ​있습니다.\n빗썸은 ​대규모 트래픽 ​환경에서도 안정적으로 작동하는 ​",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1588,9 +1703,8 @@
         "bodyTextLength": 2473,
         "spaCandidate": false
       },
-      "classification": "partial",
+      "classification": "success",
       "missingFields": [
-        "roleName",
         "deadline"
       ],
       "htmlPath": "fetched/www.wanted.co.kr_008.html"
@@ -1611,13 +1725,13 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://glovis.recruiter.co.kr/career/jobs/105909",
         "bytes": 17555,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "현대글로비스 채용",
+        "companyName": "현대글로비스",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
@@ -1626,7 +1740,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1682,7 +1799,8 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {}
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1720,21 +1838,22 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=UTF-8",
+        "contentType": "text/html",
         "finalUrl": "https://keris.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250774",
-        "bytes": 13494,
+        "bytes": 13493,
         "charset": "utf-8"
       },
       "parse": {
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 302,
-        "normalizedTextHead": "채용공고 내용\n공고명\n[정규직_교육시스템A(대구)] 2026년 제2차 직원 채용\n접수기간\n2026.04.13(월) 10:00\n~\n2026.04.27(월) 14:00\nD-10\n첨부파일\n첨부1_부패방지권익위법상 비위면직자등 취업제한 관련 체크리스트.hwp\n첨부2_채용 이의신청서.hwp\n첨부3_채용서류 반환청구서.hwp\n첨부4_블라인드 채용 위반 사례집.pdf\n",
+        "normalizedTextLength": 301,
+        "normalizedTextHead": "채용공고 내용\n공고명\n[정규직_교육시스템A(대구)] 2026년 제2차 직원 채용\n접수기간\n2026.04.13(월) 10:00\n~\n2026.04.27(월) 14:00\nD-8\n첨부파일\n첨부1_부패방지권익위법상 비위면직자등 취업제한 관련 체크리스트.hwp\n첨부2_채용 이의신청서.hwp\n첨부3_채용서류 반환청구서.hwp\n첨부4_블라인드 채용 위반 사례집.pdf\n첨",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {}
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1747,7 +1866,7 @@
           "ogDescription": "keris.recruiter.co.kr/",
           "ogSiteName": "한국교육학술정보원 채용"
         },
-        "bodyTextLength": 302,
+        "bodyTextLength": 301,
         "spaCandidate": true
       },
       "classification": "partial",
@@ -1775,21 +1894,22 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=UTF-8",
+        "contentType": "text/html",
         "finalUrl": "https://keris.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250776",
-        "bytes": 13694,
+        "bytes": 13693,
         "charset": "utf-8"
       },
       "parse": {
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 302,
-        "normalizedTextHead": "채용공고 내용\n공고명\n[정규직_교육시스템B(서울)] 2026년 제2차 직원 채용\n접수기간\n2026.04.13(월) 10:00\n~\n2026.04.27(월) 14:00\nD-10\n첨부파일\n첨부1_부패방지권익위법상 비위면직자등 취업제한 관련 체크리스트.hwp\n첨부2_채용 이의신청서.hwp\n첨부3_채용서류 반환청구서.hwp\n첨부4_블라인드 채용 위반 사례집.pdf\n",
+        "normalizedTextLength": 301,
+        "normalizedTextHead": "채용공고 내용\n공고명\n[정규직_교육시스템B(서울)] 2026년 제2차 직원 채용\n접수기간\n2026.04.13(월) 10:00\n~\n2026.04.27(월) 14:00\nD-8\n첨부파일\n첨부1_부패방지권익위법상 비위면직자등 취업제한 관련 체크리스트.hwp\n첨부2_채용 이의신청서.hwp\n첨부3_채용서류 반환청구서.hwp\n첨부4_블라인드 채용 위반 사례집.pdf\n첨",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {}
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1802,7 +1922,7 @@
           "ogDescription": "keris.recruiter.co.kr/",
           "ogSiteName": "한국교육학술정보원 채용"
         },
-        "bodyTextLength": 302,
+        "bodyTextLength": 301,
         "spaCandidate": true
       },
       "classification": "partial",
@@ -1830,9 +1950,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://seasoned-oregano-ae8.notion.site/IT-336fd7779e9d80f9b0f7f0435ee515fe",
-        "bytes": 18216,
+        "bytes": 17537,
         "charset": "utf-8"
       },
       "parse": {
@@ -1845,7 +1965,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1889,7 +2012,7 @@
       "missingFields": [
         "all"
       ],
-      "error": "unable to verify the first certificate"
+      "error": "fetch failed"
     },
     {
       "url": "https://dongjin.careerlink.kr/jobs/RC20260403026668",
@@ -1907,7 +2030,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://dongjin.careerlink.kr/jobs/RC20260403026668",
         "bytes": 233358,
         "charset": "utf-8"
@@ -1921,7 +2044,8 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {}
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -1962,8 +2086,8 @@
         "status": 200,
         "contentType": "text/html",
         "finalUrl": "https://krs.career.co.kr/jobs/jobs_view.asp?ID=1001",
-        "bytes": 60175,
-        "charset": "euc-kr"
+        "bytes": 67137,
+        "charset": "utf-8"
       },
       "parse": {
         "companyName": "한국선급 채용홈페이지",
@@ -1975,7 +2099,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2013,9 +2140,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53502070",
-        "bytes": 80453,
+        "bytes": 80452,
         "charset": "utf-8"
       },
       "parse": {
@@ -2028,7 +2155,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2069,9 +2199,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53500132",
-        "bytes": 90671,
+        "bytes": 90613,
         "charset": "utf-8"
       },
       "parse": {
@@ -2085,7 +2215,11 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2140,7 +2274,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2181,13 +2318,13 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://hyundai-wia.recruiter.co.kr/career/jobs/105662",
         "bytes": 20837,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "현대위아 채용",
+        "companyName": "현대위아",
         "roleName": "데이터 사이언티스트 / 컴퓨터 비전 엔지니어 모집",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
@@ -2197,7 +2334,11 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2238,7 +2379,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=28",
         "bytes": 68714,
         "charset": "utf-8"
@@ -2253,7 +2394,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2310,7 +2454,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2343,19 +2490,19 @@
       },
       "domainGroup": "other_corporate",
       "match": {
-        "score": 0,
-        "companyMatch": false,
+        "score": 0.6,
+        "companyMatch": true,
         "roleMatch": false
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://career.miraeasset.com/job_posting/LmYO48wF",
-        "bytes": 644788,
+        "bytes": 644790,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "AI금융공학운용부문 신입(정규직 전환형 인턴사원) 채용",
+        "companyName": "[미래에셋자산운용] AI금융공학운용부문 신입(정규직 전환형 인턴사원) 채용 | 미래에셋",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
@@ -2364,7 +2511,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2408,8 +2558,8 @@
         "status": 200,
         "contentType": "text/html",
         "finalUrl": "https://kesco.scout.co.kr/jobinfo/jobinfo_view.asp?ID=1007",
-        "bytes": 94729,
-        "charset": "euc-kr"
+        "bytes": 102704,
+        "charset": "utf-8"
       },
       "parse": {
         "companyName": "한국전기안전공사 채용정보",
@@ -2420,7 +2570,10 @@
         "normalizedTextHead": "채용공고\n온라인 입사지원\n지원확인/수정\n공지사항\nFAQ\n채용Q&A\n합격자조회\n채용공고\n「2026년 신입직원 채용」, 「2026년 채용형 인턴(고졸 제한경쟁)」, 「2026년 경력직원 채용」, 「2026년 공무직 채용」, 「2026년 체험형 인턴 채용」은 채용공고 및 입사지원서 접수기간이 동일하며, 채용전형 간 중복지원이 불가합니다.\n※\n채용분야별 자격요건 ",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2459,7 +2612,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=29",
         "bytes": 68714,
         "charset": "utf-8"
@@ -2474,7 +2627,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2516,9 +2672,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/company/16049",
-        "bytes": 122894,
+        "bytes": 124253,
         "charset": "utf-8"
       },
       "parse": {
@@ -2526,12 +2682,15 @@
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 1588,
+        "normalizedTextLength": 1593,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n업스테이지\nIT, 컨텐츠 경기 7년차 ( 2020 )\n우리는 Artificial Intelligence, AI 기술 발전이 우리의 삶에 분명한 영향을 미친다고 믿습니다. 인터넷으로 글로벌 이동과 소통에 제한이 사라진 것처럼, 스마트폰으로 인류의 라이프 스타일이 바뀌었던 것처럼",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2546,7 +2705,7 @@
           "ogDescription": "업스테이지 채용 공고와 회사 소식을 확인하세요. 원티드로 취업·이직 시 최대 100만원의 합격보상금을 드려요.",
           "ogSiteName": "원티드"
         },
-        "bodyTextLength": 1588,
+        "bodyTextLength": 1593,
         "spaCandidate": false
       },
       "classification": "partial",
@@ -2574,9 +2733,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53491555",
-        "bytes": 75671,
+        "bytes": 75698,
         "charset": "utf-8"
       },
       "parse": {
@@ -2589,7 +2748,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2630,9 +2792,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53446521",
-        "bytes": 76791,
+        "bytes": 76818,
         "charset": "utf-8"
       },
       "parse": {
@@ -2645,7 +2807,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2686,22 +2851,25 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=UTF-8",
+        "contentType": "text/html",
         "finalUrl": "https://career.doosan.com/dsp/sa/RecList.jsp",
-        "bytes": 81447,
+        "bytes": 79905,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "Career DOOSAN",
+        "companyName": "(주)두산-디지털이노베이션",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 2526,
+        "normalizedTextLength": 2456,
         "normalizedTextHead": "메뉴 바로가기\n본문 바로가기(skip to content)\n커리어두산 회원님\n커리어두산과 함께\n내일을 만들어가세요.\n로그인\n내일을 준비하는\n두산인의 하루\n생생 두산 입사기\n두산인의 성장\n두산인이 일하는 방식\n(DOOable WORK)\n두산인이 누리는 혜택\n(DOOable LIFE)\n└ 복리후생\n└ 출산·육아지원\n두산에 대하여\n두산스토리\n두산의 활약상\n경영철",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2712,14 +2880,15 @@
         "meta": {
           "title": "Career DOOSAN"
         },
-        "bodyTextLength": 2533,
+        "bodyTextLength": 2463,
         "spaCandidate": false
       },
       "classification": "partial",
       "missingFields": [
         "roleName",
         "mainResponsibilities",
-        "qualifications"
+        "qualifications",
+        "deadline"
       ],
       "htmlPath": "fetched/career.doosan.com_001.html"
     },
@@ -2739,13 +2908,13 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://careers.idis.co.kr/job/6",
         "bytes": 30559,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "아이디스 채용",
+        "companyName": "아이디스",
         "roleName": "2026년 2분기 연구소-SW개발(신입) 인재 모집",
         "keywords": [
           "SW"
@@ -2757,7 +2926,11 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2795,7 +2968,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://imbc.careerlink.kr/jobs/RC20260403026692",
         "bytes": 653392,
         "charset": "utf-8"
@@ -2809,7 +2982,8 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {}
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2842,19 +3016,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
-        "companyMatch": false,
-        "roleMatch": false
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/324771",
-        "bytes": 122357,
+        "bytes": 123709,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "와이어바알리(WireBarley)",
+        "roleName": "안드로이드(Android) 개발자",
         "keywords": [
           "Kotlin",
           "VISA",
@@ -2866,13 +3041,21 @@
           "DI",
           "Dagger",
           "Hilt",
-          "Koin"
+          "Koin",
+          "Android"
         ],
         "mainResponsibilitiesLength": 194,
         "qualificationsLength": 264,
         "normalizedTextLength": 1767,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 2\n와이어바알리(WireBarley) ∙ 서울 강남구 ∙ 신입-경력 6년\n안드로이드(Android) 개발자\n포지션 상세\n와이어바알리는 모바일 해외송금과 해외결제 서비스를 제공하고 있는 글로벌 페이먼트 플랫폼입니다.\n전세계 65만명의 고객들이 한국, 미국, 캐나다, 영국",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "deadline": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2893,10 +3076,8 @@
         "bodyTextLength": 1773,
         "spaCandidate": false
       },
-      "classification": "partial",
-      "missingFields": [
-        "roleName"
-      ],
+      "classification": "success",
+      "missingFields": [],
       "htmlPath": "fetched/www.wanted.co.kr_010.html"
     },
     {
@@ -2915,7 +3096,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53526814",
         "bytes": 76682,
         "charset": "utf-8"
@@ -2931,7 +3112,11 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -2971,9 +3156,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53500369",
-        "bytes": 98879,
+        "bytes": 98905,
         "charset": "utf-8"
       },
       "parse": {
@@ -2986,7 +3171,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3027,9 +3215,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://echomarketing.career.greetinghr.com/ko/o/209703",
-        "bytes": 218100,
+        "bytes": 218103,
         "charset": "utf-8"
       },
       "parse": {
@@ -3053,7 +3241,11 @@
         "qualificationsLength": 399,
         "normalizedTextLength": 3046,
         "normalizedTextHead": "💻프론트엔드 개발자 는,\n단순한 화면 구현을 넘어, 마케팅 솔루션의 사용자 경험(UX)을 설계하는 전략가 입니다. 마케터가 마주하는 복잡한 데이터와 프로세스를 직관적인 UI로 풀어내어 업무 효율을 극대화하고, 이를 통해 조직이 더 높은 혁신에 집중할 수 있는 환경을 만듭니다.\n☑️ 이런 도구를 사용하여 개발 및 소통 하고 있습니다.\nJira로 프로젝트 관",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3072,7 +3264,7 @@
           "ogDescription": "에코마케팅의 공고를 확인해 보세요.",
           "ogSiteName": "에코마케팅"
         },
-        "bodyTextLength": 6575,
+        "bodyTextLength": 6579,
         "spaCandidate": false
       },
       "classification": "success",
@@ -3095,9 +3287,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://echomarketing.career.greetinghr.com/ko/o/209705",
-        "bytes": 219870,
+        "bytes": 219873,
         "charset": "utf-8"
       },
       "parse": {
@@ -3121,7 +3313,11 @@
         "qualificationsLength": 313,
         "normalizedTextLength": 2935,
         "normalizedTextHead": "💻백엔드 개발자(Python, Java) 는,\n단순한 시스템 유지보수를 넘어, 전사 부서의 업무를 자동화 솔루션으로 혁신하는 핵심 엔진 역할을 수행합니다. 모든 구성원이 단순 반복 업무에서 벗어나 오직 '혁신'에만 집중할 수 있는 환경을 설계하며, 이를 통해 조직의 압도적인 매출 달성을 현실로 만듭니다.\n문제 해결을 위한 새로운 기술 도입을 두려워하지 않",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3140,7 +3336,7 @@
           "ogDescription": "에코마케팅의 공고를 확인해 보세요.",
           "ogSiteName": "에코마케팅"
         },
-        "bodyTextLength": 6401,
+        "bodyTextLength": 6405,
         "spaCandidate": false
       },
       "classification": "success",
@@ -3163,14 +3359,14 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48896788?Oem_Code=C1&rPageCode=TL",
-        "bytes": 129942,
+        "bytes": 129700,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "㈜네오정보시스템 채용",
-        "roleName": "소프트웨어 개발자 채용",
+        "companyName": "㈜네오정보시스템",
+        "roleName": "소프트웨어 개발자",
         "keywords": [
           "AI",
           "TOP"
@@ -3178,10 +3374,16 @@
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 147,
         "normalizedTextLength": 624,
-        "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n㈜네오정보시스템\n소프트웨어 개발자 채용\n상세요강 접수기간∙방법 기업정보 추천공고 신입·인턴 채용관\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\nC# 응용프로그램 개발\n모집인원 1 명\n고용형태\n정규직 (수습 3개월)\n직급/직책\n급여 회사",
+        "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n㈜네오정보시스템\n소프트웨어 개발자 채용\n상세요강 접수기간∙방법 기업정보 추천공고 일학습병행 채용관\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\nC# 응용프로그램 개발\n모집인원 1 명\n고용형태\n정규직 (수습 3개월)\n직급/직책\n급여 회사",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "deadline": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3223,13 +3425,13 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48898459?Oem_Code=C1&rPageCode=TL",
-        "bytes": 126507,
+        "bytes": 126427,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "㈜다산소프트 채용",
+        "companyName": "㈜다산소프트",
         "roleName": "자바개발자 정규직 모집 (신입)",
         "keywords": [
           "AI",
@@ -3241,7 +3443,13 @@
         "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n㈜다산소프트\n자바개발자 정규직 모집 (신입)\n상세요강 접수기간∙방법 기업정보 추천공고 IT 개발자 전문 채용관\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\nIT개발\n모집인원 ○ 명\n고용형태\n정규직\n급여 회사 내규에 따름 (면접 후 결정",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "deadline": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3283,13 +3491,13 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://careers.idis.co.kr/job/6",
         "bytes": 30559,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "아이디스 채용",
+        "companyName": "아이디스",
         "roleName": "2026년 2분기 연구소-SW개발(신입) 인재 모집",
         "keywords": [
           "SW"
@@ -3301,7 +3509,11 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3339,22 +3551,25 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=UTF-8",
+        "contentType": "text/html",
         "finalUrl": "https://career.doosan.com/dsp/sa/RecList.jsp",
-        "bytes": 81446,
+        "bytes": 79905,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "Career DOOSAN",
+        "companyName": "(주)두산-디지털이노베이션",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 2526,
+        "normalizedTextLength": 2456,
         "normalizedTextHead": "메뉴 바로가기\n본문 바로가기(skip to content)\n커리어두산 회원님\n커리어두산과 함께\n내일을 만들어가세요.\n로그인\n내일을 준비하는\n두산인의 하루\n생생 두산 입사기\n두산인의 성장\n두산인이 일하는 방식\n(DOOable WORK)\n두산인이 누리는 혜택\n(DOOable LIFE)\n└ 복리후생\n└ 출산·육아지원\n두산에 대하여\n두산스토리\n두산의 활약상\n경영철",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3365,14 +3580,15 @@
         "meta": {
           "title": "Career DOOSAN"
         },
-        "bodyTextLength": 2533,
+        "bodyTextLength": 2463,
         "spaCandidate": false
       },
       "classification": "partial",
       "missingFields": [
         "roleName",
         "mainResponsibilities",
-        "qualifications"
+        "qualifications",
+        "deadline"
       ],
       "htmlPath": "fetched/career.doosan.com_002.html"
     },
@@ -3392,13 +3608,13 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://careers.idis.co.kr/job/8",
         "bytes": 30113,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "아이디스 채용",
+        "companyName": "아이디스",
         "roleName": "2026년 2분기 연구소-HW개발(신입) 인재 모집",
         "keywords": [
           "HW"
@@ -3410,7 +3626,11 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3448,9 +3668,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53484407",
-        "bytes": 76616,
+        "bytes": 76589,
         "charset": "utf-8"
       },
       "parse": {
@@ -3463,7 +3683,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3504,13 +3727,14 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48891846?Oem_Code=C1&rPageCode=TL",
-        "bytes": 154440,
+        "bytes": 154495,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "디알텍 채용",
+        "companyName": "디알텍",
+        "roleName": "2026년 신입 및 경력",
         "keywords": [
           "AI",
           "TOP"
@@ -3521,7 +3745,13 @@
         "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n디알텍\n2026년 신입 및 경력 채용\n상세요강 접수기간∙방법 기업정보 추천공고 산업기능요원 전문채용관\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\nSW개발, 시스템 HW설계 (경력), 시스템 HW개발 (신입/경력), 시스템 엔지니어, ",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "deadline": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3541,9 +3771,8 @@
         "bodyTextLength": 1124,
         "spaCandidate": false
       },
-      "classification": "partial",
+      "classification": "success",
       "missingFields": [
-        "roleName",
         "mainResponsibilities"
       ],
       "htmlPath": "fetched/www.jobkorea.co.kr_004.html"
@@ -3558,19 +3787,20 @@
       },
       "domainGroup": "wanted",
       "match": {
-        "score": 0,
-        "companyMatch": false,
-        "roleMatch": false
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://www.wanted.co.kr/wd/351737",
-        "bytes": 125206,
+        "bytes": 126558,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "companyName": "카카오모빌리티(kakaomobility)",
+        "roleName": "자율주행 E/E 엔지니어 (R&D)",
         "keywords": [
           "EMI/EMC",
           "ESD",
@@ -3589,7 +3819,13 @@
         "qualificationsLength": 332,
         "normalizedTextLength": 1595,
         "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 11\n카카오모빌리티(kakaomobility) ∙ 경기 성남시 ∙ 신입 이상\n자율주행 E/E 엔지니어 (R&D)\n포지션 상세\n[팀 소개]\n카카오모빌리티 자율주행개발팀은 ​단순한 부품의 조합을 넘어,\n센서 ​퓨전과 고성능 ​컴퓨팅 아키텍처를 직접 ​설계하며 자율주행 시스",
-        "warnings": []
+        "warnings": [],
+        "fieldSources": {
+          "companyName": "factual",
+          "roleName": "factual",
+          "overview": "factual",
+          "mainResponsibilities": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3610,9 +3846,8 @@
         "bodyTextLength": 1605,
         "spaCandidate": false
       },
-      "classification": "partial",
+      "classification": "success",
       "missingFields": [
-        "roleName",
         "deadline"
       ],
       "htmlPath": "fetched/www.wanted.co.kr_011.html"
@@ -3633,22 +3868,25 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
-        "finalUrl": "https://www.pearlabyss.com/ko-KR/Company/Careers/List",
-        "bytes": 314732,
+        "contentType": "text/html",
+        "finalUrl": "https://www.pearlabyss.com/ko-KR/Company/Careers/detail?_jobOpeningNo=674",
+        "bytes": 314731,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "채용",
+        "companyName": "Pearl Abyss",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
-        "normalizedTextLength": 68296,
+        "normalizedTextLength": 68295,
         "normalizedTextHead": "전체 메뉴\n펄어비스\n언어 변경\nKOR\nENG\nJPN\n소개\n펄어비스 소개\n연구소\n사회공헌\nCCP\n게임\n검은사막\n검은사막 모바일\n붉은사막\n도깨비\n플랜 8\n미디어\n보도자료\n미디어 행사\n문화\n기업문화\n복지\n펄어비스 소식\n채용\n채용 소개\n채용 공고\n투자정보\n기업지배구조\n주가정보\n재무정보\n공시·공고\nIR 자료\n지속가능경영\n펄어비스와 함께 꿈꿔왔던 게임을 만드세요\n검색",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3661,7 +3899,7 @@
           "ogTitle": "채용 | Pearl Abyss",
           "ogDescription": "펄어비스에서 최고의 팀과 함께 글로벌 No.1 게임을 만드세요."
         },
-        "bodyTextLength": 68541,
+        "bodyTextLength": 68540,
         "spaCandidate": false
       },
       "classification": "partial",
@@ -3689,7 +3927,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://kac.careerlink.kr/jobs/RC20260326026238",
         "bytes": 146741,
         "charset": "utf-8"
@@ -3703,7 +3941,8 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {}
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3742,7 +3981,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=UTF-8",
+        "contentType": "text/html",
         "finalUrl": "https://kpta.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250155",
         "bytes": 11574,
         "charset": "utf-8"
@@ -3752,11 +3991,12 @@
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
         "normalizedTextLength": 103,
-        "normalizedTextHead": "채용공고 내용\n공고명\n한국의약품수출입협회 전산 정규직 직원 모집\n접수기간\n2026.04.06(월) 10:00\n~\n2026.04.19(일) 23:59\nD-2\n목록\n지원서 작성\n지원서 수정",
+        "normalizedTextHead": "채용공고 내용\n공고명\n한국의약품수출입협회 전산 정규직 직원 모집\n접수기간\n2026.04.06(월) 10:00\n~\n2026.04.19(일) 23:59\nD-0\n목록\n지원서 작성\n지원서 수정",
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {}
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3795,7 +4035,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=39",
         "bytes": 68714,
         "charset": "utf-8"
@@ -3810,7 +4050,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3852,7 +4095,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=UTF-8",
+        "contentType": "text/html",
         "finalUrl": "https://recruit.truefriend.com/announcementView?_ev=mF2cVoL6gkMUC2jrpZOfBrgGuQuZ2TOKWg5pOufQHunjizlNbJd9p0c5536WUTWvjRNB%2FHD7qxrUUUM26Q7piq56GAee7V%2FY6yI1dx%2BUurj9Wj2lnYKA1w1Qs6WGHcBLyeNX%2BbSGkrdsvte%2FtyyOfnqxiBiwfHSv65IKGuUd1eznAMLb%2B3jp00hFFM7bdr5gT%2Fie%2FAF0Dia6vy4bbyRMuSYm%2FNFiXQ9%2FUhUiqwDV8gNDgGhi8%2BRTyec1T8outWN1w0KJqiqK1LwNm2u6PZ56BTlJ6R5Y7fl26kF1W4zPfysg28Zmos2qttnoDXons%2B91s65GZw0htgtbk9flxhRWSQ%3D%3D&_ec=PUsFO8QcZLFizgsEBOdnONniqVo%2BtY3vzcVlrBDOuBg%3D",
         "bytes": 48356,
         "charset": "utf-8"
@@ -3867,7 +4110,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3900,19 +4146,18 @@
       },
       "domainGroup": "jumpit",
       "match": {
-        "score": 0.6,
-        "companyMatch": true,
+        "score": 0,
+        "companyMatch": false,
         "roleMatch": false
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jumpit.saramin.co.kr/position/53460085",
         "bytes": 75225,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "주식회사 이비즈테크는 클라우드 플랫폼 및 스토리지 전문 업체로 다년간의 노하우와 기술력을 바탕으로 IT Infra 사업을 시작하고 있습니다.",
         "roleName": "개발자 채용",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
@@ -3922,7 +4167,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "roleName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -3939,8 +4187,9 @@
         "bodyTextLength": 1176,
         "spaCandidate": false
       },
-      "classification": "success",
+      "classification": "partial",
       "missingFields": [
+        "companyName",
         "mainResponsibilities",
         "qualifications"
       ],
@@ -3962,7 +4211,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=45",
         "bytes": 68714,
         "charset": "utf-8"
@@ -3977,7 +4226,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -4019,7 +4271,7 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=44",
         "bytes": 68714,
         "charset": "utf-8"
@@ -4034,7 +4286,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -4076,9 +4331,9 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html;charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=41",
-        "bytes": 68713,
+        "bytes": 68714,
         "charset": "utf-8"
       },
       "parse": {
@@ -4091,7 +4346,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -4127,19 +4385,19 @@
       },
       "domainGroup": "recruiter_co_kr",
       "match": {
-        "score": 0,
-        "companyMatch": false,
+        "score": 0.6,
+        "companyMatch": true,
         "roleMatch": false
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://wins21.recruiter.co.kr/career/jobs/105993",
         "bytes": 19742,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "윈스 채용",
+        "companyName": "윈스",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
@@ -4148,7 +4406,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -4205,7 +4466,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "role"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
@@ -4244,13 +4508,13 @@
       },
       "http": {
         "status": 200,
-        "contentType": "text/html; charset=utf-8",
+        "contentType": "text/html",
         "finalUrl": "https://jejubank.recruiter.co.kr/career/jobs/105612",
         "bytes": 17486,
         "charset": "utf-8"
       },
       "parse": {
-        "companyName": "제주은행 채용",
+        "companyName": "제주은행",
         "keywords": [],
         "mainResponsibilitiesLength": 0,
         "qualificationsLength": 0,
@@ -4259,7 +4523,10 @@
         "warnings": [
           "주요 업무 섹션을 명확히 찾지 못했습니다.",
           "자격요건 섹션을 명확히 찾지 못했습니다."
-        ]
+        ],
+        "fieldSources": {
+          "companyName": "factual"
+        }
       },
       "structure": {
         "jsonLdJobPosting": {
