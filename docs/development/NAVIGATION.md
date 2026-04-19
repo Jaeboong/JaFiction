@@ -69,6 +69,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `jobPosting.ts` | 채용공고 파싱 및 모델 |
 | `companySourceModel.ts` | 회사 소스 도메인 모델 |
 | `companySources.ts` | 회사 소스 집계 및 처리 |
+| `jobPosting/jsonLd.ts` | JSON-LD `JobPosting` 스크립트 추출과 제목/설명/고용형태 정규화 유틸리티 |
 | `companySourceCoverage.ts` | 소스 커버리지 계산 |
 | `companyInsightArtifacts.ts` | 인사이트 아티팩트 생성 |
 | `projectInsights.ts` | 프로젝트 단위 인사이트 집계 |
@@ -156,6 +157,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `sidebarStateStore.test.ts` | sidebarStateStore.ts |
 | `webviewProtocol.test.ts` | webviewProtocol.ts |
 | `jobPosting.test.ts` | jobPosting.ts |
+| `jobPosting.jsonLd.test.ts` | jobPosting/jsonLd.ts |
 | `companySources.test.ts` | companySources.ts |
 | `insights.test.ts` | insights.ts |
 | `openDart.test.ts` | openDart.ts |
