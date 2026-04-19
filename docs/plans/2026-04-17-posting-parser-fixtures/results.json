@@ -1,0 +1,4289 @@
+{
+  "generatedAt": "2026-04-17T06:38:49.217Z",
+  "totalUrls": 75,
+  "uniqueUrls": 70,
+  "entries": [
+    {
+      "url": "https://recruit.posco.com/h22a01-front/H22A1001.html?id=609000",
+      "expected": {
+        "category": "AI",
+        "company": "포스코DX",
+        "role": "AI 서비스 설계 및 알고리즘, 센서 모델링 등 (판교)",
+        "deadline": "2026-04-27"
+      },
+      "domainGroup": "posco",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://recruit.posco.com/h22a01-front/H22A1001.html?id=609000",
+        "bytes": 7189,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 48,
+        "normalizedTextHead": "home\nApply\n채용공고\n채용공고\n회사명\n유형\n전형기간\n오늘마감\n공유\n목록\n지원하기",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {},
+        "bodyTextLength": 48,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/recruit.posco.com_001.html"
+    },
+    {
+      "url": "https://about.daangn.com/jobs/7647097003/",
+      "expected": {
+        "category": "AI",
+        "company": "당근",
+        "role": "[2026 당근 ML] Software Engineer, Machine Learning (서울)",
+        "deadline": "2026-04-17"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://about.daangn.com/jobs/7647097003/",
+        "bytes": 158701,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "Software Engineer, Machine Learning (학사)",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 395,
+        "normalizedTextLength": 2703,
+        "normalizedTextHead": "팀문화\n서비스\n콘텐츠\n팀 블로그\n팀 유튜브\n테크 블로그\n채용공고\n[2026 당근 ML] Software Engineer, Machine Learning (학사)\n당근\n정규직\n경력/신입\n영입정보\n지원하기\nSoftware Engineer, Machine Learning을 소개해요\n당근의 Software Engineer, Machine Learning은 머신러닝",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "[2026 당근 ML] Software Engineer, Machine Learning (학사)",
+          "hiringOrgName": "당근",
+          "hasValidThrough": false,
+          "descriptionLength": 33
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "[2026 당근 ML] Software Engineer, Machine Learning (학사) | 당근 팀 채용",
+          "ogTitle": "[2026 당근 ML] Software Engineer, Machine Learning (학사) | 당근 팀 채용",
+          "ogDescription": "당근 팀은 채용 중! 빠르게 성장 중인 당근에 합류해보세요."
+        },
+        "bodyTextLength": 2720,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities"
+      ],
+      "htmlPath": "fetched/about.daangn.com_001.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53594223",
+      "expected": {
+        "category": "AI",
+        "company": "보스반도체",
+        "role": "AI SW Engineer [신입/병특가능] (경기 성남)",
+        "deadline": "2026-05-13"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53594223",
+        "bytes": 78909,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1907,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nAI SW Engineer [신입/병특가능]\n보스반도체\n💰 취업축하금 50만원\n💰 평균연봉 상위 10%\n📈 급성장중\n🍚 점심지원\n💰 평균연봉 7,000 이상\n포지션 상세 정보\n기술스택\nPyTorch\nDeepLearning\nAI/인공지능\nTransformers\n",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | AI SW Engineer [신입/병특가능]",
+          "ogTitle": "점핏 | AI SW Engineer [신입/병특가능]",
+          "ogDescription": "보스반도체 - AI SW Engineer [신입/병특가능] 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1911,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_001.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53593664",
+      "expected": {
+        "category": "AI",
+        "company": "보스반도체",
+        "role": "ML Systems Runtime Engineer [신입/병특가능] (경기 성남)",
+        "deadline": "2026-05-13"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53593664",
+        "bytes": 79010,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1885,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nML Systems Runtime Engineer [신입/병특가능]\n보스반도체\n💰 취업축하금 50만원\n💰 평균연봉 상위 10%\n📈 급성장중\n🍚 점심지원\n💰 평균연봉 7,000 이상\n포지션 상세 정보\n기술스택\nC++\nAI/인공지능\nAndroid OS\nC\nLinu",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | ML Systems Runtime Engineer [신입/병특가능]",
+          "ogTitle": "점핏 | ML Systems Runtime Engineer [신입/병특가능]",
+          "ogDescription": "보스반도체 - ML Systems Runtime Engineer [신입/병특가능] 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1889,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_002.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53612996",
+      "expected": {
+        "category": "AI",
+        "company": "애자일소다",
+        "role": "AI 플랫폼 시스템 엔지니어(신입) (서울)",
+        "deadline": "2026-05-12"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53612996",
+        "bytes": 80795,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1984,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nAI 플랫폼 시스템 엔지니어(신입)\n애자일소다\n💰 취업축하금 50만원\n💰 시리즈B 투자유치\n📈 영업이익 20% 지속성장\n📈 급성장중\n🙌 장기근속 포상\n🚆 2호선 역세권 기업\n🍚 점심지원\n💰 평균연봉 6,000 이상\n포지션 상세 정보\n기술스택\nDocker\n",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | AI 플랫폼 시스템 엔지니어(신입)",
+          "ogTitle": "점핏 | AI 플랫폼 시스템 엔지니어(신입)",
+          "ogDescription": "애자일소다 - AI 플랫폼 시스템 엔지니어(신입) 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1988,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_003.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53613019",
+      "expected": {
+        "category": "AI",
+        "company": "애자일소다",
+        "role": "생성형 AI 데이터사이언티스트 (서울)",
+        "deadline": "2026-05-12"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53613019",
+        "bytes": 78626,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1875,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\n생성형 AI 데이터사이언티스트\n애자일소다\n💰 취업축하금 50만원\n💰 시리즈B 투자유치\n📈 영업이익 20% 지속성장\n📈 급성장중\n🙌 장기근속 포상\n🚆 2호선 역세권 기업\n🍚 점심지원\n💰 평균연봉 6,000 이상\n포지션 상세 정보\n기술스택\nPython\nTen",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | 생성형 AI 데이터사이언티스트",
+          "ogTitle": "점핏 | 생성형 AI 데이터사이언티스트",
+          "ogDescription": "애자일소다 - 생성형 AI 데이터사이언티스트 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1879,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_004.html"
+    },
+    {
+      "url": "https://hlcompany.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250304",
+      "expected": {
+        "category": "SW",
+        "company": "HL만도",
+        "role": "SW개발 계약직 (경기 성남)",
+        "deadline": "2026-04-19"
+      },
+      "domainGroup": "recruiter_co_kr",
+      "match": {
+        "score": 0.4,
+        "companyMatch": false,
+        "roleMatch": true
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=UTF-8",
+        "finalUrl": "https://hlcompany.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250304",
+        "bytes": 14450,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "[HL만도] SW개발 계약직 채용",
+        "keywords": [
+          "HL",
+          "SW"
+        ],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 98,
+        "normalizedTextHead": "채용공고 내용\n공고명\n[HL만도] SW개발 계약직 채용\n접수기간\n2026.04.07(화) 09:00\n~\n2026.04.19(일) 23:59\nD-2\n목록\n지원서 작성\n지원서 수정",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "ogTitle": "HL그룹 채용",
+          "ogDescription": "HL그룹의 채용홈페이지입니다. 현재 채용중인 포지션을 확인해보세요!",
+          "ogSiteName": "HL그룹 채용"
+        },
+        "bodyTextLength": 98,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/hlcompany.recruiter.co.kr_001.html"
+    },
+    {
+      "url": "https://recruit.kbanknow.com/Recruit/RecruitView/250627",
+      "expected": {
+        "category": "SW",
+        "company": "케이뱅크",
+        "role": "백엔드 개발 (서울)",
+        "deadline": "2026-04-24"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://recruit.kbanknow.com/Recruit/RecruitView/250627",
+        "bytes": 1422,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "케이뱅크 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "케이뱅크 채용",
+          "ogTitle": "케이뱅크 채용",
+          "ogDescription": "케이뱅크에서 새로운 도전을 함께해요!",
+          "ogSiteName": "케이뱅크 채용"
+        },
+        "bodyTextLength": 46,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/recruit.kbanknow.com_001.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53593479",
+      "expected": {
+        "category": "SW",
+        "company": "보스반도체",
+        "role": "SOC Design Verification Engineer [신입/병특가능] (경기 성남)",
+        "deadline": "2026-05-13"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53593479",
+        "bytes": 77731,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1939,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nSOC Design Verification Engineer [신입/병특가능]\n보스반도체\n💰 취업축하금 50만원\n💰 평균연봉 상위 10%\n📈 급성장중\n🍚 점심지원\n💰 평균연봉 7,000 이상\n포지션 상세 정보\n기술스택\nVerilog\n주요업무 ㆍUVM (Unive",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | SOC Design Verification Engineer [신입/병특가능]",
+          "ogTitle": "점핏 | SOC Design Verification Engineer [신입/병특가능]",
+          "ogDescription": "보스반도체 - SOC Design Verification Engineer [신입/병특가능] 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1943,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_005.html"
+    },
+    {
+      "url": "https://www.jobkorea.co.kr/Recruit/GI_Read/48910001?Oem_Code=C1&rPageCode=TL",
+      "expected": {
+        "category": "SW",
+        "company": "아이엠비씨",
+        "role": "iOS 앱개발 (서울)",
+        "deadline": "2026-04-17"
+      },
+      "domainGroup": "jobkorea",
+      "match": {
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48910001?Oem_Code=C1&rPageCode=TL",
+        "bytes": 142508,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "㈜아이엠비씨 채용",
+        "roleName": "㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영)",
+        "keywords": [
+          "AI",
+          "TOP",
+          "SNS"
+        ],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 137,
+        "normalizedTextLength": 928,
+        "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n㈜아이엠비씨\n㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영)\n상세요강 접수기간∙방법 기업정보 추천공고 디자인 직무채용관\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\n홈페이지 지원\n모집인원 ○ 명\n고용형태\n정규직\n급여 회사 내규에 ",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영)",
+          "hiringOrgName": "㈜아이엠비씨",
+          "hasValidThrough": true,
+          "descriptionLength": 94
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "㈜아이엠비씨 채용 - ㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영) | 잡코리아",
+          "ogTitle": "㈜아이엠비씨 채용 - ㈜아이엠비씨 직원 채용(iOS 앱개발, SNS 운영) | 잡코리아",
+          "ogDescription": "경력 : 신입·경력 2년이상, 학력 : 대졸↑, 급여 : 회사 내규에 따름, 마감일 : 2026.04.17",
+          "ogSiteName": "잡코리아"
+        },
+        "bodyTextLength": 928,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [
+        "mainResponsibilities"
+      ],
+      "htmlPath": "fetched/www.jobkorea.co.kr_001.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53593568",
+      "expected": {
+        "category": "SW",
+        "company": "보스반도체",
+        "role": "Embedded System SW Engineer [신입/병특가능] (경기 성남)",
+        "deadline": "2026-05-13"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53593568",
+        "bytes": 79225,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 2270,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nEmbedded System SW Engineer [신입/병특가능]\n보스반도체\n💰 취업축하금 50만원\n💰 평균연봉 상위 10%\n📈 급성장중\n🍚 점심지원\n💰 평균연봉 7,000 이상\n포지션 상세 정보\n기술스택\nLinux\nAI/인공지능\nMfc\nRTOS\n주요업무 ㆍ",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | Embedded System SW Engineer [신입/병특가능]",
+          "ogTitle": "점핏 | Embedded System SW Engineer [신입/병특가능]",
+          "ogDescription": "보스반도체 - Embedded System SW Engineer [신입/병특가능] 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 2274,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_006.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53611604",
+      "expected": {
+        "category": "SW",
+        "company": "쿤텍",
+        "role": "임베디드 SW 또는 FW (경기 성남)",
+        "deadline": "2026-05-12"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53611604",
+        "bytes": 76479,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "쿤텍 주식회사는 융합보안솔루션을 제공하는 기업입니다.",
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 949,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\n임베디드 SW 또는 FW\n쿤텍\n💰 취업축하금 50만원\n👶 육아휴직\n📈 급성장중\n👗 프리한 복장\n🍚 점심지원\n👍 워라밸\n포지션 상세 정보\n기술스택\nSW\n주요업무 • 가상머신 Processor, Peripheral 개발\n• EV 연구개발팀 부서 소속, 면접 후 ",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | 임베디드 SW 또는 FW",
+          "ogTitle": "점핏 | 임베디드 SW 또는 FW",
+          "ogDescription": "쿤텍 - 임베디드 SW 또는 FW 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 959,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_007.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53588444",
+      "expected": {
+        "category": "SW",
+        "company": "아이엠티",
+        "role": "반도체 전공정장비 SW 개발 (신입) (경기 화성)",
+        "deadline": "2026-05-11"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53588444",
+        "bytes": 80631,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1269,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\n반도체 전공정장비 SW 개발 (신입)\n아이엠티\n💰 취업축하금 50만원\n💰 평균연봉 상위 10%\n💰 매출액 100억 기업\n🙌 장기근속 포상\n🏝️ 자유로운 연차\n💰 코스닥\n🌟 휴가비 지원\n👗 프리한 복장\n🍚 점심지원\n💰 매출액 20% 지속성장\n💰 평균연",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | 반도체 전공정장비 SW 개발 (신입)",
+          "ogTitle": "점핏 | 반도체 전공정장비 SW 개발 (신입)",
+          "ogDescription": "아이엠티 - 반도체 전공정장비 SW 개발 (신입) 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1277,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_008.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/353223",
+      "expected": {
+        "category": "SW",
+        "company": "넵튠",
+        "role": "H5개발팀 클라이언트 개발 (서울)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/353223",
+        "bytes": 126531,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "Unity",
+          "Cocos2d-x",
+          "WebGL",
+          "H5",
+          "SDK"
+        ],
+        "mainResponsibilitiesLength": 134,
+        "qualificationsLength": 201,
+        "normalizedTextLength": 2005,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 7\n넵튠(Neptune) ∙ 서울 강남구 ∙ 신입\nH5개발팀 클라이언트 개발\n포지션 상세\n“넵튠은 게임과 애드테크의 융합으로 새로운 가치를 창조합니다”\n‘무한의 계단’, ‘이터널리턴’, ‘고양이 스낵바’ 등 글로벌 히트작을 통해 게임 본연의 재미와 완성도를 증명했으며,",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "H5개발팀 클라이언트 개발",
+          "hiringOrgName": "넵튠(Neptune)",
+          "hasValidThrough": false,
+          "descriptionLength": 140
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[넵튠(Neptune)] H5개발팀 클라이언트 개발 채용 공고 | 원티드",
+          "ogTitle": "[넵튠(Neptune)] H5개발팀 클라이언트 개발 채용 공고 | 원티드",
+          "ogDescription": "넵튠(Neptune)의 H5개발팀 클라이언트 개발 포지션을 확인해 보세요. 취업·이직에 성공하면, 합격보상금 50만원을 드립니다.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 2019,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_001.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/322564",
+      "expected": {
+        "category": "SW",
+        "company": "넥슨코리아",
+        "role": "[개발관리그룹] 엔진실 서버 엔진 프로그래머 (경기 성남)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/322564",
+        "bytes": 128166,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "Unreal",
+          "Engine",
+          "Unity",
+          "RDBMS",
+          "OS",
+          "DB",
+          "TCP/IP",
+          "IOCP",
+          "RIO",
+          "I/O"
+        ],
+        "mainResponsibilitiesLength": 185,
+        "qualificationsLength": 480,
+        "normalizedTextLength": 2210,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 8\n넥슨코리아(NEXON) ∙ 경기 성남시 ∙ 신입\n[개발관리그룹] 엔진실 서버 엔진 프로그래머\n포지션 상세\n엔진실\n개발관리그룹 엔진실은 넥슨에서 개발 중이거나 서비스 중인 게임들의 전사적인 기술 지원과 노하우 축적을 목표로 클라이언트, 서버 엔진 및 개발 인프라를 개",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "[개발관리그룹] 엔진실 서버 엔진 프로그래머",
+          "hiringOrgName": "넥슨코리아(NEXON)",
+          "hasValidThrough": true,
+          "descriptionLength": 195
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[넥슨코리아(NEXON)] [개발관리그룹] 엔진실 서버 엔진 프로그래머 채용 공고 | 원티드",
+          "ogTitle": "[넥슨코리아(NEXON)] [개발관리그룹] 엔진실 서버 엔진 프로그래머 채용 공고 | 원티드",
+          "ogDescription": "넥슨코리아(NEXON)의 [개발관리그룹] 엔진실 서버 엔진 프로그래머 포지션을 확인해 보세요. 취업·이직에 성공하면, 합격보상금 50만원을 드립니다.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 2216,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_002.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/168257",
+      "expected": {
+        "category": "SW",
+        "company": "넛지헬스케어",
+        "role": "[병역특례] 프론트엔드 개발자 (서울)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/168257",
+        "bytes": 129673,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "AWS",
+          "Next.js",
+          "Back",
+          "Office"
+        ],
+        "mainResponsibilitiesLength": 131,
+        "qualificationsLength": 48,
+        "normalizedTextLength": 2100,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 7\n넛지헬스케어(캐시워크) ∙ 서울 강남구 ∙ 신입\n[병역특례 현역/보충역] 프론트엔드 개발자\n포지션 상세\n[회사소개]\nㆍ넛지헬스케어는 행동경제학 이론을 실생활에 적용하여 비만, 당뇨, 고혈압과 같은 만성질환을 예방하고 관리할 수 있도록 돕는 것을 목표로 2016년 설",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "[병역특례 현역/보충역] 프론트엔드 개발자",
+          "hiringOrgName": "넛지헬스케어(캐시워크)",
+          "hasValidThrough": false,
+          "descriptionLength": 139
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[넛지헬스케어(캐시워크)] [병역특례 현역/보충역] 프론트엔드 개발자 채용 공고 | 원티드",
+          "ogTitle": "[넛지헬스케어(캐시워크)] [병역특례 현역/보충역] 프론트엔드 개발자 채용 공고 | 원티드",
+          "ogDescription": "넛지헬스케어(캐시워크)의 [병역특례 현역/보충역] 프론트엔드 개발자 포지션을 확인해 보세요. 취업·이직에 성공하면, 합격보상금 50만원을 드립니다.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 2106,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_003.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/85836",
+      "expected": {
+        "category": "SW",
+        "company": "넛지헬스케어",
+        "role": "[병역특례] 백엔드 개발자(Node.js) (서울)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/85836",
+        "bytes": 129641,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "MySQL",
+          "PostgreSQL",
+          "AWS",
+          "API",
+          "GraphQL",
+          "REST",
+          "DynamoDB",
+          "Elasticsearch"
+        ],
+        "mainResponsibilitiesLength": 165,
+        "qualificationsLength": 49,
+        "normalizedTextLength": 2140,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 7\n넛지헬스케어(캐시워크) ∙ 서울 강남구 ∙ 신입\n[병역특례 현역/보충역] 백엔드 개발자(Node.js)\n포지션 상세\n[회사소개]\nㆍ넛지헬스케어는 행동경제학 이론을 실생활에 적용하여 비만, 당뇨, 고혈압과 같은 만성질환을 예방하고 관리할 수 있도록 돕는 것을 목표로 ",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "[병역특례 현역/보충역] 백엔드 개발자(Node.js)",
+          "hiringOrgName": "넛지헬스케어(캐시워크)",
+          "hasValidThrough": false,
+          "descriptionLength": 165
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[넛지헬스케어(캐시워크)] [병역특례 현역/보충역] 백엔드 개발자(Node.js) 채용 공고 | 원티드",
+          "ogTitle": "[넛지헬스케어(캐시워크)] [병역특례 현역/보충역] 백엔드 개발자(Node.js) 채용 공고 | 원티드",
+          "ogDescription": "넛지헬스케어(캐시워크)의 [병역특례 현역/보충역] 백엔드 개발자(Node.js) 포지션을 확인해 보세요. 취업·이직에 성공하면, 합격보상금 50만원을 드립니다.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 2146,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_004.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/134887",
+      "expected": {
+        "category": "SW",
+        "company": "넛지헬스케어",
+        "role": "[병역특례] 풀스택 개발자 (서울)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/134887",
+        "bytes": 130112,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "MySQL",
+          "PostgreSQL",
+          "AWS",
+          "API",
+          "GraphQL",
+          "REST",
+          "DynamoDB",
+          "Elasticsearch",
+          "Next.js",
+          "Back",
+          "Office"
+        ],
+        "mainResponsibilitiesLength": 261,
+        "qualificationsLength": 49,
+        "normalizedTextLength": 2227,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 7\n넛지헬스케어(캐시워크) ∙ 서울 강남구 ∙ 신입\n[병역특례 현역/보충역] 풀스택 개발자\n포지션 상세\n[회사소개]\nㆍ넛지헬스케어는 행동경제학 이론을 실생활에 적용하여 비만, 당뇨, 고혈압과 같은 만성질환을 예방하고 관리할 수 있도록 돕는 것을 목표로 2016년 설립되",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "[병역특례 현역/보충역] 풀스택 개발자",
+          "hiringOrgName": "넛지헬스케어(캐시워크)",
+          "hasValidThrough": false,
+          "descriptionLength": 289
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[넛지헬스케어(캐시워크)] [병역특례 현역/보충역] 풀스택 개발자 채용 공고 | 원티드",
+          "ogTitle": "[넛지헬스케어(캐시워크)] [병역특례 현역/보충역] 풀스택 개발자 채용 공고 | 원티드",
+          "ogDescription": "넛지헬스케어(캐시워크)의 [병역특례 현역/보충역] 풀스택 개발자 포지션을 확인해 보세요. 취업·이직에 성공하면, 합격보상금 50만원을 드립니다.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 2233,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_005.html"
+    },
+    {
+      "url": "https://midas.recruiter.co.kr/career/jobs/106460",
+      "expected": {
+        "category": "SW",
+        "company": "마이다스그룹",
+        "role": "백엔드 개발자 채용 (경기 성남)",
+        "deadline": "2026-04-19"
+      },
+      "domainGroup": "recruiter_co_kr",
+      "match": {
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://midas.recruiter.co.kr/career/jobs/106460",
+        "bytes": 21002,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "마이다스그룹 채용",
+        "roleName": "백엔드 개발자 채용(채용서비스)",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "마이다스그룹 채용 | 백엔드 개발자 채용(채용서비스)",
+          "ogTitle": "마이다스그룹 l 채용",
+          "ogDescription": "MIDAS 그룹 채용공고, 직무소개, 인사제도, 채용절차, 지원서작성, 합격자조회 제공",
+          "ogSiteName": "마이다스아이티 채용"
+        },
+        "bodyTextLength": 0,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/midas.recruiter.co.kr_001.html"
+    },
+    {
+      "url": "https://careers.upstage.ai/ko/o/204305",
+      "expected": {
+        "category": "SW",
+        "company": "업스테이지",
+        "role": "Software Engineer - Console (경기 용인)",
+        "deadline": "상시"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://careers.upstage.ai/ko/o/204305",
+        "bytes": 178013,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "Upstage",
+        "keywords": [
+          "AI",
+          "SaaS",
+          "B2B",
+          "CV",
+          "PDF"
+        ],
+        "mainResponsibilitiesLength": 317,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 2035,
+        "normalizedTextHead": "업스테이지는 AI 기술을 활용하여 비즈니스 문제를 해결하는 데 주력하고 있습니다. “Making AI Beneficial” 이라는 비전과 “Artificial General Intelligence (AGI) for Work” 라는 미션을 바탕으로, 단순한 업무 자동화를 넘어서 복잡한 의사결정 지원 및 비용 절감을 통해 기업의 생산성을 증진시킬 수 있는 AI",
+        "warnings": [
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [
+          "publicCareer/getCareerBootInfo/[object Object]",
+          "career/getOpeningById/[object Object]",
+          "translations/detail/[object Object]"
+        ],
+        "meta": {
+          "title": "Software Engineer - Console",
+          "ogTitle": "Software Engineer - Console",
+          "ogDescription": "Upstage의 공고를 확인해 보세요.",
+          "ogSiteName": "Upstage"
+        },
+        "bodyTextLength": 4506,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/careers.upstage.ai_001.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/257130",
+      "expected": {
+        "category": "IT",
+        "company": "아우토클립트",
+        "role": "자동차 사이버보안 테스팅 솔루션 엔지니어 (서울)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/257130",
+        "bytes": 125461,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "CI/CD",
+          "DevOps",
+          "Linux",
+          "Git",
+          "QA",
+          "Python",
+          "Shell"
+        ],
+        "mainResponsibilitiesLength": 242,
+        "qualificationsLength": 189,
+        "normalizedTextLength": 1930,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 6\n아우토크립트 ∙ 서울 강남구 ∙ 신입 이상\n자동차 사이버보안 테스팅 솔루션 엔지니어\n포지션 상세\n글로벌 TOP3 자동차 소프트웨어 선도기ㅁ업 아우토크립트입니다.\n모든 모빌리티는 '안전함' 없이는 아무런 의미가 없습니다.\n우리는 차량 내부와 외부 모두 안전하게 운행할",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "자동차 사이버보안 테스팅 솔루션 엔지니어",
+          "hiringOrgName": "아우토크립트",
+          "hasValidThrough": false,
+          "descriptionLength": 257
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[아우토크립트] 자동차 사이버보안 테스팅 솔루션 엔지니어 채용 공고 | 원티드",
+          "ogTitle": "[아우토크립트] 자동차 사이버보안 테스팅 솔루션 엔지니어 채용 공고 | 원티드",
+          "ogDescription": "아우토크립트의 자동차 사이버보안 테스팅 솔루션 엔지니어 포지션을 확인해 보세요. 취업·이직에 성공하면, 합격보상금 50만원을 드립니다.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 1936,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_006.html"
+    },
+    {
+      "url": "https://recruit.posco.com/h22a01-front/H22A1001.html?id=609000",
+      "expected": {
+        "category": "IT",
+        "company": "포스코DX",
+        "role": "통신설계-네트워크 인프라 (광양)",
+        "deadline": "2026-04-27"
+      },
+      "domainGroup": "posco",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://recruit.posco.com/h22a01-front/H22A1001.html?id=609000",
+        "bytes": 7189,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 48,
+        "normalizedTextHead": "home\nApply\n채용공고\n채용공고\n회사명\n유형\n전형기간\n오늘마감\n공유\n목록\n지원하기",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {},
+        "bodyTextLength": 48,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/recruit.posco.com_002.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53568665",
+      "expected": {
+        "category": "IT",
+        "company": "씨앤지 마이크로웨이브",
+        "role": "S/W 소프트웨어 개발 - 신입 (대전)",
+        "deadline": "2026-05-09"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53568665",
+        "bytes": 75370,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1137,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nS/W 소프트웨어 개발 - 신입\n씨앤지 마이크로웨이브\n💰 취업축하금 50만원\n💰 매출액 100억 기업\n🌟 휴가비 지원\n📈 영업이익 150% 급성장\n📈 영업이익률 20% 이상\n포지션 상세 정보\n기술스택\nC#\nWPF\nSW\nVb.net\n주요업무 위성추적 소프트웨어 ",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | S/W 소프트웨어 개발 - 신입",
+          "ogTitle": "점핏 | S/W 소프트웨어 개발 - 신입",
+          "ogDescription": "씨앤지 마이크로웨이브 - S/W 소프트웨어 개발 - 신입 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1137,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_009.html"
+    },
+    {
+      "url": "https://ibkc.incruit.com/hire/viewhire.asp?projectid=106",
+      "expected": {
+        "category": "IT",
+        "company": "IBK캐피탈",
+        "role": "전산분야-IT (서울)",
+        "deadline": "2026-04-22"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://ibkc.incruit.com/hire/viewhire.asp?projectid=106",
+        "bytes": 19131,
+        "charset": "euc-kr"
+      },
+      "parse": {
+        "companyName": "IBK캐피탈 채용정보",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 2665,
+        "normalizedTextHead": "기타메뉴\n홈\n채용정보\n채용공고\n채용정보\n채용공고\n입사지원서 작성\n입사지원 확인 및 수정\n입사지원서 삭제\n입사지원서 확인\n공지 및 FAQ\n질문하기\nIBK캐피탈 2026년 신입사원 모집\n모집분야 및 인원\n모 집 분 야\n인 원\n기 본 자 격\n일 반 분 야\n9명\n학력 또는 전공제한 없음\n전 산 분 야\n2명\nIT관련 전공자 또는 정보처리기사\n응시자격\nIBK핵심가치(",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "IBK캐피탈 채용정보"
+        },
+        "bodyTextLength": 2677,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/ibkc.incruit.com_001.html"
+    },
+    {
+      "url": "https://hyundaiweld.saramin.co.kr/apply_site/recruit/view",
+      "expected": {
+        "category": "IT",
+        "company": "현대종합금속",
+        "role": "S/W개발 (성남)",
+        "deadline": "2026-04-22"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=UTF-8",
+        "finalUrl": "https://hyundaiweld.saramin.co.kr/main/index",
+        "bytes": 19713,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "현대종합금속㈜ 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 412,
+        "normalizedTextHead": "회사소개\n채용공고\n지원서확인\n합격자발표\n채용문의\n게시판\n공고확인\n바로가기\nD - 9\n[현대종합금속] 본사 중앙연구소 신입/경력사원 모집\n2026-04-26 23:59까지\n더보기\nD - 9\n[현대종합금속] 본사 회장 비서실 신입사원 모집\n2026-04-26 23:59까지\n더보기\nD - 2\n[현대종합금속] 기계사업본부 설계부 신입/경력사원 모집\n2026-04-",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "현대종합금속㈜ 채용"
+        },
+        "bodyTextLength": 444,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/hyundaiweld.saramin.co.kr_001.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/353806",
+      "expected": {
+        "category": "IT",
+        "company": "빗썸",
+        "role": "Wallet Security Engineer (블록체인) (서울)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/353806",
+        "bytes": 131662,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "Java",
+          "Kotlin",
+          "HSM/MPC",
+          "Policy",
+          "Code",
+          "Python",
+          "Go",
+          "Java/Kotlin",
+          "Rust",
+          "Secure",
+          "SDLC",
+          "Threat"
+        ],
+        "mainResponsibilitiesLength": 477,
+        "qualificationsLength": 289,
+        "normalizedTextLength": 2456,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 5\n빗썸 ∙ 서울 강남구 ∙ 신입 이상\nWallet Security Engineer (블록체인)\n포지션 상세\n빗썸은 대한민국 대표 가상자산거래소입니다.\n디지털 자산이 일상이 되는 금융의 미래를 만들어가고 있습니다.\n빗썸은 대규모 트래픽 환경에서도 안정적으로 작동하는 고",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "Wallet Security Engineer (블록체인)",
+          "hiringOrgName": "빗썸",
+          "hasValidThrough": false,
+          "descriptionLength": 487
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[빗썸] Wallet Security Engineer (블록체인) 채용 공고 | 원티드",
+          "ogTitle": "[빗썸] Wallet Security Engineer (블록체인) 채용 공고 | 원티드",
+          "ogDescription": "빗썸의 Wallet Security Engineer (블록체인) 포지션을 확인해 보세요. 취업·이직에 성공하면, 합격보상금 50만원을 드립니다.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 2462,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_007.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/353810",
+      "expected": {
+        "category": "IT",
+        "company": "빗썸",
+        "role": "Research Engineer (블록체인) (서울)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/353810",
+        "bytes": 130967,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "L1/L2",
+          "DeFi",
+          "Staking",
+          "L2",
+          "Geth",
+          "Python",
+          "Go",
+          "Rust",
+          "PoC"
+        ],
+        "mainResponsibilitiesLength": 362,
+        "qualificationsLength": 303,
+        "normalizedTextLength": 2467,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 5\n빗썸 ∙ 서울 강남구 ∙ 신입 이상\nResearch Engineer (블록체인)\n포지션 상세\n빗썸은 대한민국 ​대표 ​가상자산거래소입니다.\n디지털 ​자산이 일상이 ​되는 금융의 미래를 만들어가고 ​있습니다.\n빗썸은 ​대규모 트래픽 ​환경에서도 안정적으로 작동하는 ​",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "Research Engineer (블록체인)",
+          "hiringOrgName": "빗썸",
+          "hasValidThrough": false,
+          "descriptionLength": 370
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[빗썸] Research Engineer (블록체인) 채용 공고 | 원티드",
+          "ogTitle": "[빗썸] Research Engineer (블록체인) 채용 공고 | 원티드",
+          "ogDescription": "빗썸의 Research Engineer (블록체인) 포지션을 확인해 보세요. 취업·이직에 성공하면, 합격보상금 50만원을 드립니다.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 2473,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_008.html"
+    },
+    {
+      "url": "https://glovis.recruiter.co.kr/career/jobs/105909",
+      "expected": {
+        "category": "IT",
+        "company": "현대글로비스",
+        "role": "2026년 상반기 채용연계형 인턴십 - IT&Security (서울)",
+        "deadline": "2026-04-18"
+      },
+      "domainGroup": "recruiter_co_kr",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://glovis.recruiter.co.kr/career/jobs/105909",
+        "bytes": 17555,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "현대글로비스 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "현대글로비스 채용 | [현대글로비스] 2026년 상반기 Make GLOVIS 인턴십(채용연계형)",
+          "ogTitle": "[현대글로비스]",
+          "ogDescription": "현대글로비스의 채용홈페이지입니다. 현재 채용중인 포지션을 확인해보세요!",
+          "ogSiteName": "현대글로비스 채용"
+        },
+        "bodyTextLength": 0,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/glovis.recruiter.co.kr_001.html"
+    },
+    {
+      "url": "https://recruit.posco.com/h22a01-front/H22A1001.html?id=609000",
+      "expected": {
+        "category": "IT",
+        "company": "포스코DX",
+        "role": "IT인프라 (판교/광양)",
+        "deadline": "2026-04-27"
+      },
+      "domainGroup": "posco",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://recruit.posco.com/h22a01-front/H22A1001.html?id=609000",
+        "bytes": 7189,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 48,
+        "normalizedTextHead": "home\nApply\n채용공고\n채용공고\n회사명\n유형\n전형기간\n오늘마감\n공유\n목록\n지원하기",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {},
+        "bodyTextLength": 48,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/recruit.posco.com_003.html"
+    },
+    {
+      "url": "https://keris.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250774",
+      "expected": {
+        "category": "IT",
+        "company": "한국교육학술정보원",
+        "role": "정보기술 서비스 기획 (대구)",
+        "deadline": "2026-04-27"
+      },
+      "domainGroup": "recruiter_co_kr",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=UTF-8",
+        "finalUrl": "https://keris.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250774",
+        "bytes": 13494,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 302,
+        "normalizedTextHead": "채용공고 내용\n공고명\n[정규직_교육시스템A(대구)] 2026년 제2차 직원 채용\n접수기간\n2026.04.13(월) 10:00\n~\n2026.04.27(월) 14:00\nD-10\n첨부파일\n첨부1_부패방지권익위법상 비위면직자등 취업제한 관련 체크리스트.hwp\n첨부2_채용 이의신청서.hwp\n첨부3_채용서류 반환청구서.hwp\n첨부4_블라인드 채용 위반 사례집.pdf\n",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "ogTitle": "한국교육학술정보원 정규직 채용",
+          "ogDescription": "keris.recruiter.co.kr/",
+          "ogSiteName": "한국교육학술정보원 채용"
+        },
+        "bodyTextLength": 302,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "roleName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/keris.recruiter.co.kr_001.html"
+    },
+    {
+      "url": "https://keris.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250776",
+      "expected": {
+        "category": "IT",
+        "company": "한국교육학술정보원",
+        "role": "인프라 유지 관리 및 프로젝트 기획 (서울)",
+        "deadline": "2026-04-27"
+      },
+      "domainGroup": "recruiter_co_kr",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=UTF-8",
+        "finalUrl": "https://keris.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250776",
+        "bytes": 13694,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 302,
+        "normalizedTextHead": "채용공고 내용\n공고명\n[정규직_교육시스템B(서울)] 2026년 제2차 직원 채용\n접수기간\n2026.04.13(월) 10:00\n~\n2026.04.27(월) 14:00\nD-10\n첨부파일\n첨부1_부패방지권익위법상 비위면직자등 취업제한 관련 체크리스트.hwp\n첨부2_채용 이의신청서.hwp\n첨부3_채용서류 반환청구서.hwp\n첨부4_블라인드 채용 위반 사례집.pdf\n",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "ogTitle": "한국교육학술정보원 정규직 채용",
+          "ogDescription": "keris.recruiter.co.kr/",
+          "ogSiteName": "한국교육학술정보원 채용"
+        },
+        "bodyTextLength": 302,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "roleName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/keris.recruiter.co.kr_002.html"
+    },
+    {
+      "url": "https://seasoned-oregano-ae8.notion.site/IT-336fd7779e9d80f9b0f7f0435ee515fe",
+      "expected": {
+        "category": "IT",
+        "company": "디지털대성",
+        "role": "IT인프라 및 보안 운영 (서울)",
+        "deadline": "상시"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://seasoned-oregano-ae8.notion.site/IT-336fd7779e9d80f9b0f7f0435ee515fe",
+        "bytes": 18216,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "Notion",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "Notion",
+          "ogTitle": "Notion | Where teams and agents work together",
+          "ogDescription": "A collaborative AI workspace, built on your company context. Build and orchestrate agents right alongside your team",
+          "ogSiteName": "Notion"
+        },
+        "bodyTextLength": 88,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/seasoned-oregano-ae8.notion.site_001.html"
+    },
+    {
+      "url": "https://kpf.plusrecruit.co.kr/#/recruitment/detail/34",
+      "expected": {
+        "category": "IT",
+        "company": "한국언론진흥재단",
+        "role": "IT 시스템 운영 (서울)",
+        "deadline": "2026-04-24"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "classification": "error",
+      "missingFields": [
+        "all"
+      ],
+      "error": "unable to verify the first certificate"
+    },
+    {
+      "url": "https://dongjin.careerlink.kr/jobs/RC20260403026668",
+      "expected": {
+        "category": "AI",
+        "company": "동진쎄미켐",
+        "role": "머신러닝 코드 개발 및 적용 (판교)",
+        "deadline": "2026-04-16"
+      },
+      "domainGroup": "careerlink",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://dongjin.careerlink.kr/jobs/RC20260403026668",
+        "bytes": 233358,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {},
+        "bodyTextLength": 0,
+        "spaCandidate": true
+      },
+      "classification": "expired",
+      "missingFields": [
+        "companyName",
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/dongjin.careerlink.kr_001.html"
+    },
+    {
+      "url": "https://krs.career.co.kr/jobs/jobs_view.asp?ID=1001",
+      "expected": {
+        "category": "AI",
+        "company": "한국선급",
+        "role": "AI융합기술연구 및 AI서비스 개발 (서울)",
+        "deadline": "2026-04-23"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://krs.career.co.kr/jobs/jobs_view.asp?ID=1001",
+        "bytes": 60175,
+        "charset": "euc-kr"
+      },
+      "parse": {
+        "companyName": "한국선급 채용홈페이지",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 10744,
+        "normalizedTextHead": "인재상/직급구조\n채용정보\n지원관리\n지원서 작성\n(구)지원서 확인 및 수정\n-->\n지원서 확인 및 수정\n전형결과 발표\n공지사항\n채용문의\nFAQ\nQ&A\n오시는길\n합격자 조회\n햄버거 메뉴\n닫기\n인재상/직급구조\n채용정보\n지원관리\n지원서 확인\n전형결과 발표\n공지사항\n채용문의\nFAQ\nQ&A\n오시는길\n-->\n채용정보 현재 진행중인 채용정보를\n상세하게 보실 수 있습니다.",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "한국선급 채용홈페이지"
+        },
+        "bodyTextLength": 10922,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/krs.career.co.kr_001.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53502070",
+      "expected": {
+        "category": "AI",
+        "company": "연합인포맥스",
+        "role": "IT/AI부문(전문연구요원 포함)신입 (서울)",
+        "deadline": "2026-05-04"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53502070",
+        "bytes": 80453,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 2019,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nIT/AI부문(전문연구요원 포함)신입\n연합인포맥스\n💰 취업축하금 50만원\n👶 육아휴직\n🙌 장기근속 포상\n🏢 연합뉴스 계열사\n👗 프리한 복장\n🚆 3호선 역세권 기업\n🍚 점심지원\n💵 성과급/상여금\n☕ 사내 카페\n포지션 상세 정보\n기술스택\nAzure DevOp",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | IT/AI부문(전문연구요원 포함)신입",
+          "ogTitle": "점핏 | IT/AI부문(전문연구요원 포함)신입",
+          "ogDescription": "연합인포맥스 - IT/AI부문(전문연구요원 포함)신입 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 2031,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_010.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53500132",
+      "expected": {
+        "category": "AI",
+        "company": "에너자이",
+        "role": "AI 컴파일러 엔지니어 (신입) (서울)",
+        "deadline": "2026-04-30"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53500132",
+        "bytes": 90671,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "• 2023년 10월 NVIDIA Inception 프로그램 선발",
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 4860,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nAI 컴파일러 엔지니어 (신입)\n에너자이\n💰 취업축하금 50만원\n👶 육아휴직\n📈 급성장중\n🙌 장기근속 포상\n🍚 점심지원\n💰 시리즈A 투자유치\n포지션 상세 정보\n기술스택\nC\nC++\nHaskell\nPyTorch\nMachineLearning\nAI/인공지능\n주요업무",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | AI 컴파일러 엔지니어 (신입)",
+          "ogTitle": "점핏 | AI 컴파일러 엔지니어 (신입)",
+          "ogDescription": "에너자이 - AI 컴파일러 엔지니어 (신입) 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 4884,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_011.html"
+    },
+    {
+      "url": "https://careers.lg.com/apply/detail?id=1001576",
+      "expected": {
+        "category": "AI",
+        "company": "LG생활건강",
+        "role": "AX신입 (서울)",
+        "deadline": "2026-04-14"
+      },
+      "domainGroup": "lg",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://careers.lg.com/apply/detail?id=1001576",
+        "bytes": 929,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "LG Careers",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "LG Careers",
+          "ogTitle": "",
+          "ogDescription": ""
+        },
+        "bodyTextLength": 0,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/careers.lg.com_001.html"
+    },
+    {
+      "url": "https://hyundai-wia.recruiter.co.kr/career/jobs/105662",
+      "expected": {
+        "category": "AI",
+        "company": "현대위아",
+        "role": "석사이상 - 데이터사이언티스트, 컴퓨터비전 엔지니어 (경기 의왕)",
+        "deadline": "2026-04-16"
+      },
+      "domainGroup": "recruiter_co_kr",
+      "match": {
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://hyundai-wia.recruiter.co.kr/career/jobs/105662",
+        "bytes": 20837,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "현대위아 채용",
+        "roleName": "데이터 사이언티스트 / 컴퓨터 비전 엔지니어 모집",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "현대위아 채용 | [신입] 데이터 사이언티스트 / 컴퓨터 비전 엔지니어 모집",
+          "ogTitle": "[신입] 데이터 사이언티스트 / 컴퓨터 비전 엔지니어 모집",
+          "ogDescription": "Your Dreams, Our Move",
+          "ogSiteName": "현대위아 채용"
+        },
+        "bodyTextLength": 0,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/hyundai-wia.recruiter.co.kr_001.html"
+    },
+    {
+      "url": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=28",
+      "expected": {
+        "category": "AI",
+        "company": "기아",
+        "role": "Mobile Developer (서울 양재)",
+        "deadline": "2026-04-13"
+      },
+      "domainGroup": "kia",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=utf-8",
+        "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=28",
+        "bytes": 68714,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "ⓒ 2025 Kia Corp. All Rights Reserved.",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 942,
+        "normalizedTextHead": "On Boarding\nTalent Lounge\nTalent Lounge\nPeople\nPeople\nCulture\nCulture\nCareer\nCareer\nOur Stories\nOur Stories\n채용 정보\n채용 정보\nAbout Kia\nAbout Kia\nJobs\nJobs\n2026 상반기 집중 채용\n2026 상반기 집중 채용\n로그아웃\n로그아웃\nKorea (HQ)",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "기아 탤런트 라운지",
+          "ogTitle": "Kia Talent Lounge",
+          "ogDescription": "Join the movement",
+          "ogSiteName": "Kia Talent Lounge"
+        },
+        "bodyTextLength": 947,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/career.kia.com_001.html"
+    },
+    {
+      "url": "https://www.hanwhain.com/portal/apply/recruit/detail?rtSeq=18568",
+      "expected": {
+        "category": "AI",
+        "company": "한화손보",
+        "role": "사이버보험-AI연계 상품개발 등 (서울)",
+        "deadline": "2026-04-20"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://www.hanwhain.com/portal/apply/recruit/detail?rtSeq=18568",
+        "bytes": 2064,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "한화인",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "한화인"
+        },
+        "bodyTextLength": 99,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.hanwhain.com_001.html"
+    },
+    {
+      "url": "https://career.miraeasset.com/job_posting/LmYO48wF",
+      "expected": {
+        "category": "AI",
+        "company": "미래에셋자산운용",
+        "role": "AI기반 운용프로세스 효율화 및 DB구축",
+        "deadline": "2026-04-20"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://career.miraeasset.com/job_posting/LmYO48wF",
+        "bytes": 644788,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "AI금융공학운용부문 신입(정규직 전환형 인턴사원) 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1770,
+        "normalizedTextHead": "[미래에셋자산운용] AI금융공학운용부문 신입(정규직 전환형 인턴사원) 채용 | 미래에셋\n[미래에셋자산운용] AI금융공학운용부문 신입(정규직 전환형 인턴사원) 채용 | 미래에셋\n운용 (자산운용) |\n회사\n미래에셋자산운용\nJob Position\nAI금융공학운용부문 신입(정규직 전환형 인턴사원)\n담당할 업무\n- 국내 인덱스, 커버드콜, 절대수익형 등 펀드 운용-",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[미래에셋자산운용] AI금융공학운용부문 신입(정규직 전환형 인턴사원) 채용 | 미래에셋",
+          "ogTitle": "[미래에셋자산운용] AI금융공학운용부문 신입(정규직 전환형 인턴사원) 채용 | 미래에셋",
+          "ogDescription": "운용 (자산운용) |",
+          "ogSiteName": "[미래에셋자산운용] AI금융공학운용부문 신입(정규직 전환형 인턴사원) 채용 | 미래에셋"
+        },
+        "bodyTextLength": 1871,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/career.miraeasset.com_001.html"
+    },
+    {
+      "url": "https://kesco.scout.co.kr/jobinfo/jobinfo_view.asp?ID=1007",
+      "expected": {
+        "category": "AI",
+        "company": "한국전기안전공사",
+        "role": "정보운영-AI 전략 기획, IT 인프라 구축 등 (전북 완주)",
+        "deadline": "2026-04-09"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://kesco.scout.co.kr/jobinfo/jobinfo_view.asp?ID=1007",
+        "bytes": 94729,
+        "charset": "euc-kr"
+      },
+      "parse": {
+        "companyName": "한국전기안전공사 채용정보",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 111,
+        "normalizedTextLength": 11498,
+        "normalizedTextHead": "채용공고\n온라인 입사지원\n지원확인/수정\n공지사항\nFAQ\n채용Q&A\n합격자조회\n채용공고\n「2026년 신입직원 채용」, 「2026년 채용형 인턴(고졸 제한경쟁)」, 「2026년 경력직원 채용」, 「2026년 공무직 채용」, 「2026년 체험형 인턴 채용」은 채용공고 및 입사지원서 접수기간이 동일하며, 채용전형 간 중복지원이 불가합니다.\n※\n채용분야별 자격요건 ",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "한국전기안전공사 채용정보",
+          "ogTitle": "스카우트",
+          "ogDescription": "스카우트 테스트"
+        },
+        "bodyTextLength": 11602,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities"
+      ],
+      "htmlPath": "fetched/kesco.scout.co.kr_001.html"
+    },
+    {
+      "url": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=29",
+      "expected": {
+        "category": "AI",
+        "company": "기아",
+        "role": "Data Scientist (서울 서초)",
+        "deadline": "2026-04-13"
+      },
+      "domainGroup": "kia",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=utf-8",
+        "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=29",
+        "bytes": 68714,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "ⓒ 2025 Kia Corp. All Rights Reserved.",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 942,
+        "normalizedTextHead": "On Boarding\nTalent Lounge\nTalent Lounge\nPeople\nPeople\nCulture\nCulture\nCareer\nCareer\nOur Stories\nOur Stories\n채용 정보\n채용 정보\nAbout Kia\nAbout Kia\nJobs\nJobs\n2026 상반기 집중 채용\n2026 상반기 집중 채용\n로그아웃\n로그아웃\nKorea (HQ)",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "기아 탤런트 라운지",
+          "ogTitle": "Kia Talent Lounge",
+          "ogDescription": "Join the movement",
+          "ogSiteName": "Kia Talent Lounge"
+        },
+        "bodyTextLength": 947,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/career.kia.com_002.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/company/16049",
+      "expected": {
+        "category": "SW",
+        "company": "업스테이지",
+        "role": "Software Engineer - Console (경기 용인)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/company/16049",
+        "bytes": 122894,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "(주)원티드랩 대표이사 이복기",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1588,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n업스테이지\nIT, 컨텐츠 경기 7년차 ( 2020 )\n우리는 Artificial Intelligence, AI 기술 발전이 우리의 삶에 분명한 영향을 미친다고 믿습니다. 인터넷으로 글로벌 이동과 소통에 제한이 사라진 것처럼, 스마트폰으로 인류의 라이프 스타일이 바뀌었던 것처럼",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "업스테이지 기업정보 - 채용 28건, 업력 6년, 경기  | 원티드",
+          "ogTitle": "업스테이지 기업정보 - 채용 28건, 업력 6년, 경기  | 원티드",
+          "ogDescription": "업스테이지 채용 공고와 회사 소식을 확인하세요. 원티드로 취업·이직 시 최대 100만원의 합격보상금을 드려요.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 1588,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_009.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53491555",
+      "expected": {
+        "category": "SW",
+        "company": "디엑스솔루션",
+        "role": "임베디드 소프트웨어 개발자 (Junior) (경기 성남)",
+        "deadline": "2026-04-30"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53491555",
+        "bytes": 75671,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1223,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\n임베디드 소프트웨어 개발자 (Junior)\n디엑스솔루션\n💰 취업축하금 50만원\n🏢 다산그룹 계열사\n⏰ 유연근무제\n포지션 상세 정보\n기술스택\nC\nC++\nLinux\nPython\nSpring Framework\nAI/인공지능\nEmbedded\nSW\nRTOS\nEmbedded ",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | 임베디드 소프트웨어 개발자 (Junior)",
+          "ogTitle": "점핏 | 임베디드 소프트웨어 개발자 (Junior)",
+          "ogDescription": "디엑스솔루션 - 임베디드 소프트웨어 개발자 (Junior) 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1223,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_012.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53446521",
+      "expected": {
+        "category": "SW",
+        "company": "엠투아이코퍼레이션",
+        "role": "펌웨어 개발 신입 채용 (경기 안양)",
+        "deadline": "2026-04-30"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53446521",
+        "bytes": 76791,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1458,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\n펌웨어 개발 신입 채용\n엠투아이코퍼레이션\n💰 취업축하금 50만원\n👶 육아휴직\n🏢 스마트이노베이션홀딩스 계열사\n💰 코스닥\n🌟 휴가비 지원\n🚆 4호선 역세권 기업\n🍚 점심지원\n💰 평균연봉 6,000 이상\n포지션 상세 정보\n기술스택\nC\nC#\nC++\nLinux\n",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | 펌웨어 개발 신입 채용",
+          "ogTitle": "점핏 | 펌웨어 개발 신입 채용",
+          "ogDescription": "엠투아이코퍼레이션 - 펌웨어 개발 신입 채용 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1470,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_013.html"
+    },
+    {
+      "url": "https://career.doosan.com/dsp/sa/RecList.jsp",
+      "expected": {
+        "category": "SW",
+        "company": "두산로보틱스",
+        "role": "Robot Control Engineer(석사이상) (경기 분당)",
+        "deadline": "2026-04-12"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=UTF-8",
+        "finalUrl": "https://career.doosan.com/dsp/sa/RecList.jsp",
+        "bytes": 81447,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "Career DOOSAN",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 2526,
+        "normalizedTextHead": "메뉴 바로가기\n본문 바로가기(skip to content)\n커리어두산 회원님\n커리어두산과 함께\n내일을 만들어가세요.\n로그인\n내일을 준비하는\n두산인의 하루\n생생 두산 입사기\n두산인의 성장\n두산인이 일하는 방식\n(DOOable WORK)\n두산인이 누리는 혜택\n(DOOable LIFE)\n└ 복리후생\n└ 출산·육아지원\n두산에 대하여\n두산스토리\n두산의 활약상\n경영철",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "Career DOOSAN"
+        },
+        "bodyTextLength": 2533,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/career.doosan.com_001.html"
+    },
+    {
+      "url": "https://careers.idis.co.kr/job/6",
+      "expected": {
+        "category": "SW",
+        "company": "아이디스",
+        "role": "SW 연구개발 (판교)",
+        "deadline": "2026-04-13"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://careers.idis.co.kr/job/6",
+        "bytes": 30559,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "아이디스 채용",
+        "roleName": "2026년 2분기 연구소-SW개발(신입) 인재 모집",
+        "keywords": [
+          "SW"
+        ],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1603,
+        "normalizedTextHead": "| IDIS 채용\n채용중인 포지션 회사소개 자주하는 질문\n2026년 2분기 연구소-SW개발(신입) 인재 모집\n신입 | 26년 04월 13일 오후 11시 59분 까지\n더 안전한 세상을 만들 아이디스人을 모십니다.\n아이디스는 VSS(Video Surveillance System) 전체 시장을 아우르는 통합보안솔루션 전문회사입니다. 1997년 세계 최초로 디지털",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "아이디스 채용"
+        },
+        "bodyTextLength": 1643,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/careers.idis.co.kr_001.html"
+    },
+    {
+      "url": "https://imbc.careerlink.kr/jobs/RC20260403026692",
+      "expected": {
+        "category": "SW",
+        "company": "iMBC",
+        "role": "iOS 앱개발 (서울)",
+        "deadline": "2026-04-17"
+      },
+      "domainGroup": "careerlink",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://imbc.careerlink.kr/jobs/RC20260403026692",
+        "bytes": 653392,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {},
+        "bodyTextLength": 0,
+        "spaCandidate": true
+      },
+      "classification": "total_failure",
+      "missingFields": [
+        "companyName",
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/imbc.careerlink.kr_001.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/324771",
+      "expected": {
+        "category": "SW",
+        "company": "와이어바알리",
+        "role": "안드로이드(Android) 개발자 (서울)",
+        "deadline": "2026-04-09"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/324771",
+        "bytes": 122357,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "Kotlin",
+          "VISA",
+          "Coroutines",
+          "Flow",
+          "LiveData",
+          "MVP",
+          "MVVM",
+          "DI",
+          "Dagger",
+          "Hilt",
+          "Koin"
+        ],
+        "mainResponsibilitiesLength": 194,
+        "qualificationsLength": 264,
+        "normalizedTextLength": 1767,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 2\n와이어바알리(WireBarley) ∙ 서울 강남구 ∙ 신입-경력 6년\n안드로이드(Android) 개발자\n포지션 상세\n와이어바알리는 모바일 해외송금과 해외결제 서비스를 제공하고 있는 글로벌 페이먼트 플랫폼입니다.\n전세계 65만명의 고객들이 한국, 미국, 캐나다, 영국",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "안드로이드(Android) 개발자",
+          "hiringOrgName": "와이어바알리(WireBarley)",
+          "hasValidThrough": true,
+          "descriptionLength": 201
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[와이어바알리(WireBarley)] 안드로이드(Android) 개발자 채용 공고 | 원티드",
+          "ogTitle": "[와이어바알리(WireBarley)] 안드로이드(Android) 개발자 채용 공고 | 원티드",
+          "ogDescription": "와이어바알리(WireBarley)의 안드로이드(Android) 개발자 포지션을 확인해 보세요. 취업·이직에 성공하면, 합격보상금 50만원을 드립니다.",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 1773,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_010.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53526814",
+      "expected": {
+        "category": "SW",
+        "company": "모비루스",
+        "role": "SW 개발자 신입 [Android, C, C++, QT] (서울)",
+        "deadline": "2026-05-02"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53526814",
+        "bytes": 76682,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "(주)모비루스의 비전은 'We lead AI mobility\" 입니다.",
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1492,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nSW 개발자 신입 [Android, C, C++, QT]\n모비루스\n💰 취업축하금 50만원\n🏠 주거복지\n💰 매출액 100억 기업\n📈 급성장중\n⏰ 유연근무제\n💰 평균연봉 6,000 이상\n포지션 상세 정보\n기술스택\nC\nC++\nGitHub\nQt\nSW\nMCU\nEmbed",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | SW 개발자 신입 [Android, C, C++, QT]",
+          "ogTitle": "점핏 | SW 개발자 신입 [Android, C, C++, QT]",
+          "ogDescription": "모비루스 - SW 개발자 신입 [Android, C, C++, QT] 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1522,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_014.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53500369",
+      "expected": {
+        "category": "SW",
+        "company": "페이타랩",
+        "role": "Windows개발자(신입) (부산)",
+        "deadline": "2026-04-30"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53500369",
+        "bytes": 98879,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 5501,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nWindows개발자 (신입)\n페이타랩\n💰 취업축하금 50만원\n💰 시리즈B 투자유치\n🚀 스타트업\n📈 급성장중\n포지션 상세 정보\n기술스택\n.NET\nC#\nC++\nGit\nSlack\nVisual Studio\nWindows\nWPF\n주요업무 【페이타랩 프로덕트팀】\n프로덕트팀",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | Windows개발자 (신입)",
+          "ogTitle": "점핏 | Windows개발자 (신입)",
+          "ogDescription": "페이타랩 - Windows개발자 (신입) 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 5526,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_015.html"
+    },
+    {
+      "url": "https://echomarketing.career.greetinghr.com/ko/o/209703",
+      "expected": {
+        "category": "SW",
+        "company": "에코마케팅",
+        "role": "프론트엔드 개발자 (서울)",
+        "deadline": "2026-04-19"
+      },
+      "domainGroup": "greetinghr",
+      "match": {
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://echomarketing.career.greetinghr.com/ko/o/209703",
+        "bytes": 218100,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "에코마케팅",
+        "roleName": "프론트엔드 개발자",
+        "keywords": [
+          "API",
+          "React",
+          "Typescript",
+          "Next",
+          "UI",
+          "FE",
+          "UI/UX",
+          "UX",
+          "AI",
+          "Next.js",
+          "Javascript",
+          "ES6"
+        ],
+        "mainResponsibilitiesLength": 259,
+        "qualificationsLength": 399,
+        "normalizedTextLength": 3046,
+        "normalizedTextHead": "💻프론트엔드 개발자 는,\n단순한 화면 구현을 넘어, 마케팅 솔루션의 사용자 경험(UX)을 설계하는 전략가 입니다. 마케터가 마주하는 복잡한 데이터와 프로세스를 직관적인 UI로 풀어내어 업무 효율을 극대화하고, 이를 통해 조직이 더 높은 혁신에 집중할 수 있는 환경을 만듭니다.\n☑️ 이런 도구를 사용하여 개발 및 소통 하고 있습니다.\nJira로 프로젝트 관",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [
+          "publicCareer/getCareerBootInfo/[object Object]",
+          "career/getOpeningById/[object Object]",
+          "translations/detail/[object Object]"
+        ],
+        "meta": {
+          "title": "[개발자 공개 채용]프론트엔드 신입 채용",
+          "ogTitle": "[개발자 공개 채용]프론트엔드 신입 채용",
+          "ogDescription": "에코마케팅의 공고를 확인해 보세요.",
+          "ogSiteName": "에코마케팅"
+        },
+        "bodyTextLength": 6575,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [],
+      "htmlPath": "fetched/echomarketing.career.greetinghr.com_001.html"
+    },
+    {
+      "url": "https://echomarketing.career.greetinghr.com/ko/o/209705",
+      "expected": {
+        "category": "SW",
+        "company": "에코마케팅",
+        "role": "백엔드 개발자 (서울)",
+        "deadline": "2026-04-19"
+      },
+      "domainGroup": "greetinghr",
+      "match": {
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://echomarketing.career.greetinghr.com/ko/o/209705",
+        "bytes": 219870,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "에코마케팅",
+        "roleName": "백엔드 개발자(Python, Java)",
+        "keywords": [
+          "Java",
+          "Mysql",
+          "Kafka",
+          "Kinesis",
+          "NoSQL",
+          "mongodb",
+          "AWS",
+          "GCP",
+          "NCP",
+          "Ecs",
+          "EKS",
+          "api"
+        ],
+        "mainResponsibilitiesLength": 144,
+        "qualificationsLength": 313,
+        "normalizedTextLength": 2935,
+        "normalizedTextHead": "💻백엔드 개발자(Python, Java) 는,\n단순한 시스템 유지보수를 넘어, 전사 부서의 업무를 자동화 솔루션으로 혁신하는 핵심 엔진 역할을 수행합니다. 모든 구성원이 단순 반복 업무에서 벗어나 오직 '혁신'에만 집중할 수 있는 환경을 설계하며, 이를 통해 조직의 압도적인 매출 달성을 현실로 만듭니다.\n문제 해결을 위한 새로운 기술 도입을 두려워하지 않",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [
+          "publicCareer/getCareerBootInfo/[object Object]",
+          "career/getOpeningById/[object Object]",
+          "translations/detail/[object Object]"
+        ],
+        "meta": {
+          "title": "[개발자 공개 채용]백엔드(Python, Java) 신입/경력 채용",
+          "ogTitle": "[개발자 공개 채용]백엔드(Python, Java) 신입/경력 채용",
+          "ogDescription": "에코마케팅의 공고를 확인해 보세요.",
+          "ogSiteName": "에코마케팅"
+        },
+        "bodyTextLength": 6401,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [],
+      "htmlPath": "fetched/echomarketing.career.greetinghr.com_002.html"
+    },
+    {
+      "url": "https://www.jobkorea.co.kr/Recruit/GI_Read/48896788?Oem_Code=C1&rPageCode=TL",
+      "expected": {
+        "category": "SW",
+        "company": "네오정보시스템",
+        "role": "소프트웨어 개발자 채용 (경기 성남)",
+        "deadline": "2026-05-01"
+      },
+      "domainGroup": "jobkorea",
+      "match": {
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48896788?Oem_Code=C1&rPageCode=TL",
+        "bytes": 129942,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "㈜네오정보시스템 채용",
+        "roleName": "소프트웨어 개발자 채용",
+        "keywords": [
+          "AI",
+          "TOP"
+        ],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 147,
+        "normalizedTextLength": 624,
+        "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n㈜네오정보시스템\n소프트웨어 개발자 채용\n상세요강 접수기간∙방법 기업정보 추천공고 신입·인턴 채용관\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\nC# 응용프로그램 개발\n모집인원 1 명\n고용형태\n정규직 (수습 3개월)\n직급/직책\n급여 회사",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "소프트웨어 개발자 채용",
+          "hiringOrgName": "㈜네오정보시스템",
+          "hasValidThrough": true,
+          "descriptionLength": 91
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "㈜네오정보시스템 채용 - 소프트웨어 개발자 채용 | 잡코리아",
+          "ogTitle": "㈜네오정보시스템 채용 - 소프트웨어 개발자 채용 | 잡코리아",
+          "ogDescription": "경력 : 신입·경력 , 학력 : 대졸↑, 급여 : 회사 내규에 따름(면접 후 결정), 마감일 : 2026.05.01",
+          "ogSiteName": "잡코리아"
+        },
+        "bodyTextLength": 624,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [
+        "mainResponsibilities"
+      ],
+      "htmlPath": "fetched/www.jobkorea.co.kr_002.html"
+    },
+    {
+      "url": "https://www.jobkorea.co.kr/Recruit/GI_Read/48898459?Oem_Code=C1&rPageCode=TL",
+      "expected": {
+        "category": "SW",
+        "company": "다산소프트",
+        "role": "자바개발자 정규직 모집 (신입) (서울)",
+        "deadline": "2026-05-02"
+      },
+      "domainGroup": "jobkorea",
+      "match": {
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48898459?Oem_Code=C1&rPageCode=TL",
+        "bytes": 126507,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "㈜다산소프트 채용",
+        "roleName": "자바개발자 정규직 모집 (신입)",
+        "keywords": [
+          "AI",
+          "TOP"
+        ],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 86,
+        "normalizedTextLength": 564,
+        "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n㈜다산소프트\n자바개발자 정규직 모집 (신입)\n상세요강 접수기간∙방법 기업정보 추천공고 IT 개발자 전문 채용관\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\nIT개발\n모집인원 ○ 명\n고용형태\n정규직\n급여 회사 내규에 따름 (면접 후 결정",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "자바개발자 정규직 모집 (신입)",
+          "hiringOrgName": "㈜다산소프트",
+          "hasValidThrough": true,
+          "descriptionLength": 72
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "㈜다산소프트 채용 - 자바개발자 정규직 모집 (신입) | 잡코리아",
+          "ogTitle": "㈜다산소프트 채용 - 자바개발자 정규직 모집 (신입) | 잡코리아",
+          "ogDescription": "경력 : 신입 , 학력 : 초대졸↑, 급여 : 회사 내규에 따름(면접 후 결정), 마감일 : 2026.05.02",
+          "ogSiteName": "잡코리아"
+        },
+        "bodyTextLength": 564,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [
+        "mainResponsibilities"
+      ],
+      "htmlPath": "fetched/www.jobkorea.co.kr_003.html"
+    },
+    {
+      "url": "https://careers.idis.co.kr/job/6",
+      "expected": {
+        "category": "SW",
+        "company": "아이디스",
+        "role": "SW개발(신입) 인재 모집 (대전)",
+        "deadline": "2026-04-13"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 1,
+        "companyMatch": true,
+        "roleMatch": true
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://careers.idis.co.kr/job/6",
+        "bytes": 30559,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "아이디스 채용",
+        "roleName": "2026년 2분기 연구소-SW개발(신입) 인재 모집",
+        "keywords": [
+          "SW"
+        ],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1603,
+        "normalizedTextHead": "| IDIS 채용\n채용중인 포지션 회사소개 자주하는 질문\n2026년 2분기 연구소-SW개발(신입) 인재 모집\n신입 | 26년 04월 13일 오후 11시 59분 까지\n더 안전한 세상을 만들 아이디스人을 모십니다.\n아이디스는 VSS(Video Surveillance System) 전체 시장을 아우르는 통합보안솔루션 전문회사입니다. 1997년 세계 최초로 디지털",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "아이디스 채용"
+        },
+        "bodyTextLength": 1643,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/careers.idis.co.kr_002.html"
+    },
+    {
+      "url": "https://career.doosan.com/dsp/sa/RecList.jsp",
+      "expected": {
+        "category": "IT",
+        "company": "두산로보틱스",
+        "role": "품질보증 엔지니어(제품 개발) (수원)",
+        "deadline": "2026-04-12"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=UTF-8",
+        "finalUrl": "https://career.doosan.com/dsp/sa/RecList.jsp",
+        "bytes": 81446,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "Career DOOSAN",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 2526,
+        "normalizedTextHead": "메뉴 바로가기\n본문 바로가기(skip to content)\n커리어두산 회원님\n커리어두산과 함께\n내일을 만들어가세요.\n로그인\n내일을 준비하는\n두산인의 하루\n생생 두산 입사기\n두산인의 성장\n두산인이 일하는 방식\n(DOOable WORK)\n두산인이 누리는 혜택\n(DOOable LIFE)\n└ 복리후생\n└ 출산·육아지원\n두산에 대하여\n두산스토리\n두산의 활약상\n경영철",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "Career DOOSAN"
+        },
+        "bodyTextLength": 2533,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/career.doosan.com_002.html"
+    },
+    {
+      "url": "https://careers.idis.co.kr/job/8",
+      "expected": {
+        "category": "IT",
+        "company": "아이디스",
+        "role": "HW 연구개발 (판교)",
+        "deadline": "2026-04-13"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://careers.idis.co.kr/job/8",
+        "bytes": 30113,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "아이디스 채용",
+        "roleName": "2026년 2분기 연구소-HW개발(신입) 인재 모집",
+        "keywords": [
+          "HW"
+        ],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1512,
+        "normalizedTextHead": "| IDIS 채용\n채용중인 포지션 회사소개 자주하는 질문\n2026년 2분기 연구소-HW개발(신입) 인재 모집\n신입 | 26년 04월 13일 오후 11시 59분 까지\n더 안전한 세상을 만들 아이디스人을 모십니다.\n아이디스는 VSS(Video Surveillance System) 전체 시장을 아우르는 통합보안솔루션 전문회사입니다. 1997년 세계 최초로 디지털",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "아이디스 채용"
+        },
+        "bodyTextLength": 1552,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/careers.idis.co.kr_003.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53484407",
+      "expected": {
+        "category": "IT",
+        "company": "파이오링크",
+        "role": "SQA실 테스터 신입 채용 (서울)",
+        "deadline": "2026-04-29"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53484407",
+        "bytes": 76616,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1282,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\nSQA실 테스터 신입 채용\n파이오링크\n💰 취업축하금 50만원\n👶 육아휴직\n🙌 장기근속 포상\n🏢 이글루코퍼레이션 계열사\n💰 코스닥\n🚆 1호선 역세권 기업\n💵 성과급/상여금\n포지션 상세 정보\n기술스택\nvmware\nSW\nSwitch\nL2\nL3\nCcna\nK8S\n주",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | SQA실 테스터 신입 채용",
+          "ogTitle": "점핏 | SQA실 테스터 신입 채용",
+          "ogDescription": "파이오링크 - SQA실 테스터 신입 채용 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1282,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_016.html"
+    },
+    {
+      "url": "https://www.jobkorea.co.kr/Recruit/GI_Read/48891846?Oem_Code=C1&rPageCode=TL",
+      "expected": {
+        "category": "IT",
+        "company": "디알텍",
+        "role": "시스템HW개발 (경기 성남)",
+        "deadline": "2026-04-30"
+      },
+      "domainGroup": "jobkorea",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.jobkorea.co.kr/Recruit/GI_Read/48891846?Oem_Code=C1&rPageCode=TL",
+        "bytes": 154440,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "디알텍 채용",
+        "keywords": [
+          "AI",
+          "TOP"
+        ],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 230,
+        "normalizedTextLength": 1124,
+        "normalizedTextHead": "회원가입/로그인\n기업 서비스\nJOB 찾기\n합격축하금\n공채정보\n신입·인턴\n기업·연봉\n콘텐츠\n취업톡톡\n디알텍\n2026년 신입 및 경력 채용\n상세요강 접수기간∙방법 기업정보 추천공고 산업기능요원 전문채용관\n채용정보에 잘못된 내용이 있을 경우 문의 해주세요.\n모집요강\n모집분야\nSW개발, 시스템 HW설계 (경력), 시스템 HW개발 (신입/경력), 시스템 엔지니어, ",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "2026년 신입 및 경력 채용",
+          "hiringOrgName": "디알텍",
+          "hasValidThrough": true,
+          "descriptionLength": 103
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "디알텍 채용 - 2026년 신입 및 경력 채용 | 잡코리아",
+          "ogTitle": "디알텍 채용 - 2026년 신입 및 경력 채용 | 잡코리아",
+          "ogDescription": "경력 : 신입·경력 , 학력 : 고졸↑, 급여 : 회사 내규에 따름, 마감일 : 2026.04.30",
+          "ogSiteName": "잡코리아"
+        },
+        "bodyTextLength": 1124,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities"
+      ],
+      "htmlPath": "fetched/www.jobkorea.co.kr_004.html"
+    },
+    {
+      "url": "https://www.wanted.co.kr/wd/351737",
+      "expected": {
+        "category": "IT",
+        "company": "카카오모빌리티",
+        "role": "자율주행 E/E 엔지니어 (R&D) (경기 성남)",
+        "deadline": "상시"
+      },
+      "domainGroup": "wanted",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.wanted.co.kr/wd/351737",
+        "bytes": 125206,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "<저작권자 (주)원티드랩. 무단전재-재배포금지>",
+        "keywords": [
+          "EMI/EMC",
+          "ESD",
+          "E/E",
+          "Electrical/Electronic",
+          "Architecture",
+          "Power",
+          "Distribution",
+          "Network",
+          "Wiring",
+          "Harness",
+          "Requirements",
+          "Specification"
+        ],
+        "mainResponsibilitiesLength": 150,
+        "qualificationsLength": 332,
+        "normalizedTextLength": 1595,
+        "normalizedTextHead": "채용\n이력서\n교육•이벤트\n콘텐츠\n소셜\n프리랜서\n더보기\n회원가입/로그인\n기업 서비스\n1 / 11\n카카오모빌리티(kakaomobility) ∙ 경기 성남시 ∙ 신입 이상\n자율주행 E/E 엔지니어 (R&D)\n포지션 상세\n[팀 소개]\n카카오모빌리티 자율주행개발팀은 ​단순한 부품의 조합을 넘어,\n센서 ​퓨전과 고성능 ​컴퓨팅 아키텍처를 직접 ​설계하며 자율주행 시스",
+        "warnings": []
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": true,
+          "title": "자율주행 E/E 엔지니어 (R&D)",
+          "hiringOrgName": "카카오모빌리티(kakaomobility)",
+          "hasValidThrough": false,
+          "descriptionLength": 158
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {
+          "title": "[카카오모빌리티(kakaomobility)] 자율주행 E/E 엔지니어 (R&D) 채용 공고 | 원티드",
+          "ogTitle": "[카카오모빌리티(kakaomobility)] 자율주행 E/E 엔지니어 (R&amp;D) 채용 공고 | 원티드",
+          "ogDescription": "카카오모빌리티(kakaomobility)의 자율주행 E/E 엔지니어 (R&amp;D) 포지션에 관심 있으시다면 지금 바로 지원해보세요!",
+          "ogSiteName": "원티드"
+        },
+        "bodyTextLength": 1605,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.wanted.co.kr_011.html"
+    },
+    {
+      "url": "https://www.pearlabyss.com/ko-KR/Company/Careers/detail?_jobOpeningNo=674",
+      "expected": {
+        "category": "IT",
+        "company": "펄어비스",
+        "role": "[신입] 시스템 엔지니어 모집 (경기 과천)",
+        "deadline": "상시"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://www.pearlabyss.com/ko-KR/Company/Careers/List",
+        "bytes": 314732,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 68296,
+        "normalizedTextHead": "전체 메뉴\n펄어비스\n언어 변경\nKOR\nENG\nJPN\n소개\n펄어비스 소개\n연구소\n사회공헌\nCCP\n게임\n검은사막\n검은사막 모바일\n붉은사막\n도깨비\n플랜 8\n미디어\n보도자료\n미디어 행사\n문화\n기업문화\n복지\n펄어비스 소식\n채용\n채용 소개\n채용 공고\n투자정보\n기업지배구조\n주가정보\n재무정보\n공시·공고\nIR 자료\n지속가능경영\n펄어비스와 함께 꿈꿔왔던 게임을 만드세요\n검색",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "채용 | Pearl Abyss",
+          "ogTitle": "채용 | Pearl Abyss",
+          "ogDescription": "펄어비스에서 최고의 팀과 함께 글로벌 No.1 게임을 만드세요."
+        },
+        "bodyTextLength": 68541,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.pearlabyss.com_001.html"
+    },
+    {
+      "url": "https://kac.careerlink.kr/jobs/RC20260326026238",
+      "expected": {
+        "category": "IT",
+        "company": "한국공항공사",
+        "role": "공항 운영 관련 IT시스템 운영 및 연계 시스템 관리 등",
+        "deadline": "2026-04-14"
+      },
+      "domainGroup": "careerlink",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://kac.careerlink.kr/jobs/RC20260326026238",
+        "bytes": 146741,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "nextData",
+        "nextDataQueryKeys": [],
+        "meta": {},
+        "bodyTextLength": 0,
+        "spaCandidate": true
+      },
+      "classification": "total_failure",
+      "missingFields": [
+        "companyName",
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/kac.careerlink.kr_001.html"
+    },
+    {
+      "url": "https://kpta.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250155",
+      "expected": {
+        "category": "IT",
+        "company": "한국의약품수출입협회",
+        "role": "전산 (서울)",
+        "deadline": "2026-04-19"
+      },
+      "domainGroup": "recruiter_co_kr",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=UTF-8",
+        "finalUrl": "https://kpta.recruiter.co.kr/app/jobnotice/view?systemKindCode=MRS2&jobnoticeSn=250155",
+        "bytes": 11574,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 103,
+        "normalizedTextHead": "채용공고 내용\n공고명\n한국의약품수출입협회 전산 정규직 직원 모집\n접수기간\n2026.04.06(월) 10:00\n~\n2026.04.19(일) 23:59\nD-2\n목록\n지원서 작성\n지원서 수정",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "ogSiteName": "한국의약품수출입협회 채용"
+        },
+        "bodyTextLength": 453,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "companyName",
+        "roleName",
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/kpta.recruiter.co.kr_001.html"
+    },
+    {
+      "url": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=39",
+      "expected": {
+        "category": "IT",
+        "company": "기아",
+        "role": "Machine Learning Engineer (서울 양재)",
+        "deadline": "2026-04-13"
+      },
+      "domainGroup": "kia",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=utf-8",
+        "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=39",
+        "bytes": 68714,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "ⓒ 2025 Kia Corp. All Rights Reserved.",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 942,
+        "normalizedTextHead": "On Boarding\nTalent Lounge\nTalent Lounge\nPeople\nPeople\nCulture\nCulture\nCareer\nCareer\nOur Stories\nOur Stories\n채용 정보\n채용 정보\nAbout Kia\nAbout Kia\nJobs\nJobs\n2026 상반기 집중 채용\n2026 상반기 집중 채용\n로그아웃\n로그아웃\nKorea (HQ)",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "기아 탤런트 라운지",
+          "ogTitle": "Kia Talent Lounge",
+          "ogDescription": "Join the movement",
+          "ogSiteName": "Kia Talent Lounge"
+        },
+        "bodyTextLength": 947,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/career.kia.com_003.html"
+    },
+    {
+      "url": "https://recruit.truefriend.com/announcementView?_ev=mF2cVoL6gkMUC2jrpZOfBrgGuQuZ2TOKWg5pOufQHunjizlNbJd9p0c5536WUTWvjRNB%2FHD7qxrUUUM26Q7piq56GAee7V%2FY6yI1dx%2BUurj9Wj2lnYKA1w1Qs6WGHcBLyeNX%2BbSGkrdsvte%2FtyyOfnqxiBiwfHSv65IKGuUd1eznAMLb%2B3jp00hFFM7bdr5gT%2Fie%2FAF0Dia6vy4bbyRMuSYm%2FNFiXQ9%2FUhUiqwDV8gNDgGhi8%2BRTyec1T8outWN1w0KJqiqK1LwNm2u6PZ56BTlJ6R5Y7fl26kF1W4zPfysg28Zmos2qttnoDXons%2B91s65GZw0htgtbk9flxhRWSQ%3D%3D&_ec=PUsFO8QcZLFizgsEBOdnONniqVo%2BtY3vzcVlrBDOuBg%3D",
+      "expected": {
+        "category": "IT",
+        "company": "한국투자증권",
+        "role": "IT/Digital (서울)",
+        "deadline": "2026-04-22"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=UTF-8",
+        "finalUrl": "https://recruit.truefriend.com/announcementView?_ev=mF2cVoL6gkMUC2jrpZOfBrgGuQuZ2TOKWg5pOufQHunjizlNbJd9p0c5536WUTWvjRNB%2FHD7qxrUUUM26Q7piq56GAee7V%2FY6yI1dx%2BUurj9Wj2lnYKA1w1Qs6WGHcBLyeNX%2BbSGkrdsvte%2FtyyOfnqxiBiwfHSv65IKGuUd1eznAMLb%2B3jp00hFFM7bdr5gT%2Fie%2FAF0Dia6vy4bbyRMuSYm%2FNFiXQ9%2FUhUiqwDV8gNDgGhi8%2BRTyec1T8outWN1w0KJqiqK1LwNm2u6PZ56BTlJ6R5Y7fl26kF1W4zPfysg28Zmos2qttnoDXons%2B91s65GZw0htgtbk9flxhRWSQ%3D%3D&_ec=PUsFO8QcZLFizgsEBOdnONniqVo%2BtY3vzcVlrBDOuBg%3D",
+        "bytes": 48356,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "채용포탈",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 5072,
+        "normalizedTextHead": "Toggle navigation\n닫기\n회사소개\nVISION\n인재상\n계열사소개\n채용가이드\n채용공고\n지원하기\n마이페이지\n채용공고\n한국투자 금융지주는 열정과 도전정신을 바탕으로 전문적 역량을 갖춘 인재를 기다리고 있습니다.\n지원하기\n개인정보 처리방침\nFamily site 바로가기\n한국투자금융지주\n한국투자증권\n한국투자신탁운용\n한국투자밸류자산운용\n한국투자저축은행\n한",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "채용포탈"
+        },
+        "bodyTextLength": 5099,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/recruit.truefriend.com_001.html"
+    },
+    {
+      "url": "https://jumpit.saramin.co.kr/position/53460085",
+      "expected": {
+        "category": "IT",
+        "company": "이비즈테크",
+        "role": "시스템 사업부 엔지니어 신입 (서울)",
+        "deadline": "2026-04-29"
+      },
+      "domainGroup": "jumpit",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jumpit.saramin.co.kr/position/53460085",
+        "bytes": 75225,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "주식회사 이비즈테크는 클라우드 플랫폼 및 스토리지 전문 업체로 다년간의 노하우와 기술력을 바탕으로 IT Infra 사업을 시작하고 있습니다.",
+        "roleName": "개발자 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 1176,
+        "normalizedTextHead": "회원가입/로그인\n개발자 채용\n이력서\n#꿀 피드\n개발자 인터뷰\n회원가입/로그인\n기업 서비스\n시스템 사업부 엔지니어 신입\n이비즈테크\n💰 취업축하금 50만원\n💰 매출액 100억 기업\n🙌 장기근속 포상\n🍭 간식 제공\n포지션 상세 정보\n기술스택\nLinux\nWindows\nAZURE\nvmware\n주요업무 • NetApp 스토리지 설치, 유지보수, 장애처리\n• 서",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "점핏 | 시스템 사업부 엔지니어 신입",
+          "ogTitle": "점핏 | 시스템 사업부 엔지니어 신입",
+          "ogDescription": "이비즈테크 - 시스템 사업부 엔지니어 신입 채용",
+          "ogSiteName": "개발자 커리어 점프, 점핏"
+        },
+        "bodyTextLength": 1176,
+        "spaCandidate": false
+      },
+      "classification": "success",
+      "missingFields": [
+        "mainResponsibilities",
+        "qualifications"
+      ],
+      "htmlPath": "fetched/jumpit.saramin.co.kr_017.html"
+    },
+    {
+      "url": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=45",
+      "expected": {
+        "category": "IT",
+        "company": "기아",
+        "role": "IT Project Manage (서울 양재)",
+        "deadline": "2026-04-13"
+      },
+      "domainGroup": "kia",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=utf-8",
+        "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=45",
+        "bytes": 68714,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "ⓒ 2025 Kia Corp. All Rights Reserved.",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 942,
+        "normalizedTextHead": "On Boarding\nTalent Lounge\nTalent Lounge\nPeople\nPeople\nCulture\nCulture\nCareer\nCareer\nOur Stories\nOur Stories\n채용 정보\n채용 정보\nAbout Kia\nAbout Kia\nJobs\nJobs\n2026 상반기 집중 채용\n2026 상반기 집중 채용\n로그아웃\n로그아웃\nKorea (HQ)",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "기아 탤런트 라운지",
+          "ogTitle": "Kia Talent Lounge",
+          "ogDescription": "Join the movement",
+          "ogSiteName": "Kia Talent Lounge"
+        },
+        "bodyTextLength": 947,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/career.kia.com_004.html"
+    },
+    {
+      "url": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=44",
+      "expected": {
+        "category": "IT",
+        "company": "기아",
+        "role": "Solution Architect (ERP FI 모듈 재무회계-서울 양재)",
+        "deadline": "2026-04-13"
+      },
+      "domainGroup": "kia",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=utf-8",
+        "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=44",
+        "bytes": 68714,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "ⓒ 2025 Kia Corp. All Rights Reserved.",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 942,
+        "normalizedTextHead": "On Boarding\nTalent Lounge\nTalent Lounge\nPeople\nPeople\nCulture\nCulture\nCareer\nCareer\nOur Stories\nOur Stories\n채용 정보\n채용 정보\nAbout Kia\nAbout Kia\nJobs\nJobs\n2026 상반기 집중 채용\n2026 상반기 집중 채용\n로그아웃\n로그아웃\nKorea (HQ)",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "기아 탤런트 라운지",
+          "ogTitle": "Kia Talent Lounge",
+          "ogDescription": "Join the movement",
+          "ogSiteName": "Kia Talent Lounge"
+        },
+        "bodyTextLength": 947,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/career.kia.com_005.html"
+    },
+    {
+      "url": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=41",
+      "expected": {
+        "category": "IT",
+        "company": "기아",
+        "role": "글로벌 CRM (서울 양재)",
+        "deadline": "2026-04-13"
+      },
+      "domainGroup": "kia",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html;charset=utf-8",
+        "finalUrl": "https://career.kia.com/apply/applyView.kc?recuYy=2026&recuType=N1&recuCls=41",
+        "bytes": 68713,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "ⓒ 2025 Kia Corp. All Rights Reserved.",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 942,
+        "normalizedTextHead": "On Boarding\nTalent Lounge\nTalent Lounge\nPeople\nPeople\nCulture\nCulture\nCareer\nCareer\nOur Stories\nOur Stories\n채용 정보\n채용 정보\nAbout Kia\nAbout Kia\nJobs\nJobs\n2026 상반기 집중 채용\n2026 상반기 집중 채용\n로그아웃\n로그아웃\nKorea (HQ)",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "기아 탤런트 라운지",
+          "ogTitle": "Kia Talent Lounge",
+          "ogDescription": "Join the movement",
+          "ogSiteName": "Kia Talent Lounge"
+        },
+        "bodyTextLength": 947,
+        "spaCandidate": false
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/career.kia.com_006.html"
+    },
+    {
+      "url": "https://wins21.recruiter.co.kr/career/jobs/105993",
+      "expected": {
+        "category": "IT",
+        "company": "윈스테크넷",
+        "role": "정보보호 서비스, 보안서비스 영업, 클라우드 영업 (판교)",
+        "deadline": "2026-04-19"
+      },
+      "domainGroup": "recruiter_co_kr",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://wins21.recruiter.co.kr/career/jobs/105993",
+        "bytes": 19742,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "윈스 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "윈스 채용 | 2026년 4월 월간채용(신입)",
+          "ogTitle": "2026년 4월 월간채용(신입)",
+          "ogDescription": "사이버보안 전문기업 윈스의 채용 지원 사이트",
+          "ogSiteName": "윈스테크넷 채용"
+        },
+        "bodyTextLength": 0,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/wins21.recruiter.co.kr_001.html"
+    },
+    {
+      "url": "https://www.hanwhain.com/portal/apply/recruit/detail?rtSeq=18568",
+      "expected": {
+        "category": "IT",
+        "company": "한화손보",
+        "role": "사이버보험 (서울)",
+        "deadline": "2026-04-20"
+      },
+      "domainGroup": "other_corporate",
+      "match": {
+        "score": 0,
+        "companyMatch": false,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html",
+        "finalUrl": "https://www.hanwhain.com/portal/apply/recruit/detail?rtSeq=18568",
+        "bytes": 2064,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "한화인",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "한화인"
+        },
+        "bodyTextLength": 99,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/www.hanwhain.com_002.html"
+    },
+    {
+      "url": "https://jejubank.recruiter.co.kr/career/jobs/105612",
+      "expected": {
+        "category": "IT",
+        "company": "제주은행",
+        "role": "ICT (제주, 서울 등)",
+        "deadline": "2026-04-15"
+      },
+      "domainGroup": "recruiter_co_kr",
+      "match": {
+        "score": 0.6,
+        "companyMatch": true,
+        "roleMatch": false
+      },
+      "http": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "finalUrl": "https://jejubank.recruiter.co.kr/career/jobs/105612",
+        "bytes": 17486,
+        "charset": "utf-8"
+      },
+      "parse": {
+        "companyName": "제주은행 채용",
+        "keywords": [],
+        "mainResponsibilitiesLength": 0,
+        "qualificationsLength": 0,
+        "normalizedTextLength": 0,
+        "normalizedTextHead": "",
+        "warnings": [
+          "주요 업무 섹션을 명확히 찾지 못했습니다.",
+          "자격요건 섹션을 명확히 찾지 못했습니다."
+        ]
+      },
+      "structure": {
+        "jsonLdJobPosting": {
+          "present": false,
+          "hasValidThrough": false
+        },
+        "ssrPayload": "none",
+        "meta": {
+          "title": "제주은행 채용 | 2026년 제주은행 채용연계형 인턴십 선발(ICT 부문)",
+          "ogTitle": "2026년 제주은행 채용연계형 인턴십 선발(ICT 부문)",
+          "ogDescription": "제주은행의 채용홈페이지입니다. 현재 채용중인 포지션을 확인해보세요!",
+          "ogSiteName": "제주은행 채용"
+        },
+        "bodyTextLength": 0,
+        "spaCandidate": true
+      },
+      "classification": "partial",
+      "missingFields": [
+        "roleName",
+        "mainResponsibilities",
+        "qualifications",
+        "deadline"
+      ],
+      "htmlPath": "fetched/jejubank.recruiter.co.kr_001.html"
+    }
+  ]
+}
