@@ -497,7 +497,7 @@ Daangn 33자 case 는 이 floor 로 자동 차단됨.
 
 ## 11. 준비 스테이지 — CDP 검증용 dev-login 엔드포인트 (~1-2h)
 
-> **이 섹션은 별도 plan 으로 분리됨** → [`docs/plans/2026-04-19-posting-parser-dev-login-l3-verification.md`](./2026-04-19-posting-parser-dev-login-l3-verification.md)
+> **이 섹션은 별도 plan 으로 분리됨** → [`docs/plans/2026-04-19-posting-parser-dev-login-l3-verification.md`](../2026-04-19-posting-parser-dev-login-l3-verification.md)
 > 구현은 후속 이슈로 보류. 이 PR (posting parser P1) 범위에 포함되지 않음.
 
 P1 Chunk 6 의 L3 CDP 자동화가 P0 검증 때 **Google OAuth 벽**에 막혀 실행되지 못함 (handoff 실행 기록). 재발 방지용 준비 작업을 Chunk 6 착수 전에 수행.
