@@ -1,0 +1,173 @@
+name: Deploy to Dev (자소전.shop)
+
+# develop 브랜치 push = 테스트 환경 배포.
+# 수동 재배포는 workflow_dispatch 로.
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 동시 배포 충돌 방지. cancel-in-progress=false 로 큐잉 전략.
+# 주의: 빠른 연속 push 시 배포가 큐에 쌓여 순차 실행된다. 건너뛰지 않음.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  # ---- Job 1: 러너 바이너리 빌드 (ubuntu runner, bun cross-compile) ----
+  # D10: 서버 CPU 부담 회피. 4 플랫폼 (windows-x64, mac-arm64/x64, linux-x64) 바이너리 생성.
+  # BACKEND_URL 은 자소전.shop 으로 박아서 테스트 사용자가 받은 러너가 dev backend 로 연결.
+  # D11: 파일명은 `-local` suffix (runnerDownload.ts 의 LOCAL_FILE_MAP 호환).
+  # D12: Puppeteer 번들링은 첫 배포 후 실증. 실패 시 Phase 2 별도 plan.
+  runner-build:
+    name: Build runner binaries (bun --compile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Puppeteer Chromium 다운로드 스킵 — 바이너리 컴파일에는 불필요.
+      # 런타임 동작 이슈(D12)는 첫 배포 후 별도 검증.
+      - name: Install dependencies
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+        run: npm ci
+
+      - name: Build runner binaries (BACKEND_URL=자소전.shop, --local suffix)
+        env:
+          JASOJEON_RUNNER_BACKEND_URL: "https://xn--9l4b13i8j.shop"
+        run: |
+          cd packages/runner
+          bun run build.ts --local
+
+      - name: List built binaries
+        run: ls -la packages/runner/dist-bin/
+
+      - name: Upload runner artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: runner-binaries
+          path: packages/runner/dist-bin/
+          retention-days: 7
+
+  # ---- Job 2: 서버 배포 (SSH: git reset + install + rsync dist-bin + systemctl restart) ----
+  deploy:
+    name: Deploy to OCI (자소전.shop)
+    runs-on: ubuntu-latest
+    needs: runner-build
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout (metadata only)
+        uses: actions/checkout@v4
+
+      - name: Download runner artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: runner-binaries
+          path: /tmp/runner-dist-bin
+
+      - name: Validate secrets
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+        run: |
+          if [ -z "$OCI_HOST" ]; then echo "::error::OCI_HOST secret is empty"; exit 1; fi
+          if [ -z "$OCI_USER" ]; then echo "::error::OCI_USER secret is empty"; exit 1; fi
+          if [ -z "$OCI_SSH_KEY" ]; then echo "::error::OCI_SSH_KEY secret is empty"; exit 1; fi
+          echo "All secrets present. Host length: ${#OCI_HOST}, User: $OCI_USER"
+
+      - name: Prepare SSH key
+        env:
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+        run: |
+          printf '%s\n' "$OCI_SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Deploy to dev stack (git reset + install + systemctl restart)
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+        run: |
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            "${OCI_USER}@${OCI_HOST}" \
+            'set -euo pipefail
+            cd ~/project/Jasojeon
+            echo "=== git fetch ==="
+            git fetch origin develop
+            echo "=== git reset --hard origin/develop ==="
+            git reset --hard origin/develop
+            echo "=== install deps (with-npm.sh install) ==="
+            ./scripts/with-npm.sh install
+            echo "=== ensure dist-bin dir ==="
+            mkdir -p packages/runner/dist-bin
+            echo "=== restart jasojeon-dev.service ==="
+            systemctl --user restart jasojeon-dev.service
+            echo "=== verify is-active ==="
+            systemctl --user is-active jasojeon-dev.service
+            echo "=== deploy done ==="'
+
+      - name: Rsync runner binaries to server
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+        run: |
+          # chmod +x 로컬에서 부여 후 rsync 가 permission 보존
+          chmod +x /tmp/runner-dist-bin/* || true
+          rsync -avz --delete \
+            -e "ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no" \
+            /tmp/runner-dist-bin/ \
+            "${OCI_USER}@${OCI_HOST}:~/project/Jasojeon/packages/runner/dist-bin/"
+          echo "=== rsync done ==="
+
+      - name: Verify runner binaries on server
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+        run: |
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            "${OCI_USER}@${OCI_HOST}" \
+            'ls -la ~/project/Jasojeon/packages/runner/dist-bin/'
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f /tmp/deploy_key
+
+      # 실패 시에만 systemd 저널 마지막 50줄 수집. 진단 저렴.
+      - name: Collect failure logs
+        if: failure()
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+        run: |
+          printf '%s\n' "$OCI_SSH_KEY" > /tmp/deploy_key_fail
+          chmod 600 /tmp/deploy_key_fail
+          ssh -i /tmp/deploy_key_fail \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            "${OCI_USER}@${OCI_HOST}" \
+            'journalctl --user -u jasojeon-dev.service -n 50 --no-pager || true
+             systemctl --user status jasojeon-dev.service --no-pager || true' \
+            || echo "Failed to collect logs (SSH or systemctl unavailable)"
+          rm -f /tmp/deploy_key_fail

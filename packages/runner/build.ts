@@ -15,9 +15,10 @@ interface BuildTarget {
 
 const isLocal = process.argv.includes("--local");
 const suffix = isLocal ? "-local" : "";
-const BACKEND_URL = isLocal
-  ? "http://localhost:4000"
-  : "https://xn--9l4b13i8j.com";
+// 우선순위: env override > --local 플래그 > 기본(자소전.com, main prod)
+const BACKEND_URL =
+  process.env.JASOJEON_RUNNER_BACKEND_URL
+  ?? (isLocal ? "http://localhost:4000" : "https://xn--9l4b13i8j.com");
 
 // --windows-hide-console 은 Windows 호스트에서만 사용 가능 (Linux CI에서는 생략)
 const isWindowsHost = process.platform === "win32";

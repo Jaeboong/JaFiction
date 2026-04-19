@@ -128,3 +128,23 @@ ssh -i /tmp/oci.key ubuntu@168.107.25.12
 ```bash
 ./scripts/stop-dev-stack.sh  # 기존 프로세스 정리 후 재시작
 ```
+
+---
+
+## 8. 테스트 서버 (자소전.shop) 운영
+
+| 항목 | 값 |
+|------|-----|
+| 도메인 | `xn--9l4b13i8j.shop` (한글: 자소전.shop) |
+| 서버 | OCI 168.107.25.12 (`ubuntu@`) |
+| 레포 경로 | `~/project/Jasojeon` (develop 체크아웃) |
+| 배포 트리거 | `develop` 브랜치 push → `.github/workflows/deploy-dev.yml` |
+| 스택 | `docker-compose.dev.yml` (pg 5433, redis 6380, backend 4000, nginx 80/443) + host Vite 4124 |
+| systemd unit | `jasojeon-dev.service` (user scope, `Type=oneshot`, `RemainAfterExit=yes`, `TimeoutStartSec=300`, `linger=yes`) |
+| 재시작 명령 | `systemctl --user restart jasojeon-dev.service` |
+| 상태 확인 | `systemctl --user is-active jasojeon-dev.service` |
+| 로그 | `journalctl --user -u jasojeon-dev.service -n 200 --no-pager` |
+
+**주의**: 이 서버의 `~/project/Jasojeon` 파일을 직접 수정하지 않는다. deploy 가
+`git reset --hard origin/develop` 로 덮어쓴다. 수정이 필요하면 로컬에서 commit →
+`git push origin develop` → 자동 배포 확인.
