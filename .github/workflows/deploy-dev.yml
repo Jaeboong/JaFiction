@@ -123,8 +123,13 @@ jobs:
             git reset --hard origin/develop
             echo "=== install deps (with-npm.sh install) ==="
             ./scripts/with-npm.sh install
-            echo "=== ensure dist-bin dir ==="
-            mkdir -p packages/runner/dist-bin
+            echo "=== ensure dist-bin dir (+ fix ownership if root-owned) ==="
+            DIST_BIN=packages/runner/dist-bin
+            if [ -d "$DIST_BIN" ] && [ ! -w "$DIST_BIN" ]; then
+              echo "[warn] $DIST_BIN not writable by $USER — attempting sudo chown"
+              sudo -n chown -R "$USER:$USER" "$DIST_BIN" || { echo "[error] chown failed"; exit 1; }
+            fi
+            mkdir -p "$DIST_BIN"
             echo "=== restart jasojeon-dev.service ==="
             systemctl --user restart jasojeon-dev.service
             echo "=== verify is-active ==="
