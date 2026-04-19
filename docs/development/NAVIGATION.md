@@ -67,6 +67,8 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `essayQuestionWorkflow.ts` | 자소서 문항 상태 관리 워크플로 |
 | `viewModels.ts` | UI로 노출되는 뷰모델 타입 |
 | `jobPosting.ts` | 채용공고 파싱 및 모델 |
+| `jobPosting/crossValidate.ts` | company/role 후보 간 token overlap 교차검증과 factual 승격 헬퍼 |
+| `jobPosting/companyHostnames.ts` | hostname 기반 회사명 힌트(staging) 매핑 |
 | `companySourceModel.ts` | 회사 소스 도메인 모델 |
 | `companySources.ts` | 회사 소스 집계 및 처리 |
 | `jobPosting/jsonLd.ts` | JSON-LD `JobPosting` 스크립트 추출과 제목/설명/고용형태 정규화 유틸리티 |
@@ -157,6 +159,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `sidebarStateStore.test.ts` | sidebarStateStore.ts |
 | `webviewProtocol.test.ts` | webviewProtocol.ts |
 | `jobPosting.test.ts` | jobPosting.ts |
+| `jobPosting.crossValidate.test.ts` | jobPosting/crossValidate.ts, cross-source factual 승격 규칙 |
 | `jobPosting.jsonLd.test.ts` | jobPosting/jsonLd.ts |
 | `companySources.test.ts` | companySources.ts |
 | `insights.test.ts` | insights.ts |

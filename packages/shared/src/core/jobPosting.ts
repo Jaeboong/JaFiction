@@ -1,8 +1,16 @@
 import { nowIso } from "./utils";
 import type { SourceTier } from "./sourceTier";
 import { filterAtsFromTitle } from "./atsBlacklist";
+import { deriveCompanyNameHintsFromHostname } from "./jobPosting/companyHostnames";
+import {
+  DEFAULT_STOP_TOKENS,
+  crossValidateCandidates,
+  tokenOverlapAtLeast,
+  type CrossValidateCandidate
+} from "./jobPosting/crossValidate";
 import {
   extractJsonLdJobPosting,
+  extractOgSiteName,
   normalizeEmploymentType,
   normalizeJobPostingRoleName,
   normalizeValidThroughIso,
@@ -92,6 +100,7 @@ interface EmbeddedJobPostingSource {
   detailHtml: string;
   pageTitle?: string;
   companyName?: string;
+  roleTitle?: string;
 }
 
 interface SectionCandidate {
@@ -182,6 +191,8 @@ const deadlineDatePatterns = [
   /(?:(\d{4})\s*[./-]\s*)?(\d{1,2})\s*[./-]\s*(\d{1,2})(?:\s*\([^)]*\))?(?:\s*(?:(\d{1,2})\s*:\s*(\d{2})|(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분?)?))?/g
 ] as const;
 const jsonLdOverviewMinLength = 50;
+const companyLinePattern = /주식회사|\(주\)|corp|inc\.?|ltd\.?/i;
+const companyLineMaxLength = 40;
 
 export async function fetchAndExtractJobPosting(
   request: JobPostingExtractionRequest,
@@ -248,12 +259,16 @@ export async function fetchAndExtractJobPosting(
   const normalizedText = normalizeJobPostingHtml(embeddedSource?.detailHtml || html);
   // ATS 사이트명이 포함된 title은 companyName/roleName 추출에 사용하면 안 되므로 필터링
   const resolvedPageTitle = embeddedSource?.pageTitle || filterAtsFromTitle(extractTitle(html));
+  const finalUrl = response.url || jobPostingUrl;
   return buildExtractionResult("url", normalizedText, {
-    fetchedUrl: response.url || jobPostingUrl,
+    fetchedUrl: finalUrl,
     pageTitle: resolvedPageTitle,
     seedCompanyName: embeddedSource?.companyName || request.seedCompanyName,
     seedRoleName: request.seedRoleName,
-    jsonLdFields
+    jsonLdFields,
+    nextDataRoleTitle: embeddedSource?.roleTitle,
+    hostname: extractHostname(finalUrl),
+    html
   });
 }
 
@@ -288,16 +303,21 @@ export function extractStructuredJobPostingFields(
     pageTitle?: string;
     seedCompanyName?: string;
     seedRoleName?: string;
+    nextDataRoleTitle?: string;
     jsonLdSeed?: JsonLdJobPostingFields;
+    hostname?: string;
+    html?: string;
   } = {}
 ): Omit<JobPostingExtractionResult, "source" | "fetchedAt" | "fetchedUrl" | "normalizedText"> {
   const lines = normalizedText.split("\n").map((line) => line.trim()).filter(Boolean);
   const warnings: string[] = [];
+  const ogSiteName = options.html ? extractOgSiteName(options.html) : undefined;
 
   const roleResult = inferRoleNameWithTier(lines, {
     pageTitle: options.pageTitle,
     seedRoleName: options.seedRoleName,
-    jsonLdSeed: options.jsonLdSeed
+    jsonLdSeed: options.jsonLdSeed,
+    nextDataRoleTitle: options.nextDataRoleTitle
   });
   const roleName = roleResult?.value;
 
@@ -316,7 +336,9 @@ export function extractStructuredJobPostingFields(
     pageTitle: options.pageTitle,
     seedCompanyName: options.seedCompanyName,
     jsonLdSeed: options.jsonLdSeed,
-    roleName
+    roleName,
+    hostname: options.hostname,
+    ogSiteName
   });
   const companyName = companyResult?.value;
   const keywords = collectKeywords([mainResponsibilities, qualifications, preferredQualifications, roleName].filter(Boolean).join("\n"));
@@ -480,13 +502,19 @@ function buildExtractionResult(
     seedCompanyName?: string;
     seedRoleName?: string;
     jsonLdFields?: JsonLdJobPostingFields;
+    nextDataRoleTitle?: string;
+    hostname?: string;
+    html?: string;
   }
 ): JobPostingExtractionResult {
   const extracted = extractStructuredJobPostingFields(normalizedText, {
     pageTitle: options.pageTitle,
     seedCompanyName: options.seedCompanyName,
     seedRoleName: options.seedRoleName,
-    jsonLdSeed: options.jsonLdFields
+    nextDataRoleTitle: options.nextDataRoleTitle,
+    jsonLdSeed: options.jsonLdFields,
+    hostname: options.hostname,
+    html: options.html
   });
   const jsonLdOverview = resolveJsonLdOverview(options.jsonLdFields);
   const jsonLdDeadline = resolveJsonLdDeadline(options.jsonLdFields);
@@ -504,6 +532,20 @@ function buildExtractionResult(
 
   if (mergedOtherInfo) {
     extracted.otherInfo = mergedOtherInfo;
+  }
+
+  const jsonLdDescription = options.jsonLdFields?.description?.trim();
+  if (jsonLdDescription && extracted.mainResponsibilities?.trim()) {
+    const descriptionText = stripJobPostingDescriptionHtml(jsonLdDescription);
+    if (
+      descriptionText.length >= jsonLdOverviewMinLength
+      && tokenOverlapAtLeast(extracted.mainResponsibilities, descriptionText, 5, {
+        minTokenLen: 2,
+        stopTokens: DEFAULT_STOP_TOKENS
+      })
+    ) {
+      extracted.fieldSources.mainResponsibilities = "factual";
+    }
   }
 
   return {
@@ -581,6 +623,7 @@ function inferRoleNameWithTier(
     pageTitle?: string;
     seedRoleName?: string;
     jsonLdSeed?: JsonLdJobPostingFields;
+    nextDataRoleTitle?: string;
   } = {}
 ): FieldWithTier | undefined {
   if (options.seedRoleName?.trim()) {
@@ -599,7 +642,9 @@ function inferRoleNameWithTier(
 
   const fromDetail = extractRoleFromDetailLines(lines);
   if (fromDetail) {
-    // body에서 추출된 값이 pageTitle에도 포함되면 contextual (교차 확인)
+    if (options.nextDataRoleTitle && tokenOverlapAtLeast(fromDetail, options.nextDataRoleTitle, 2)) {
+      return { value: fromDetail, tier: "factual" };
+    }
     if (options.pageTitle && options.pageTitle.toLowerCase().includes(fromDetail.toLowerCase())) {
       return { value: fromDetail, tier: "contextual" };
     }
@@ -660,6 +705,8 @@ function inferCompanyNameWithTier(
     seedCompanyName?: string;
     jsonLdSeed?: JsonLdJobPostingFields;
     roleName?: string;
+    hostname?: string;
+    ogSiteName?: string;
   } = {}
 ): FieldWithTier | undefined {
   if (options.seedCompanyName?.trim()) {
@@ -670,19 +717,41 @@ function inferCompanyNameWithTier(
     return { value: options.jsonLdSeed.companyName.trim(), tier: "factual" };
   }
 
-  const bodyMatch = lines.find((line) => /주식회사|\(주\)|corp|inc\.?|ltd\.?/i.test(line))?.trim();
-  if (bodyMatch) {
-    // body에서 추출한 값이 pageTitle에도 포함되면 contextual
-    if (options.pageTitle && options.pageTitle.toLowerCase().includes(bodyMatch.toLowerCase())) {
-      return { value: bodyMatch, tier: "contextual" };
-    }
-    return { value: bodyMatch, tier: "role" };
+  const titleStripCandidate = extractCompanyNameFromTitleStrip(options.pageTitle, options.roleName);
+  const footerCandidate = extractFooterCompanyCandidate(lines);
+  const bodyCandidate = extractBodyCompanyCandidate(lines);
+  const candidates: CrossValidateCandidate[] = [];
+
+  for (const companyNameHint of deriveCompanyNameHintsFromHostname(options.hostname)) {
+    candidates.push({ value: companyNameHint, source: "hostname" });
+  }
+  if (titleStripCandidate) {
+    candidates.push({ value: titleStripCandidate, source: "titleStrip" });
+  }
+  if (options.ogSiteName?.trim()) {
+    candidates.push({ value: options.ogSiteName.trim(), source: "ogSiteName" });
+  }
+  if (footerCandidate) {
+    candidates.push({ value: footerCandidate, source: "footer" });
+  }
+  if (bodyCandidate) {
+    candidates.push({ value: bodyCandidate, source: "body" });
   }
 
-  const titleCandidates = options.pageTitle ? splitTitleCandidates(options.pageTitle) : [];
-  const companyCandidate = titleCandidates.find((candidate) => candidate.trim() && candidate.trim() !== options.roleName?.trim());
-  if (companyCandidate) {
-    return { value: companyCandidate.trim(), tier: "role" };
+  const crossValidated = crossValidateCandidates(candidates, { minAgreeCount: 2 });
+  if (crossValidated.tier === "factual" && crossValidated.value) {
+    return { value: crossValidated.value, tier: "factual" };
+  }
+
+  if (titleStripCandidate) {
+    return { value: titleStripCandidate, tier: "role" };
+  }
+
+  if (bodyCandidate) {
+    if (options.pageTitle && options.pageTitle.toLowerCase().includes(bodyCandidate.toLowerCase())) {
+      return { value: bodyCandidate, tier: "contextual" };
+    }
+    return { value: bodyCandidate, tier: "role" };
   }
 
   return undefined;
@@ -741,6 +810,40 @@ function splitTitleCandidates(title: string): string[] {
     .split(/\||-|—|·|:/)
     .map((part) => normalizeOpeningTitle(part) || part.trim())
     .filter(Boolean);
+}
+
+function extractCompanyNameFromTitleStrip(pageTitle: string | undefined, roleName: string | undefined): string | undefined {
+  const filteredTitle = filterAtsFromTitle(pageTitle);
+  if (!filteredTitle) {
+    return undefined;
+  }
+
+  const normalizedRoleName = roleName?.trim().toLowerCase();
+  const candidates = splitTitleCandidates(filteredTitle)
+    .map((candidate) => stripCompanyTitleSuffix(candidate))
+    .filter(Boolean);
+
+  return candidates.find((candidate) => candidate.toLowerCase() !== normalizedRoleName);
+}
+
+function stripCompanyTitleSuffix(value: string): string {
+  return value.replace(/\s*(?:채용\s*공고|채용공고|채용|공고)\s*$/i, "").trim();
+}
+
+function extractFooterCompanyCandidate(lines: string[]): string | undefined {
+  const footerLines = lines.slice(-30);
+  for (let index = footerLines.length - 1; index >= 0; index -= 1) {
+    const candidate = footerLines[index]?.trim();
+    if (candidate && candidate.length <= companyLineMaxLength && companyLinePattern.test(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+function extractBodyCompanyCandidate(lines: string[]): string | undefined {
+  const candidate = lines.find((line) => companyLinePattern.test(line))?.trim();
+  return candidate && candidate.length <= companyLineMaxLength ? candidate : undefined;
 }
 
 function stripBulletPrefix(line: string): string {
@@ -880,6 +983,18 @@ function normalizeOpeningTitle(title?: string): string | undefined {
     .trim();
 }
 
+function extractHostname(url: string | undefined): string | undefined {
+  if (!url?.trim()) {
+    return undefined;
+  }
+
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
+}
+
 function extractEmbeddedJobPostingSource(html: string): EmbeddedJobPostingSource | undefined {
   const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/i);
   if (!nextDataMatch?.[1]) {
@@ -910,7 +1025,8 @@ function extractEmbeddedJobPostingSource(html: string): EmbeddedJobPostingSource
     return {
       detailHtml,
       pageTitle: extractString((openingPayload as Record<string, unknown> | undefined)?.openingsInfo, "title"),
-      companyName: extractString((openingPayload as Record<string, unknown> | undefined)?.groupInfo, "name")
+      companyName: extractString((openingPayload as Record<string, unknown> | undefined)?.groupInfo, "name"),
+      roleTitle: extractString((openingPayload as Record<string, unknown> | undefined)?.openingsInfo, "title")
     };
   } catch {
     return undefined;

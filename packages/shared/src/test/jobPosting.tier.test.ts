@@ -69,6 +69,21 @@ test("extractStructuredJobPostingFields: heading roleName matches pageTitle → 
   assert.equal(result.fieldSources.roleName, "contextual");
 });
 
+test("extractStructuredJobPostingFields: NEXT_DATA role title cross-validates body roleName as factual", () => {
+  const normalizedText = [
+    "프론트엔드 개발자",
+    "담당업무",
+    "웹 프론트엔드 개발"
+  ].join("\n");
+  const result = extractStructuredJobPostingFields(normalizedText, {
+    pageTitle: "[개발자 공개 채용]프론트엔드 신입 채용",
+    nextDataRoleTitle: "[개발자 공개 채용]프론트엔드 신입 채용"
+  });
+
+  assert.equal(result.roleName, "프론트엔드 개발자");
+  assert.equal(result.fieldSources.roleName, "factual");
+});
+
 // 단독 title 폴백 → role tier
 test("extractStructuredJobPostingFields: companyName from title only → role", () => {
   // 본문에 heading 없어서 title에서만 추출
@@ -104,6 +119,55 @@ test("extractStructuredJobPostingFields: unextracted fields not in fieldSources"
   // 추출 안 된 필드는 key 자체가 없어야 함
   assert.equal(result.fieldSources.companyName, undefined);
   assert.equal(result.fieldSources.roleName, undefined);
+});
+
+test("extractStructuredJobPostingFields: idis hostname + title + footer cross-validates companyName as factual", () => {
+  const normalizedText = [
+    "2026년 2분기 연구소-SW개발(신입) 인재 모집",
+    "직무명: SW개발(신입)",
+    "(주)아이디스는 채용 과정에서 타사의 영업비밀 보호를 위해 최선을 다하고 있습니다. 경력 지원자 분들께서는 전/현직장의 영업비밀을 침해하지 않도록 유의해 주시기 바랍니다.",
+    "대전광역시 유성구 테크노3로 8-10(관평동)",
+    "(주)아이디스홀딩스"
+  ].join("\n");
+
+  const result = extractStructuredJobPostingFields(normalizedText, {
+    pageTitle: "아이디스 채용",
+    hostname: "careers.idis.co.kr"
+  });
+
+  assert.equal(result.companyName, "아이디스");
+  assert.equal(result.fieldSources.companyName, "factual");
+});
+
+test("extractStructuredJobPostingFields: long body-only company garbage does not become factual", () => {
+  const normalizedText = [
+    "(주)아이디스는 채용 과정에서 타사의 영업비밀 보호를 위해 최선을 다하고 있습니다. 경력 지원자 분들께서는 전/현직장의 영업비밀을 침해하지 않도록 유의해 주시기 바랍니다.",
+    "지원하기"
+  ].join("\n");
+
+  const result = extractStructuredJobPostingFields(normalizedText, {});
+
+  assert.equal(result.companyName, undefined);
+  assert.equal(result.fieldSources.companyName, undefined);
+});
+
+test("extractStructuredJobPostingFields: JSON-LD seed keeps precedence over cross-vote company candidates", () => {
+  const normalizedText = [
+    "2026년 2분기 연구소-SW개발(신입) 인재 모집",
+    "(주)아이디스홀딩스"
+  ].join("\n");
+
+  const result = extractStructuredJobPostingFields(normalizedText, {
+    pageTitle: "아이디스 채용",
+    hostname: "careers.idis.co.kr",
+    jsonLdSeed: {
+      companyName: "JSON-LD 회사",
+      sourceTier: "factual"
+    }
+  });
+
+  assert.equal(result.companyName, "JSON-LD 회사");
+  assert.equal(result.fieldSources.companyName, "factual");
 });
 
 async function extractFromHtml(
@@ -267,6 +331,125 @@ test.describe("JSON-LD pipeline integration priority", () => {
 
     assert.equal(result.deadline, "2026년 05월 01일, 23:59");
     assert.equal(result.fieldSources.deadline, "factual");
+  });
+
+  test("JSON-LD description cross-validates mainResponsibilities as factual", async () => {
+    const description = [
+      "플랫폼 백엔드 서비스 개발",
+      "대용량 트래픽 처리",
+      "API 설계",
+      "데이터 파이프라인 운영",
+      "서비스 안정성 개선",
+      "모니터링 자동화",
+      "협업 문화 개선"
+    ].join(" ");
+    const result = await extractFromHtml(`
+      <html>
+        <head>
+          <script type="application/ld+json">
+            {
+              "@type": "JobPosting",
+              "title": "플랫폼 백엔드 엔지니어",
+              "hiringOrganization": { "name": "테스트컴퍼니" },
+              "description": "${description}"
+            }
+          </script>
+        </head>
+        <body>
+          <section>
+            <h2>주요 업무</h2>
+            <p>플랫폼 백엔드 서비스 개발</p>
+            <p>대용량 트래픽 처리</p>
+            <p>API 설계</p>
+            <p>데이터 파이프라인 운영</p>
+            <p>서비스 안정성 개선</p>
+            <p>모니터링 자동화</p>
+          </section>
+        </body>
+      </html>
+    `);
+
+    assert.equal(result.fieldSources.mainResponsibilities, "factual");
+  });
+
+  test("short JSON-LD description does not promote mainResponsibilities", async () => {
+    const result = await extractFromHtml(`
+      <html>
+        <head>
+          <script type="application/ld+json">
+            {
+              "@type": "JobPosting",
+              "title": "플랫폼 백엔드 엔지니어",
+              "hiringOrganization": { "name": "테스트컴퍼니" },
+              "description": "${"짧은 설명".repeat(5)}"
+            }
+          </script>
+        </head>
+        <body>
+          <section>
+            <h2>주요 업무</h2>
+            <p>플랫폼 백엔드 서비스 개발</p>
+            <p>대용량 트래픽 처리</p>
+          </section>
+        </body>
+      </html>
+    `);
+
+    assert.equal(result.fieldSources.mainResponsibilities, undefined);
+  });
+
+  test("low-overlap mainResponsibilities stays non-factual even with long JSON-LD description", async () => {
+    const description = [
+      "플랫폼 백엔드 서비스 개발",
+      "대용량 트래픽 처리",
+      "API 설계",
+      "데이터 파이프라인 운영",
+      "서비스 안정성 개선",
+      "모니터링 자동화",
+      "협업 문화 개선"
+    ].join(" ");
+    const result = await extractFromHtml(`
+      <html>
+        <head>
+          <script type="application/ld+json">
+            {
+              "@type": "JobPosting",
+              "title": "플랫폼 백엔드 엔지니어",
+              "hiringOrganization": { "name": "테스트컴퍼니" },
+              "description": "${description}"
+            }
+          </script>
+        </head>
+        <body>
+          <section>
+            <h2>주요 업무</h2>
+            <p>문서 작성</p>
+            <p>회의 운영</p>
+          </section>
+        </body>
+      </html>
+    `);
+
+    assert.equal(result.fieldSources.mainResponsibilities, undefined);
+  });
+
+  test("without JSON-LD description mainResponsibilities tier stays unchanged", async () => {
+    const result = await extractFromHtml(`
+      <html>
+        <head>
+          <title>테스트컴퍼니 | 플랫폼 백엔드 엔지니어</title>
+        </head>
+        <body>
+          <section>
+            <h2>주요 업무</h2>
+            <p>플랫폼 백엔드 서비스 개발</p>
+            <p>대용량 트래픽 처리</p>
+          </section>
+        </body>
+      </html>
+    `);
+
+    assert.equal(result.fieldSources.mainResponsibilities, undefined);
   });
 
   test("without JSON-LD, title-only fallback stays at role tier", async () => {

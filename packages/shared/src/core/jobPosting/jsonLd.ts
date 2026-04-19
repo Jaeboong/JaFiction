@@ -15,6 +15,8 @@ export interface JsonLdJobPostingFields {
 type JsonLdRecord = Record<string, unknown>;
 
 const jsonLdScriptPattern = /<script\b[^>]*\btype\s*=\s*(?:"application\/ld\+json"|'application\/ld\+json'|application\/ld\+json)[^>]*>([\s\S]*?)<\/script>/gi;
+const metaTagPattern = /<meta\b[^>]*>/gi;
+const attributePattern = /([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
 const stripTagsPattern = /<[^>]+>/g;
 const lineBreakTagPattern = /<br\s*\/?>/gi;
 const paragraphTagPattern = /<\/?p\b[^>]*>/gi;
@@ -111,6 +113,23 @@ export function normalizeValidThroughIso(iso: string): string | undefined {
   }
 
   return `${year}년 ${month}월 ${day}일, ${hour}:${minute}`;
+}
+
+export function extractOgSiteName(html: string): string | undefined {
+  for (const tagMatch of html.matchAll(metaTagPattern)) {
+    const attributes = parseHtmlAttributes(tagMatch[0]);
+    const property = attributes.get("property")?.toLowerCase() || attributes.get("name")?.toLowerCase();
+    if (property !== "og:site_name") {
+      continue;
+    }
+
+    const content = attributes.get("content");
+    if (content?.trim()) {
+      return normalizeMultilineText(decodeHtmlEntities(content));
+    }
+  }
+
+  return undefined;
 }
 
 function findJobPosting(raw: unknown): JsonLdRecord | undefined {
@@ -328,6 +347,18 @@ function decodeHtmlEntities(text: string): string {
 
     return match;
   });
+}
+
+function parseHtmlAttributes(tag: string): Map<string, string> {
+  const attributes = new Map<string, string>();
+  for (const match of tag.matchAll(attributePattern)) {
+    const name = match[1]?.toLowerCase();
+    const value = match[2] ?? match[3] ?? match[4] ?? "";
+    if (name) {
+      attributes.set(name, value);
+    }
+  }
+  return attributes;
 }
 
 function isValidDate(year: number, month: number, day: number): boolean {
