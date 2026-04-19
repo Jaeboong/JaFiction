@@ -275,6 +275,10 @@ Chunk 별 success criteria 에 "어댑터 대표 fixture 2~3건 goldens 추가" 
 - fixture factual 비율 43.8% ± 0.5p
 - 신규 unit test 추가 (≥ 8건)
 
+**Implementation note (2026-04-19)**:
+- empty registry 기반 SiteAdapter 인프라와 signature downgrade 헬퍼를 추가하고, `jobPosting.ts` 는 URL 경로에서만 어댑터를 조회/병합하도록 연결
+- Chunk 0 범위에서는 사이트 구현체를 추가하지 않아 기존 extraction 동작과 goldens 를 그대로 유지
+
 **예상 working day**: 1.5일
 
 ---

@@ -66,7 +66,10 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `roleAssignments.ts` | 에세이 역할(작성자/검토자 등) 배정 로직 |
 | `essayQuestionWorkflow.ts` | 자소서 문항 상태 관리 워크플로 |
 | `viewModels.ts` | UI로 노출되는 뷰모델 타입 |
-| `jobPosting.ts` | 채용공고 파싱 및 모델 |
+| `jobPosting.ts` | 채용공고 파싱 및 모델, SiteAdapter 결과 병합 진입점 |
+| `jobPosting/adapters/types.ts` | 사이트별 채용공고 어댑터 인터페이스와 per-field tier 결과 타입 |
+| `jobPosting/adapters/registry.ts` | SiteAdapter 등록/조회와 URL 기반 우선순위 매칭 |
+| `jobPosting/adapters/signatureCheck.ts` | 사이트 시그니처 검증과 어댑터 tier 강등 헬퍼 |
 | `jobPosting/crossValidate.ts` | company/role 후보 간 token overlap 교차검증과 factual 승격 헬퍼 |
 | `jobPosting/companyHostnames.ts` | hostname 기반 회사명 힌트(staging) 매핑 |
 | `companySourceModel.ts` | 회사 소스 도메인 모델 |
@@ -159,6 +162,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `sidebarStateStore.test.ts` | sidebarStateStore.ts |
 | `webviewProtocol.test.ts` | webviewProtocol.ts |
 | `jobPosting.test.ts` | jobPosting.ts |
+| `jobPosting.adapter.test.ts` | jobPosting 어댑터 registry/signature/merge 인프라 |
 | `jobPosting.crossValidate.test.ts` | jobPosting/crossValidate.ts, cross-source factual 승격 규칙 |
 | `jobPosting.jsonLd.test.ts` | jobPosting/jsonLd.ts |
 | `companySources.test.ts` | companySources.ts |

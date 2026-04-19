@@ -1,6 +1,9 @@
 import { nowIso } from "./utils";
 import type { SourceTier } from "./sourceTier";
 import { filterAtsFromTitle } from "./atsBlacklist";
+import { findMatchingAdapter } from "./jobPosting/adapters/registry";
+import { downgradeAllFields } from "./jobPosting/adapters/signatureCheck";
+import type { SiteAdapterResult } from "./jobPosting/adapters/types";
 import { deriveCompanyNameHintsFromHostname } from "./jobPosting/companyHostnames";
 import {
   DEFAULT_STOP_TOKENS,
@@ -257,10 +260,21 @@ export async function fetchAndExtractJobPosting(
   const embeddedSource = extractEmbeddedJobPostingSource(html);
   const jsonLdFields = extractJsonLdJobPosting(html);
   const normalizedText = normalizeJobPostingHtml(embeddedSource?.detailHtml || html);
-  // ATS 사이트명이 포함된 title은 companyName/roleName 추출에 사용하면 안 되므로 필터링
-  const resolvedPageTitle = embeddedSource?.pageTitle || filterAtsFromTitle(extractTitle(html));
   const finalUrl = response.url || jobPostingUrl;
-  return buildExtractionResult("url", normalizedText, {
+  const adapterLookup = resolveMatchingAdapter(jobPostingUrl, finalUrl);
+  const adapterResult = resolveSiteAdapterResult(
+    adapterLookup?.adapter.extract(html, {
+      url: adapterLookup?.match.canonicalUrl || finalUrl,
+      jsonLdFields,
+      normalizedText
+    }),
+    adapterLookup?.adapter.siteKey
+  );
+  // ATS 사이트명이 포함된 title은 companyName/roleName 추출에 사용하면 안 되므로 필터링
+  const extractedPageTitle = extractTitle(html);
+  const resolvedPageTitle = embeddedSource?.pageTitle
+    || (shouldBypassAtsTitleFilter(adapterResult) ? extractedPageTitle : filterAtsFromTitle(extractedPageTitle));
+  const baseResult = buildExtractionResult("url", normalizedText, {
     fetchedUrl: finalUrl,
     pageTitle: resolvedPageTitle,
     seedCompanyName: embeddedSource?.companyName || request.seedCompanyName,
@@ -270,6 +284,7 @@ export async function fetchAndExtractJobPosting(
     hostname: extractHostname(finalUrl),
     html
   });
+  return mergeSiteAdapterResult(baseResult, adapterResult);
 }
 
 export function normalizeJobPostingHtml(html: string): string {
@@ -569,6 +584,109 @@ function buildExtractionResult(
     warnings: extracted.warnings,
     fieldSources: extracted.fieldSources
   };
+}
+
+function resolveMatchingAdapter(originalUrl: string, finalUrl: string) {
+  const primaryMatch = findMatchingAdapter(originalUrl);
+  if (primaryMatch) {
+    return primaryMatch;
+  }
+
+  if (finalUrl !== originalUrl) {
+    return findMatchingAdapter(finalUrl);
+  }
+
+  return undefined;
+}
+
+function resolveSiteAdapterResult(
+  adapterResult: SiteAdapterResult | undefined,
+  siteKey: string | undefined
+): SiteAdapterResult | undefined {
+  if (!adapterResult) {
+    return undefined;
+  }
+
+  const normalizedResult = adapterResult.signatureVerified
+    ? cloneSiteAdapterResult(adapterResult)
+    : downgradeAllFields(adapterResult);
+
+  if (!adapterResult.signatureVerified && siteKey) {
+    normalizedResult.warnings = mergeWarnings(normalizedResult.warnings, [`site_signature_mismatch:${siteKey}`]);
+  }
+
+  return normalizedResult;
+}
+
+function cloneSiteAdapterResult(adapterResult: SiteAdapterResult): SiteAdapterResult {
+  return {
+    ...adapterResult,
+    fields: { ...adapterResult.fields },
+    warnings: [...adapterResult.warnings]
+  };
+}
+
+function shouldBypassAtsTitleFilter(adapterResult: SiteAdapterResult | undefined): boolean {
+  if (!adapterResult) {
+    return false;
+  }
+
+  if (adapterResult.fields.companyName || adapterResult.fields.roleName) {
+    return true;
+  }
+
+  return adapterResult.adapterTrust === "high" && adapterResult.signatureVerified;
+}
+
+function mergeSiteAdapterResult(
+  baseResult: JobPostingExtractionResult,
+  adapterResult: SiteAdapterResult | undefined
+): JobPostingExtractionResult {
+  if (!adapterResult) {
+    return baseResult;
+  }
+
+  const mergedResult: JobPostingExtractionResult = {
+    ...baseResult,
+    warnings: mergeWarnings(baseResult.warnings, adapterResult.warnings),
+    fieldSources: { ...baseResult.fieldSources }
+  };
+
+  for (const fieldKey of JOB_POSTING_FIELD_KEYS) {
+    const extraction = adapterResult.fields[fieldKey];
+    if (!extraction) {
+      continue;
+    }
+
+    mergedResult[fieldKey] = extraction.value;
+    mergedResult.fieldSources[fieldKey] = extraction.tier;
+  }
+
+  mergedResult.keywords = collectKeywords(
+    [
+      mergedResult.mainResponsibilities,
+      mergedResult.qualifications,
+      mergedResult.preferredQualifications,
+      mergedResult.roleName
+    ].filter(Boolean).join("\n")
+  );
+
+  return mergedResult;
+}
+
+function mergeWarnings(existingWarnings: string[], additionalWarnings: string[]): string[] {
+  const mergedWarnings: string[] = [];
+  const seenWarnings = new Set<string>();
+
+  for (const warning of [...existingWarnings, ...additionalWarnings]) {
+    if (!warning || seenWarnings.has(warning)) {
+      continue;
+    }
+    seenWarnings.add(warning);
+    mergedWarnings.push(warning);
+  }
+
+  return mergedWarnings;
 }
 
 function extractTitle(html: string): string | undefined {
