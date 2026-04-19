@@ -59,7 +59,7 @@ export async function analyzeProjectInsightsService(
       jobPostingText: baseProject.jobPostingText,
       seedCompanyName: baseProject.companyName,
       seedRoleName: baseProject.roleName
-    });
+    }, ctx.jobPostingFetcher);
 
     await storage.saveProjectInsightJson(input.projectSlug, "job-extraction.json", extraction);
     const newReasons = evaluatePostingConfidence(extraction);
@@ -114,7 +114,7 @@ export async function generateProjectInsightsService(
         jobPostingUrl: project.jobPostingUrl,
         seedCompanyName: project.companyName,
         seedRoleName: project.roleName
-      });
+      }, ctx.jobPostingFetcher);
       await storage.saveProjectInsightJson(input.projectSlug, "job-extraction.json", extraction);
       project = await storage.updateProject({
         ...project,

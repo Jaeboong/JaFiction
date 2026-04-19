@@ -67,6 +67,8 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `essayQuestionWorkflow.ts` | 자소서 문항 상태 관리 워크플로 |
 | `viewModels.ts` | UI로 노출되는 뷰모델 타입 |
 | `jobPosting.ts` | 채용공고 파싱 및 모델, SiteAdapter 결과 병합 진입점 |
+| `jobPosting/fetcher/types.ts` | 채용공고 fetcher 인터페이스와 fetcher 공통 에러 타입 |
+| `jobPosting/fetcher/staticFetcher.ts` | 기본 HTTP fetch 기반 채용공고 fetcher와 브라우저형 요청 헤더 상수 |
 | `jobPosting/adapters/types.ts` | 사이트별 채용공고 어댑터 인터페이스와 per-field tier 결과 타입 |
 | `jobPosting/adapters/registry.ts` | SiteAdapter 등록/조회와 URL 기반 우선순위 매칭 |
 | `jobPosting/adapters/signatureCheck.ts` | 사이트 시그니처 검증과 어댑터 tier 강등 헬퍼 |
@@ -163,6 +165,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `webviewProtocol.test.ts` | webviewProtocol.ts |
 | `jobPosting.test.ts` | jobPosting.ts |
 | `jobPosting.adapter.test.ts` | jobPosting 어댑터 registry/signature/merge 인프라 |
+| `jobPosting.fetcher.test.ts` | StaticFetcher와 fetcher 공통 에러 계약 |
 | `jobPosting.crossValidate.test.ts` | jobPosting/crossValidate.ts, cross-source factual 승격 규칙 |
 | `jobPosting.jsonLd.test.ts` | jobPosting/jsonLd.ts |
 | `companySources.test.ts` | companySources.ts |

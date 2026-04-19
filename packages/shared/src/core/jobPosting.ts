@@ -20,6 +20,12 @@ import {
   stripJobPostingDescriptionHtml,
   type JsonLdJobPostingFields
 } from "./jobPosting/jsonLd";
+import { DEFAULT_STATIC_HEADERS, StaticFetcher } from "./jobPosting/fetcher/staticFetcher";
+import {
+  FetcherError,
+  isFetcherError,
+  type JobPostingFetcher
+} from "./jobPosting/fetcher/types";
 
 export const JOB_POSTING_FIELD_KEYS = [
   "companyName",
@@ -199,7 +205,15 @@ const companyLineMaxLength = 40;
 
 export async function fetchAndExtractJobPosting(
   request: JobPostingExtractionRequest,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl?: typeof fetch
+): Promise<JobPostingExtractionResult>;
+export async function fetchAndExtractJobPosting(
+  request: JobPostingExtractionRequest,
+  fetcher?: JobPostingFetcher
+): Promise<JobPostingExtractionResult>;
+export async function fetchAndExtractJobPosting(
+  request: JobPostingExtractionRequest,
+  fetcherOrFetchImpl?: JobPostingFetcher | typeof fetch
 ): Promise<JobPostingExtractionResult> {
   const manualText = request.jobPostingText?.trim();
   if (manualText) {
@@ -218,49 +232,24 @@ export async function fetchAndExtractJobPosting(
     throw new Error("지원 공고 URL은 http 또는 https로 시작해야 합니다.");
   }
 
-  const requestHeaders = {
-    "user-agent": "ForJob/0.1.1 (+https://github.com/Jaeboong/CoordinateAI)",
-    accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "accept-language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
-  };
+  const fetcher = resolveFetcher(fetcherOrFetchImpl);
+  const requestHeaders = { ...DEFAULT_STATIC_HEADERS };
 
-  let response: Response;
+  let fetchResult: Awaited<ReturnType<JobPostingFetcher["fetch"]>>;
   try {
-    response = await fetchImpl(jobPostingUrl, {
-      headers: requestHeaders
-    });
+    fetchResult = await fetcher.fetch(jobPostingUrl);
   } catch (error) {
-    throw new JobPostingFetchError(
-      "지원 공고 요청 중 네트워크 오류가 발생했습니다.",
-      {
-        occurredAt: nowIso(),
-        failureKind: "network",
-        requestUrl: jobPostingUrl,
-        requestHeaders: sanitizeHeaders(requestHeaders)
-      },
-      { cause: error }
-    );
+    if (isFetcherError(error)) {
+      throw convertFetcherError(error, jobPostingUrl, requestHeaders);
+    }
+    throw error;
   }
 
-  const html = await response.text();
-  if (!response.ok) {
-    throw new JobPostingFetchError(`지원 공고를 가져오지 못했습니다 (${response.status}).`, {
-      occurredAt: nowIso(),
-      failureKind: "http",
-      requestUrl: jobPostingUrl,
-      finalUrl: response.url || jobPostingUrl,
-      status: response.status,
-      statusText: response.statusText || undefined,
-      requestHeaders: sanitizeHeaders(requestHeaders),
-      responseHeaders: sanitizeHeaders(response.headers),
-      bodySnippet: summarizeResponseBody(html)
-    });
-  }
-
+  const { html } = fetchResult;
   const embeddedSource = extractEmbeddedJobPostingSource(html);
   const jsonLdFields = extractJsonLdJobPosting(html);
   const normalizedText = normalizeJobPostingHtml(embeddedSource?.detailHtml || html);
-  const finalUrl = response.url || jobPostingUrl;
+  const finalUrl = fetchResult.finalUrl || jobPostingUrl;
   const adapterLookup = resolveMatchingAdapter(jobPostingUrl, finalUrl);
   const adapterResult = resolveSiteAdapterResult(
     adapterLookup?.adapter.extract(html, {
@@ -285,6 +274,49 @@ export async function fetchAndExtractJobPosting(
     html
   });
   return mergeSiteAdapterResult(baseResult, adapterResult);
+}
+
+function resolveFetcher(fetcherOrFetchImpl?: JobPostingFetcher | typeof fetch): JobPostingFetcher {
+  if (!fetcherOrFetchImpl) {
+    return new StaticFetcher();
+  }
+
+  if (typeof fetcherOrFetchImpl === "function") {
+    return new StaticFetcher({ fetchImpl: fetcherOrFetchImpl });
+  }
+
+  return fetcherOrFetchImpl;
+}
+
+function convertFetcherError(
+  error: FetcherError,
+  requestUrl: string,
+  requestHeaders: Record<string, string>
+): JobPostingFetchError {
+  if (error.info.kind === "network" || error.info.kind === "timeout" || error.info.kind === "browser") {
+    return new JobPostingFetchError(
+      "지원 공고 요청 중 네트워크 오류가 발생했습니다.",
+      {
+        occurredAt: nowIso(),
+        failureKind: "network",
+        requestUrl,
+        requestHeaders: sanitizeHeaders(requestHeaders)
+      },
+      { cause: error.info.cause ?? error }
+    );
+  }
+
+  return new JobPostingFetchError(error.message, {
+    occurredAt: nowIso(),
+    failureKind: "http",
+    requestUrl,
+    finalUrl: error.info.finalUrl || requestUrl,
+    status: error.info.status,
+    statusText: error.info.statusText,
+    requestHeaders: sanitizeHeaders(requestHeaders),
+    responseHeaders: error.info.responseHeaders ? sanitizeHeaders(error.info.responseHeaders) : undefined,
+    bodySnippet: error.info.bodySnippet
+  });
 }
 
 export function normalizeJobPostingHtml(html: string): string {

@@ -68,9 +68,19 @@ export async function main(): Promise<void> {
     process.exit(1);
   }
 
+  const shutdown = (signal: "SIGINT" | "SIGTERM") => {
+    console.log(`[runner] ${signal} received — shutting down`);
+    void Promise.all([
+      ...clients.map((client) => client.close()),
+      ctx.jobPostingFetcher?.close?.() ?? Promise.resolve()
+    ]).then(() => process.exit(0));
+  };
+
   process.on("SIGINT", () => {
-    console.log("[runner] SIGINT received — shutting down");
-    void Promise.all(clients.map((c) => c.close())).then(() => process.exit(0));
+    shutdown("SIGINT");
+  });
+  process.on("SIGTERM", () => {
+    shutdown("SIGTERM");
   });
 }
 
