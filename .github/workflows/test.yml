@@ -1,0 +1,55 @@
+name: Test
+
+# PR 게이트: develop / main 을 타겟으로 한 모든 PR 에서 실행.
+# 수동 트리거(workflow_dispatch)로도 돌릴 수 있다.
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# 최소 권한: 코드만 읽는다.
+permissions:
+  contents: read
+
+# 같은 PR 에서 여러 번 push 할 때 이전 실행은 취소.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: scripts/check.sh
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Chromium 바이너리 다운로드를 건너뜀.
+      # puppeteer 는 PuppeteerLike 로 DI 되어 있어 단위 테스트엔 실 브라우저 불필요.
+      # 근거: packages/runner/src/test/puppeteerFetcher.test.ts
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # 이미 캐시가 있으면 그대로, 없으면 빈 디렉토리 캐시.
+      # SKIP=true 와 병존 가능 — 향후 플래그 해제 시 즉시 재활용.
+      - name: Restore puppeteer cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('packages/runner/package.json') }}
+          restore-keys: |
+            puppeteer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deterministic checks
+        run: ./scripts/check.sh

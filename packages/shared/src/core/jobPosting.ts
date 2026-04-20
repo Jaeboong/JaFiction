@@ -1,6 +1,9 @@
 import { nowIso } from "./utils";
 import type { SourceTier } from "./sourceTier";
 import { filterAtsFromTitle } from "./atsBlacklist";
+import { findMatchingAdapter } from "./jobPosting/adapters/registry";
+import { downgradeAllFields } from "./jobPosting/adapters/signatureCheck";
+import type { SiteAdapterResult } from "./jobPosting/adapters/types";
 import { deriveCompanyNameHintsFromHostname } from "./jobPosting/companyHostnames";
 import {
   DEFAULT_STOP_TOKENS,
@@ -17,6 +20,12 @@ import {
   stripJobPostingDescriptionHtml,
   type JsonLdJobPostingFields
 } from "./jobPosting/jsonLd";
+import { DEFAULT_STATIC_HEADERS, StaticFetcher } from "./jobPosting/fetcher/staticFetcher";
+import {
+  FetcherError,
+  isFetcherError,
+  type JobPostingFetcher
+} from "./jobPosting/fetcher/types";
 
 export const JOB_POSTING_FIELD_KEYS = [
   "companyName",
@@ -196,7 +205,15 @@ const companyLineMaxLength = 40;
 
 export async function fetchAndExtractJobPosting(
   request: JobPostingExtractionRequest,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl?: typeof fetch
+): Promise<JobPostingExtractionResult>;
+export async function fetchAndExtractJobPosting(
+  request: JobPostingExtractionRequest,
+  fetcher?: JobPostingFetcher
+): Promise<JobPostingExtractionResult>;
+export async function fetchAndExtractJobPosting(
+  request: JobPostingExtractionRequest,
+  fetcherOrFetchImpl?: JobPostingFetcher | typeof fetch
 ): Promise<JobPostingExtractionResult> {
   const manualText = request.jobPostingText?.trim();
   if (manualText) {
@@ -215,52 +232,38 @@ export async function fetchAndExtractJobPosting(
     throw new Error("지원 공고 URL은 http 또는 https로 시작해야 합니다.");
   }
 
-  const requestHeaders = {
-    "user-agent": "ForJob/0.1.1 (+https://github.com/Jaeboong/CoordinateAI)",
-    accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "accept-language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
-  };
+  const fetcher = resolveFetcher(fetcherOrFetchImpl);
+  const requestHeaders = { ...DEFAULT_STATIC_HEADERS };
 
-  let response: Response;
+  let fetchResult: Awaited<ReturnType<JobPostingFetcher["fetch"]>>;
   try {
-    response = await fetchImpl(jobPostingUrl, {
-      headers: requestHeaders
-    });
+    fetchResult = await fetcher.fetch(jobPostingUrl);
   } catch (error) {
-    throw new JobPostingFetchError(
-      "지원 공고 요청 중 네트워크 오류가 발생했습니다.",
-      {
-        occurredAt: nowIso(),
-        failureKind: "network",
-        requestUrl: jobPostingUrl,
-        requestHeaders: sanitizeHeaders(requestHeaders)
-      },
-      { cause: error }
-    );
+    if (isFetcherError(error)) {
+      throw convertFetcherError(error, jobPostingUrl, requestHeaders);
+    }
+    throw error;
   }
 
-  const html = await response.text();
-  if (!response.ok) {
-    throw new JobPostingFetchError(`지원 공고를 가져오지 못했습니다 (${response.status}).`, {
-      occurredAt: nowIso(),
-      failureKind: "http",
-      requestUrl: jobPostingUrl,
-      finalUrl: response.url || jobPostingUrl,
-      status: response.status,
-      statusText: response.statusText || undefined,
-      requestHeaders: sanitizeHeaders(requestHeaders),
-      responseHeaders: sanitizeHeaders(response.headers),
-      bodySnippet: summarizeResponseBody(html)
-    });
-  }
-
+  const { html } = fetchResult;
   const embeddedSource = extractEmbeddedJobPostingSource(html);
   const jsonLdFields = extractJsonLdJobPosting(html);
   const normalizedText = normalizeJobPostingHtml(embeddedSource?.detailHtml || html);
+  const finalUrl = fetchResult.finalUrl || jobPostingUrl;
+  const adapterLookup = resolveMatchingAdapter(jobPostingUrl, finalUrl);
+  const adapterResult = resolveSiteAdapterResult(
+    adapterLookup?.adapter.extract(html, {
+      url: adapterLookup?.match.canonicalUrl || finalUrl,
+      jsonLdFields,
+      normalizedText
+    }),
+    adapterLookup?.adapter.siteKey
+  );
   // ATS 사이트명이 포함된 title은 companyName/roleName 추출에 사용하면 안 되므로 필터링
-  const resolvedPageTitle = embeddedSource?.pageTitle || filterAtsFromTitle(extractTitle(html));
-  const finalUrl = response.url || jobPostingUrl;
-  return buildExtractionResult("url", normalizedText, {
+  const extractedPageTitle = extractTitle(html);
+  const resolvedPageTitle = embeddedSource?.pageTitle
+    || (shouldBypassAtsTitleFilter(adapterResult) ? extractedPageTitle : filterAtsFromTitle(extractedPageTitle));
+  const baseResult = buildExtractionResult("url", normalizedText, {
     fetchedUrl: finalUrl,
     pageTitle: resolvedPageTitle,
     seedCompanyName: embeddedSource?.companyName || request.seedCompanyName,
@@ -269,6 +272,50 @@ export async function fetchAndExtractJobPosting(
     nextDataRoleTitle: embeddedSource?.roleTitle,
     hostname: extractHostname(finalUrl),
     html
+  });
+  return mergeSiteAdapterResult(baseResult, adapterResult);
+}
+
+function resolveFetcher(fetcherOrFetchImpl?: JobPostingFetcher | typeof fetch): JobPostingFetcher {
+  if (!fetcherOrFetchImpl) {
+    return new StaticFetcher();
+  }
+
+  if (typeof fetcherOrFetchImpl === "function") {
+    return new StaticFetcher({ fetchImpl: fetcherOrFetchImpl });
+  }
+
+  return fetcherOrFetchImpl;
+}
+
+function convertFetcherError(
+  error: FetcherError,
+  requestUrl: string,
+  requestHeaders: Record<string, string>
+): JobPostingFetchError {
+  if (error.info.kind === "network" || error.info.kind === "timeout" || error.info.kind === "browser") {
+    return new JobPostingFetchError(
+      "지원 공고 요청 중 네트워크 오류가 발생했습니다.",
+      {
+        occurredAt: nowIso(),
+        failureKind: "network",
+        requestUrl,
+        requestHeaders: sanitizeHeaders(requestHeaders)
+      },
+      { cause: error.info.cause ?? error }
+    );
+  }
+
+  return new JobPostingFetchError(error.message, {
+    occurredAt: nowIso(),
+    failureKind: "http",
+    requestUrl,
+    finalUrl: error.info.finalUrl || requestUrl,
+    status: error.info.status,
+    statusText: error.info.statusText,
+    requestHeaders: sanitizeHeaders(requestHeaders),
+    responseHeaders: error.info.responseHeaders ? sanitizeHeaders(error.info.responseHeaders) : undefined,
+    bodySnippet: error.info.bodySnippet
   });
 }
 
@@ -569,6 +616,109 @@ function buildExtractionResult(
     warnings: extracted.warnings,
     fieldSources: extracted.fieldSources
   };
+}
+
+function resolveMatchingAdapter(originalUrl: string, finalUrl: string) {
+  const primaryMatch = findMatchingAdapter(originalUrl);
+  if (primaryMatch) {
+    return primaryMatch;
+  }
+
+  if (finalUrl !== originalUrl) {
+    return findMatchingAdapter(finalUrl);
+  }
+
+  return undefined;
+}
+
+function resolveSiteAdapterResult(
+  adapterResult: SiteAdapterResult | undefined,
+  siteKey: string | undefined
+): SiteAdapterResult | undefined {
+  if (!adapterResult) {
+    return undefined;
+  }
+
+  const normalizedResult = adapterResult.signatureVerified
+    ? cloneSiteAdapterResult(adapterResult)
+    : downgradeAllFields(adapterResult);
+
+  if (!adapterResult.signatureVerified && siteKey) {
+    normalizedResult.warnings = mergeWarnings(normalizedResult.warnings, [`site_signature_mismatch:${siteKey}`]);
+  }
+
+  return normalizedResult;
+}
+
+function cloneSiteAdapterResult(adapterResult: SiteAdapterResult): SiteAdapterResult {
+  return {
+    ...adapterResult,
+    fields: { ...adapterResult.fields },
+    warnings: [...adapterResult.warnings]
+  };
+}
+
+function shouldBypassAtsTitleFilter(adapterResult: SiteAdapterResult | undefined): boolean {
+  if (!adapterResult) {
+    return false;
+  }
+
+  if (adapterResult.fields.companyName || adapterResult.fields.roleName) {
+    return true;
+  }
+
+  return adapterResult.adapterTrust === "high" && adapterResult.signatureVerified;
+}
+
+function mergeSiteAdapterResult(
+  baseResult: JobPostingExtractionResult,
+  adapterResult: SiteAdapterResult | undefined
+): JobPostingExtractionResult {
+  if (!adapterResult) {
+    return baseResult;
+  }
+
+  const mergedResult: JobPostingExtractionResult = {
+    ...baseResult,
+    warnings: mergeWarnings(baseResult.warnings, adapterResult.warnings),
+    fieldSources: { ...baseResult.fieldSources }
+  };
+
+  for (const fieldKey of JOB_POSTING_FIELD_KEYS) {
+    const extraction = adapterResult.fields[fieldKey];
+    if (!extraction) {
+      continue;
+    }
+
+    mergedResult[fieldKey] = extraction.value;
+    mergedResult.fieldSources[fieldKey] = extraction.tier;
+  }
+
+  mergedResult.keywords = collectKeywords(
+    [
+      mergedResult.mainResponsibilities,
+      mergedResult.qualifications,
+      mergedResult.preferredQualifications,
+      mergedResult.roleName
+    ].filter(Boolean).join("\n")
+  );
+
+  return mergedResult;
+}
+
+function mergeWarnings(existingWarnings: string[], additionalWarnings: string[]): string[] {
+  const mergedWarnings: string[] = [];
+  const seenWarnings = new Set<string>();
+
+  for (const warning of [...existingWarnings, ...additionalWarnings]) {
+    if (!warning || seenWarnings.has(warning)) {
+      continue;
+    }
+    seenWarnings.add(warning);
+    mergedWarnings.push(warning);
+  }
+
+  return mergedWarnings;
 }
 
 function extractTitle(html: string): string | undefined {

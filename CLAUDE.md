@@ -47,6 +47,27 @@ Jasojeon is a web UI + local runner rewrite of the original `forJob` VS Code ext
 
 ---
 
+## Branch / Deploy Workflow
+
+| 브랜치 | 환경 | 자동 배포 |
+|--------|------|-----------|
+| `develop` | 테스트 (자소전.shop, OCI 168.107.25.12) | push → `.github/workflows/deploy-dev.yml` |
+| `main` | 프로덕션 (휴면 중) | push → `.github/workflows/deploy.yml` (현재 `.env.production` 없어 실효 없음) |
+
+### 작업 규약 (로컬 Claude + nanoclaw 봇 공통)
+
+1. **모든 작업은 `develop` 브랜치에 commit + `git push origin develop`** 으로 수렴한다.
+   서버 `~/project/Jasojeon` 파일을 직접 편집하고 방치 금지 (deploy-dev.yml 의
+   `git reset --hard origin/develop` 가 날려버린다).
+2. **로컬 작업 시작 전** 반드시 `git pull origin develop`.
+3. **`main`** 은 `develop → main` PR merge 로만 전진시킨다 (현 plan 범위 밖, 휴면).
+4. PR 은 `develop` 을 base 로 연다. `test.yml` 이 PR 게이트.
+
+> 서버 ↔ 로컬 ↔ 봇 race condition 완화를 위해 위 규약은 강제 규칙이다. 구조적 격리
+> (예: `~/project/Jasojeon-work/` 별도 checkout) 는 현재 single user 라 YAGNI.
+
+---
+
 ## Planes — Keep Them Separate
 
 | Plane   | Paths |

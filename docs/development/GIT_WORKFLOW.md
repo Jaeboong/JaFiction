@@ -7,11 +7,16 @@
 
 ## 브랜치 전략
 
-| 브랜치 | 역할 |
-|--------|------|
-| `main` | 프로덕션 기준. push 즉시 GitHub Actions → OCI 자동 배포. |
-| `feat/<name>` | 기능 단위 작업 브랜치. 완료 시 `main`으로 PR. |
-| `dev` | 통합 실험 브랜치 (상시 유지는 보장되지 않음). |
+| 브랜치 | 역할 | 자동 배포 |
+|--------|------|-----------|
+| `develop` | 테스트 환경 (자소전.shop) 기준. push → GitHub Actions 자동 배포. | `.github/workflows/deploy-dev.yml` |
+| `main` | 프로덕션 기준 (현재 휴면). push 시 기존 `deploy.yml` 이 돌지만 `.env.production` 미정비로 실효 없음. | `.github/workflows/deploy.yml` |
+| `feat/<name>` | 기능 단위 작업 브랜치. 완료 시 `develop` 으로 PR. | — |
+| `fix/<name>` | 버그 픽스 브랜치. `develop` 으로 PR. | — |
+
+### PR base
+- 기본: `develop`
+- 프로덕션 승격: `develop → main` (수동, 별도 plan)
 
 ### 현재 활성 원격 브랜치
 
@@ -128,41 +133,36 @@ git rebase --continue
 
 ## CI/CD
 
-### 트리거
+### 워크플로 구성 (3개)
 
-`main` 브랜치에 push가 발생하면 `.github/workflows/deploy.yml`이 자동 실행된다.
+| 파일 | 트리거 | 역할 |
+|------|--------|------|
+| `.github/workflows/test.yml` | `pull_request: [develop, main]` + manual | `./scripts/check.sh` (공용 게이트) |
+| `.github/workflows/deploy-dev.yml` | `push: develop` + manual | 자소전.shop 자동 재배포 (SSH → git reset --hard → with-npm install → systemctl restart) |
+| `.github/workflows/deploy.yml` | `push: main` | 프로덕션 배포 (현재 휴면) |
 
-### 파이프라인 단계
-
-| 단계 | 내용 |
-|------|------|
-| Checkout | `actions/checkout@v4` |
-| Setup Node | Node.js 20, npm cache 활성화 |
-| Install dependencies | `npm ci` (루트 워크스페이스) |
-| Build shared | `npx tsc -p packages/shared/tsconfig.json` |
-| Type check (backend) | `npx tsc -p packages/backend/tsconfig.json --noEmit` |
-| Validate secrets | `OCI_HOST`, `OCI_USER`, `OCI_SSH_KEY` 존재 확인 |
-| Deploy to OCI | SSH → `git pull` → `docker compose build --no-cache` → `docker compose up -d` → `docker image prune -f` |
-
-### 배포 대상
-
-- 서버: OCI (Oracle Cloud Infrastructure)
-- SSH 접속: `OCI_USER@OCI_HOST` (GitHub Secrets로 관리)
-- 서버 경로: `~/jasojeon` (소문자)
-- 실행 명령: `docker compose --env-file .env.production build` → `up -d`
-
-### 로컬에서 배포 전 검증
+### deploy-dev 서버 실행 내용
 
 ```bash
-./scripts/check.sh          # 타입 체크 + lint
-./scripts/dev-stack.sh      # 전체 스택 로컬 실행 확인
+cd ~/project/Jasojeon
+git fetch origin develop
+git reset --hard origin/develop
+./scripts/with-npm.sh install
+systemctl --user restart jasojeon-dev.service
+systemctl --user is-active jasojeon-dev.service
+```
+
+### 로컬 배포 전 검증
+
+```bash
+./scripts/check.sh
 ```
 
 ### 주의사항
 
-- `main`에 force push 금지.
-- 배포는 docker compose 재빌드를 포함하므로 짧은 다운타임이 발생할 수 있다.
-- 빌드 실패 시 GitHub Actions 로그를 확인한다: `./scripts/gh.sh run list --workflow=deploy.yml`
+- `develop` force push 금지. 봇/로컬 race 시 commit 순서로 해결.
+- `main` force push 금지.
+- 서버 `~/project/Jasojeon` 직접 편집 금지 (다음 배포가 덮어쓴다).
 
 ---
 

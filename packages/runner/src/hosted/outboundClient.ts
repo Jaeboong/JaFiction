@@ -201,7 +201,11 @@ export function startHostedOutboundClient(options: OutboundClientOptions): Outbo
     }
 
     attemptCount += 1;
-    const wsUrl = `${options.backendUrl}/runner/ws`;
+    // WebSocket 은 ws:/wss: 스킴만 허용. backendUrl 이 http:/https: 로 들어오므로 변환.
+    const wsBase = options.backendUrl
+      .replace(/^https:/i, "wss:")
+      .replace(/^http:/i, "ws:");
+    const wsUrl = `${wsBase}/runner/ws`;
     log.info("[outboundClient] connecting", { url: wsUrl, attempt: attemptCount });
 
     const socket = new WebSocket(wsUrl);

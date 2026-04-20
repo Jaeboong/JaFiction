@@ -176,7 +176,7 @@ export async function saveEssayDraft(
 }
 
 export async function analyzePosting(
-  _ctx: RunnerContext,
+  ctx: RunnerContext,
   payload: AnalyzePostingPayload
 ): Promise<AnalyzePostingResult> {
   const result = await fetchAndExtractJobPosting({
@@ -184,7 +184,7 @@ export async function analyzePosting(
     jobPostingText: payload.jobPostingText,
     seedCompanyName: payload.companyName,
     seedRoleName: payload.roleName
-  });
+  }, ctx.jobPostingFetcher);
   // Strip undefined fields so the strict schema round-trips cleanly.
   return JSON.parse(JSON.stringify(result)) as AnalyzePostingResult;
 }

@@ -14,6 +14,14 @@ export * from "./core/contextExtractor";
 export * from "./core/essayQuestionWorkflow";
 export * from "./core/insights";
 export * from "./core/jobPosting";
+export { StaticFetcher, DEFAULT_STATIC_HEADERS } from "./core/jobPosting/fetcher/staticFetcher";
+export { FetcherError, isFetcherError } from "./core/jobPosting/fetcher/types";
+export type {
+  FetcherErrorInfo,
+  JobPostingFetcher,
+  JobPostingFetchOptions,
+  JobPostingFetchResponse
+} from "./core/jobPosting/fetcher/types";
 export * from "./core/manifestStore";
 export * from "./core/notionMcp";
 export * from "./core/openDart";

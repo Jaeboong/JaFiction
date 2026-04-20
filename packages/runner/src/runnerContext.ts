@@ -5,6 +5,7 @@ import {
   createBraveSearchProvider,
   createNaverSearchProvider,
   ForJobStorage,
+  type JobPostingFetcher,
   ProviderRegistry,
   ReviewOrchestrator,
   RunEvent,
@@ -18,6 +19,7 @@ import { RunnerConfig } from "./runnerConfig";
 import { FileSecretStore } from "./secretStore";
 import { RunHub } from "./ws/runHub";
 import { StateHub } from "./ws/stateHub";
+import { createFetcherRouter } from "./jobPosting/fetcherRouter";
 
 export const openDartSecretKey = "jasojeon.apiKey.openDart";
 
@@ -88,6 +90,7 @@ export interface RunnerContext {
   readonly stateHub: StateHub;
   /** Exposed for hosted event forwarding — subscribe with onEvent. */
   readonly runHub: RunHub;
+  readonly jobPostingFetcher?: JobPostingFetcher;
   storage(): ForJobStorage;
   registry(): ProviderRegistry;
   orchestrator(): ReviewOrchestrator;
@@ -113,6 +116,9 @@ export async function createRunnerContext(): Promise<RunnerContext> {
   const runSessions = new RunSessionManager();
   const stateHub = new StateHub();
   const runHub = new RunHub();
+  const jobPostingFetcher = createFetcherRouter({
+    puppeteerEnabled: process.env["PUPPETEER_ENABLED"] === "true"
+  });
   const stateStore = new SidebarStateStore({
     workspaceRoot,
     storage,
@@ -132,6 +138,7 @@ export async function createRunnerContext(): Promise<RunnerContext> {
     runSessions,
     stateHub,
     runHub,
+    jobPostingFetcher,
     storage: () => storage,
     registry: () => registry,
     orchestrator: () => orchestrator,
