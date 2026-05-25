@@ -1,6 +1,7 @@
 import { redactSecrets } from "@jasojeon/shared";
 import { createRunnerContext, fetchAndCacheDartApiKey } from "./runnerContext";
 import {
+  clearDeviceToken,
   loadDeviceId,
   loadDeviceToken,
   saveDeviceId,
@@ -84,15 +85,15 @@ export async function main(): Promise<void> {
   });
 }
 
-async function connectToBackend(opts: {
+async function pairAndPersist(opts: {
   backendUrl: string;
-  ctx: RunnerContext;
   logger: Logger;
-}): Promise<OutboundClientHandle> {
-  const { backendUrl, ctx, logger } = opts;
+  forceReclaim?: boolean;
+}): Promise<{ deviceToken: string; deviceId: string }> {
+  const { backendUrl, logger, forceReclaim } = opts;
 
-  let deviceToken = await loadDeviceToken(backendUrl);
-  let deviceId = await loadDeviceId(backendUrl);
+  let deviceToken = forceReclaim ? undefined : await loadDeviceToken(backendUrl);
+  let deviceId = forceReclaim ? undefined : await loadDeviceId(backendUrl);
 
   if (deviceToken && !deviceId) {
     try {
@@ -157,35 +158,97 @@ async function connectToBackend(opts: {
     }).catch(() => {});
   }
 
+  return { deviceToken, deviceId: deviceId ?? "" };
+}
+
+function startInnerClient(opts: {
+  backendUrl: string;
+  deviceToken: string;
+  ctx: RunnerContext;
+  logger: Logger;
+  onAuthFailure: (reason: string) => void;
+}): { inner: OutboundClientHandle; dispose: () => void } {
+  const { backendUrl, deviceToken, ctx, logger, onAuthFailure } = opts;
+  const dispatcher = createRpcDispatcher({ runnerContext: ctx, logger });
+  const inner = startHostedOutboundClient({
+    backendUrl,
+    deviceToken,
+    runnerContext: ctx,
+    onRpc: dispatcher,
+    onAuthFailure,
+    logger,
+  });
+  const disposeForwarding = startEventForwarding(inner, ctx);
+  return { inner, dispose: () => { disposeForwarding(); } };
+}
+
+async function connectToBackend(opts: {
+  backendUrl: string;
+  ctx: RunnerContext;
+  logger: Logger;
+}): Promise<OutboundClientHandle> {
+  const { backendUrl, ctx, logger } = opts;
+
+  let selfHealAttempted = false;
+  let permanentlyClosed = false;
+
+  const initialPair = await pairAndPersist({ backendUrl, logger, forceReclaim: false });
+
   // backend 에서 DART_API_KEY fetch (실패해도 runner 는 정상 부팅)
-  await fetchAndCacheDartApiKey(backendUrl, deviceToken).catch((err: unknown) => {
+  await fetchAndCacheDartApiKey(backendUrl, initialPair.deviceToken).catch((err: unknown) => {
     process.stderr.write(
       `[runner][${backendUrl}] DART_API_KEY fetch failed: ${err instanceof Error ? err.message : String(err)}\n`
     );
   });
 
-  const dispatcher = createRpcDispatcher({ runnerContext: ctx, logger });
+  const onAuthFailure = (reason: string): void => {
+    void handleSelfHeal(reason);
+  };
 
-  const client = startHostedOutboundClient({
-    backendUrl,
-    deviceToken,
-    runnerContext: ctx,
-    onRpc: dispatcher,
-    logger,
-  });
+  async function handleSelfHeal(reason: string): Promise<void> {
+    if (permanentlyClosed) return;
+    if (selfHealAttempted) {
+      logger.error(`[runner][${backendUrl}] self-heal failed twice (reason=${reason}) — giving up on this backend`);
+      permanentlyClosed = true;
+      currentDispose();
+      return;
+    }
+    selfHealAttempted = true;
+    logger.warn(`[runner][${backendUrl}] device token revoked — clearing and re-pairing`);
+    await clearDeviceToken(backendUrl);
+    currentDispose();
+    await currentInner.close().catch(() => {});
+    let repaired: { deviceToken: string; deviceId: string };
+    try {
+      repaired = await pairAndPersist({ backendUrl, logger, forceReclaim: true });
+    } catch (err) {
+      logger.error(`[runner][${backendUrl}] re-pairing failed`, { error: String(err) });
+      permanentlyClosed = true;
+      return;
+    }
+    await fetchAndCacheDartApiKey(backendUrl, repaired.deviceToken).catch(() => {});
+    const next = startInnerClient({ backendUrl, deviceToken: repaired.deviceToken, ctx, logger, onAuthFailure });
+    currentInner = next.inner;
+    currentDispose = next.dispose;
+    logger.info(`[runner][${backendUrl}] self-heal complete — new outbound client started`);
+  }
 
-  const disposeForwarding = startEventForwarding(client, ctx);
+  const first = startInnerClient({ backendUrl, deviceToken: initialPair.deviceToken, ctx, logger, onAuthFailure });
+  let currentInner: OutboundClientHandle = first.inner;
+  let currentDispose: () => void = first.dispose;
 
   console.log(`[runner] hosted mode — connecting to ${backendUrl}`);
 
-  // close() 호출 시 이벤트 포워딩도 함께 정리.
-  const originalClose = client.close.bind(client);
-  client.close = () => {
-    disposeForwarding();
-    return originalClose();
+  const wrapper: OutboundClientHandle = {
+    close: async () => {
+      permanentlyClosed = true;
+      currentDispose();
+      await currentInner.close();
+    },
+    isConnected: () => currentInner.isConnected(),
+    sendEvent: (env) => currentInner.sendEvent(env),
   };
-
-  return client;
+  return wrapper;
 }
 
 if (require.main === module) {
