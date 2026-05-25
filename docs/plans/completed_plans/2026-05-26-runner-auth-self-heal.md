@@ -1,5 +1,34 @@
 # 2026-05-26 — 러너 invalid_or_revoked_token 자동 복구 (self-heal)
 
+> **상태**: ✅ 완료 (2026-05-26)
+> **커밋**: `f688014` feat(runner): invalid_or_revoked_token 자동 self-heal 추가
+> **CI**: deploy-dev run [26414447386](https://github.com/Jaeboong/Jasojeon/actions/runs/26414447386) — success (2m24s)
+
+## 완료 보고
+
+### 변경 사항
+- `packages/runner/src/hosted/outboundClient.ts` — `OutboundClientOptions` 에 `onAuthFailure` 추가, `auth_err` 핸들러에 `invalid_or_revoked_token` 전용 분기 (재연결 루프 진입 차단 후 controller 에 escalate)
+- `packages/runner/src/index.ts` — `pairAndPersist` / `startInnerClient` 함수 추출, `connectToBackend` wrapper 패턴 재작성, `selfHealAttempted` 로 무한 루프 방지
+- `packages/runner/src/test/outboundClient.test.ts` — unit test 2개 신규 (invalid_or_revoked_token 전용 경로 + 다른 reason 의 기존 authFailureCount 경로 유지)
+- 변경 라인: +408 / -23 (plan 파일 포함)
+
+### 검증
+- check.sh: outboundClient 테스트 9개 (기존 7 + 신규 2) 전부 통과
+- 베이스라인 EBUSY 실패 7건 (`insightsHandlers.lowConfidence.test.js` / `insightsHandlers.skipDart.test.js`) 은 Windows 환경 파일 잠금 기존 문제로 이번 변경과 무관 (git stash 베이스라인 비교로 확인)
+- CI deploy-dev workflow: 자소전.shop 자동 배포 성공
+
+### 사용자가 일어나서 할 행동
+1. 자소전.shop 웹 UI 의 download 페이지에서 새 `-local` 바이너리(Windows) 다운로드
+2. 기존 `jasojeon-runner-windows.exe` 종료 후 새 바이너리로 교체 실행
+3. 새 바이너리가 stale 토큰을 감지하면 콘솔에 `device token revoked — clearing and re-pairing` 로그 출력 후 페어링 instructions 노출
+4. 웹 UI 에서 `Connect` 클릭 한 번 → 새 토큰 발급 → `self-heal complete` 로그 후 정상 운영
+- 시크릿스토어 수동 삭제 불필요. provider API key 등 다른 시크릿도 보존됨.
+
+### 남은 후속
+- prod 바이너리(`.com` embed) 는 main 휴면 상태라 자동 배포 안 됨. 사용자가 prod 도 self-heal 적용을 원하면 별도 plan 으로 develop → main 머지 시점 결정 필요.
+
+---
+
 ## 배경
 
 `packages/backend/src/ws/runnerSocket.ts:135` 가 토큰 해시 미일치 / `revoked_at` 있을 때 `auth_err reason=invalid_or_revoked_token` 으로 응답하면 현재 runner 는 동일 stale 토큰으로 `maxAuthFailures=3` 까지 재시도 후 give up 한다 (`packages/runner/src/hosted/outboundClient.ts:246-257`). DB drop/재초기화나 device 레코드 revoke 시 사용자는 바이너리를 재실행해도 영구히 끊긴 채로 남는다. self-heal 은 outboundClient 가 controller 에 신호를 던지고 controller 가 토큰 클리어 + 페어링 재진입 + outboundClient 재기동을 수행한다.
