@@ -453,6 +453,21 @@ export const SaveDocumentResultSchema = z.object({
 export type SaveDocumentPayload = z.infer<typeof SaveDocumentPayloadSchema>;
 export type SaveDocumentResult = z.infer<typeof SaveDocumentResultSchema>;
 
+// set_document_pinned — project-scoped document pin toggle.
+// Mirrors profile_set_document_pinned but targets a project's context manifest.
+// 핀된 문서만 run 의 selectedDocumentIds 에 포함되므로, 업로드 문서를 실행 컨텍스트에
+// 넣으려면 이 op 로 pinnedByDefault 를 켜야 한다.
+export const SetDocumentPinnedPayloadSchema = z.object({
+  slug: z.string(),
+  documentId: z.string().min(1),
+  pinned: z.boolean()
+}).strict();
+export const SetDocumentPinnedResultSchema = z.object({
+  document: ContextDocumentSchema
+}).strict();
+export type SetDocumentPinnedPayload = z.infer<typeof SetDocumentPinnedPayloadSchema>;
+export type SetDocumentPinnedResult = z.infer<typeof SetDocumentPinnedResultSchema>;
+
 // save_essay_draft — mirrors PUT /:projectSlug/essay-draft/:questionIndex
 export const SaveEssayDraftPayloadSchema = z.object({
   slug: z.string(),
@@ -819,6 +834,7 @@ export const OP_NAMES = [
   "create_project",
   "delete_project",
   "save_document",
+  "set_document_pinned",
   "save_essay_draft",
   "analyze_posting",
   "get_project_insights",
@@ -884,6 +900,7 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("create_project"), payload: CreateProjectPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("delete_project"), payload: DeleteProjectPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("save_document"), payload: SaveDocumentPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("set_document_pinned"), payload: SetDocumentPinnedPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("save_essay_draft"), payload: SaveEssayDraftPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("analyze_posting"), payload: AnalyzePostingPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("get_project_insights"), payload: GetProjectInsightsPayloadSchema }).strict(),

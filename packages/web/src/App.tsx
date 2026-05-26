@@ -761,6 +761,9 @@ export function App() {
                   failure: (error) => ({ tone: "error", message: "문서 삭제에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.deleteProjectDocument(projectSlug, documentId));
               }}
+              onToggleProjectDocumentPinned={async (projectSlug, documentId, pinned) => {
+                await client.setProjectDocumentPinned(projectSlug, documentId, pinned);
+              }}
               onUpdateProject={async (projectSlug, payload) => {
                 await runAction({
                   pending: { tone: "pending", message: "지원서 정보를 저장하는 중입니다..." },

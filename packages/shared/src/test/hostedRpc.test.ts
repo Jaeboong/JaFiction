@@ -1075,6 +1075,7 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "create_project": return acc + 1;
       case "delete_project": return acc + 1;
       case "save_document": return acc + 1;
+      case "set_document_pinned": return acc + 1;
       case "save_essay_draft": return acc + 1;
       case "analyze_posting": return acc + 1;
       case "get_project_insights": return acc + 1;
@@ -1099,8 +1100,8 @@ test("OP_NAMES exhaustiveness via switch", () => {
     }
   }, 0);
 
-  assert.equal(count, 47);
-  assert.equal(OP_NAMES.length, 47);
+  assert.equal(count, 48);
+  assert.equal(OP_NAMES.length, 48);
 });
 
 test("EVENT_NAMES exhaustiveness via switch", () => {

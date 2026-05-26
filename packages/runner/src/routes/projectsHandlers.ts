@@ -17,6 +17,8 @@ import {
   DeleteProjectResult,
   SaveDocumentPayload,
   SaveDocumentResult,
+  SetDocumentPinnedPayload,
+  SetDocumentPinnedResult,
   SaveEssayDraftPayload,
   SaveEssayDraftResult,
   AnalyzePostingPayload,
@@ -102,6 +104,20 @@ export async function deleteDocument(
     await ctx.stateStore.refreshProjects(slug);
   });
   return { ok: true };
+}
+
+export async function setDocumentPinned(
+  ctx: RunnerContext,
+  payload: SetDocumentPinnedPayload
+): Promise<SetDocumentPinnedResult> {
+  const { slug, documentId, pinned } = payload;
+  await ctx.runBusy("실행 컨텍스트 포함 여부를 업데이트하는 중...", async () => {
+    await ctx.storage().setProjectDocumentPinned(slug, documentId, pinned);
+    await ctx.stateStore.refreshProjects(slug);
+  });
+  const document = await ctx.storage().getProjectDocument(slug, documentId);
+  await ctx.pushState();
+  return { document };
 }
 
 // ---------------------------------------------------------------------------

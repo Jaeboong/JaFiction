@@ -16,6 +16,7 @@ import {
   createProject,
   deleteProject,
   saveDocument,
+  setDocumentPinned,
   saveEssayDraft,
   analyzePosting,
   getProjectInsights,
@@ -273,6 +274,9 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
 
     case "save_document":
       return saveDocument(ctx, req.payload);
+
+    case "set_document_pinned":
+      return setDocumentPinned(ctx, req.payload);
 
     case "save_essay_draft":
       return saveEssayDraft(ctx, req.payload);

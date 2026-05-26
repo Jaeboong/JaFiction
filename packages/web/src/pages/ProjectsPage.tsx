@@ -42,6 +42,7 @@ interface ProjectsPageProps {
   onUploadProjectDocuments(projectSlug: string, files: File[]): Promise<void>;
   onUploadProjectFile(projectSlug: string, file: File, opts?: { onProgress?: (sent: number, total: number) => void; signal?: AbortSignal }): Promise<void>;
   onDeleteProjectDocument(projectSlug: string, documentId: string): Promise<void>;
+  onToggleProjectDocumentPinned(projectSlug: string, documentId: string, pinned: boolean): Promise<void>;
   onUpdateProject(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onAnalyzeInsights(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onGenerateInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectInsightWorkspaceState | undefined>;
@@ -59,6 +60,7 @@ export function ProjectsPage({
   onUploadProjectDocuments,
   onUploadProjectFile,
   onDeleteProjectDocument,
+  onToggleProjectDocumentPinned,
   onUpdateProject,
   onAnalyzeInsights,
   onGenerateInsights,
@@ -153,6 +155,7 @@ export function ProjectsPage({
             onUploadProjectDocuments={onUploadProjectDocuments}
             onUploadProjectFile={onUploadProjectFile}
             onDeleteProjectDocument={onDeleteProjectDocument}
+            onToggleProjectDocumentPinned={onToggleProjectDocumentPinned}
             onUpdateProject={onUpdateProject}
             onAnalyzeInsights={onAnalyzeInsights}
             onGenerateInsights={onGenerateInsights}
@@ -478,6 +481,7 @@ function ProjectWorkspace({
   onUploadProjectDocuments,
   onUploadProjectFile,
   onDeleteProjectDocument,
+  onToggleProjectDocumentPinned,
   onUpdateProject,
   onAnalyzeInsights,
   onGenerateInsights,
@@ -489,6 +493,7 @@ function ProjectWorkspace({
   onUploadProjectDocuments(projectSlug: string, files: File[]): Promise<void>;
   onUploadProjectFile(projectSlug: string, file: File, opts?: { onProgress?: (sent: number, total: number) => void; signal?: AbortSignal }): Promise<void>;
   onDeleteProjectDocument(projectSlug: string, documentId: string): Promise<void>;
+  onToggleProjectDocumentPinned(projectSlug: string, documentId: string, pinned: boolean): Promise<void>;
   onUpdateProject(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onAnalyzeInsights(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onGenerateInsights(projectSlug: string, payload: Record<string, unknown>): Promise<ProjectInsightWorkspaceState | undefined>;
@@ -518,6 +523,8 @@ function ProjectWorkspace({
   const [isSavingInfo, setIsSavingInfo] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingPinId, setPendingPinId] = useState<string | undefined>(undefined);
+  const [isBulkPinning, setIsBulkPinning] = useState(false);
 
   // state_snapshot 으로 insightStatus 가 generating 을 거친 뒤 벗어나면 낙관적 잠금 해제
   // pending → generating → ready/error 순서를 기다리므로, generating 을 보기 전에는 해제하지 않음
@@ -638,6 +645,32 @@ function ProjectWorkspace({
       return;
     }
     await onDeleteProjectDocument(project.record.slug, documentId);
+  };
+
+  const handleTogglePinned = async (documentId: string, nextPinned: boolean) => {
+    setPendingPinId(documentId);
+    try {
+      await onToggleProjectDocumentPinned(project.record.slug, documentId, nextPinned);
+    } finally {
+      setPendingPinId(undefined);
+    }
+  };
+
+  // 전체 선택/해제. setProjectDocumentPinned 는 프로젝트 레코드를 read-modify-write 하므로
+  // 동시 호출 시 pinnedDocumentIds 가 서로 덮어써질 수 있어 순차 처리한다.
+  const handlePinAll = async (nextPinned: boolean) => {
+    const targets = contextDocuments.filter((document) => document.pinnedByDefault !== nextPinned);
+    if (targets.length === 0) {
+      return;
+    }
+    setIsBulkPinning(true);
+    try {
+      for (const document of targets) {
+        await onToggleProjectDocumentPinned(project.record.slug, document.id, nextPinned);
+      }
+    } finally {
+      setIsBulkPinning(false);
+    }
   };
 
   const handleStartEditInfo = () => {
@@ -1137,7 +1170,7 @@ function ProjectWorkspace({
             <div className="projects-panel-header projects-panel-header-column">
               <div>
                 <h2>컨텍스트 문서</h2>
-                <p>자소서 작성 및 평가에 활용될 이력서, 포트폴리오, 경험 정리 문서입니다.</p>
+                <p>자소서 작성 및 평가에 활용될 이력서, 포트폴리오, 경험 정리 문서입니다. 별표를 켠 문서만 실행 컨텍스트에 포함됩니다.</p>
               </div>
               <button
                 className="projects-secondary-button"
@@ -1163,6 +1196,32 @@ function ProjectWorkspace({
             />
 
             {uploadError ? <p className="projects-error-text">{uploadError}</p> : null}
+
+            {contextDocuments.length > 0 ? (
+              <div className="projects-doc-toolbar">
+                <span className="projects-doc-toolbar-count">
+                  실행 포함 {contextDocuments.filter((document) => document.pinnedByDefault).length} / {contextDocuments.length}
+                </span>
+                <div className="projects-doc-toolbar-actions">
+                  <button
+                    className="projects-chip-button"
+                    type="button"
+                    disabled={isBulkPinning || contextDocuments.every((document) => document.pinnedByDefault)}
+                    onClick={() => { void handlePinAll(true); }}
+                  >
+                    전체 선택
+                  </button>
+                  <button
+                    className="projects-chip-button"
+                    type="button"
+                    disabled={isBulkPinning || contextDocuments.every((document) => !document.pinnedByDefault)}
+                    onClick={() => { void handlePinAll(false); }}
+                  >
+                    전체 해제
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             {contextDocuments.length === 0 && uploadingItems.length === 0 ? (
               <button
@@ -1219,7 +1278,15 @@ function ProjectWorkspace({
                     {contextDocuments.length ? contextDocuments.map((document) => (
                       <tr key={document.id}>
                         <td>
-                          <button className="projects-star-button" type="button" disabled aria-label="즐겨찾기">
+                          <button
+                            className={`projects-star-button${document.pinnedByDefault ? " is-pinned" : ""}`}
+                            type="button"
+                            disabled={pendingPinId === document.id || isBulkPinning}
+                            aria-pressed={document.pinnedByDefault}
+                            aria-label={document.pinnedByDefault ? "실행 컨텍스트에서 제외" : "실행 컨텍스트에 포함"}
+                            title={document.pinnedByDefault ? "실행 컨텍스트에 포함됨 (클릭하면 제외)" : "실행 컨텍스트에 포함하려면 클릭"}
+                            onClick={() => { void handleTogglePinned(document.id, !document.pinnedByDefault); }}
+                          >
                             <svg viewBox="0 0 24 24" focusable="false">
                               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>

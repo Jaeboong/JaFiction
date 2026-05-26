@@ -21,6 +21,7 @@ import type {
   ProfileListDocumentsResult,
   ProfileSaveTextDocumentResult,
   ProfileSetDocumentPinnedResult,
+  SetDocumentPinnedResult,
   ProjectInsightWorkspaceState,
   ProjectRecord,
   ProviderId,
@@ -210,6 +211,15 @@ export class RunnerClient {
 
   async setProfileDocumentPinned(documentId: string, pinned: boolean): Promise<ContextDocument> {
     const result = await this.rpcCall<ProfileSetDocumentPinnedResult>("profile_set_document_pinned", {
+      documentId,
+      pinned
+    });
+    return result.document;
+  }
+
+  async setProjectDocumentPinned(slug: string, documentId: string, pinned: boolean): Promise<ContextDocument> {
+    const result = await this.rpcCall<SetDocumentPinnedResult>("set_document_pinned", {
+      slug,
       documentId,
       pinned
     });
