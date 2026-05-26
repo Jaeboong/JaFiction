@@ -135,12 +135,12 @@ test("parseCodexDiscoveredModelOptions extracts only visibility:list entries", (
   );
 });
 
-test("parseCodexDiscoveredModelOptions uses display_name as label when present", () => {
+test("parseCodexDiscoveredModelOptions uses slug as label, ignoring inconsistent display_name", () => {
   const source = JSON.stringify({
     models: [{ slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list" }]
   });
   const options = parseCodexDiscoveredModelOptions(source);
-  assert.equal(options[0]?.label, "GPT-5.5");
+  assert.equal(options[0]?.label, "gpt-5.5");
   assert.equal(options[0]?.value, "gpt-5.5");
 });
 

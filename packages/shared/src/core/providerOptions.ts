@@ -14,15 +14,10 @@ const execFileAsync = promisify(execFile);
 
 const providerCapabilitiesMap: Record<ProviderId, ProviderCapabilities> = {
   codex: {
-    modelOptions: [
-      defaultModelOption,
-      { value: "gpt-5.5", label: "gpt-5.5" },
-      { value: "gpt-5.4", label: "gpt-5.4" },
-      { value: "gpt-5.4-mini", label: "gpt-5.4-mini" },
-      { value: "gpt-5.3-codex", label: "gpt-5.3-codex" },
-      { value: "gpt-5.2", label: "gpt-5.2" },
-      customModelOption
-    ],
+    // 모델 목록은 ~/.codex/models_cache.json 동적 탐색으로 채운다(parseCodexDiscoveredModelOptions).
+    // 하드코딩 스냅샷은 캐시와 어긋나면 mergeModelOptions 합집합으로 새어나오므로 두지 않는다.
+    // 탐색 실패(캐시 없음) 시엔 기본값/직접 입력만 노출.
+    modelOptions: [defaultModelOption, customModelOption],
     effortOptions: [
       defaultEffortOption,
       { value: "low", label: "낮음" },
@@ -238,9 +233,10 @@ export function parseCodexDiscoveredModelOptions(source: string | undefined): Pr
     if (record["visibility"] !== "list") {
       continue;
     }
-    const displayName = record["display_name"];
     seen.add(slug);
-    options.push({ value: slug, label: typeof displayName === "string" && displayName ? displayName : slug });
+    // Label = slug (not display_name): codex's display_name is inconsistently cased
+    // ("GPT-5.5" vs "gpt-5.4"), so the slug gives uniform labels matching the -m value.
+    options.push({ value: slug, label: slug });
   }
   return options;
 }
