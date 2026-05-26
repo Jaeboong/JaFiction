@@ -68,6 +68,7 @@ RUN node ./node_modules/typescript/lib/tsc.js -p ./packages/backend/tsconfig.jso
 # Skipped in dev (BUILD_RUNNER_BIN=false) — dev uses a host volume mount instead.
 FROM oven/bun:1 AS runner-bin
 ARG BUILD_RUNNER_BIN
+ARG JASOJEON_RUNNER_BACKEND_URL
 WORKDIR /app
 
 # All workspace node_modules (runner + shared transitive deps: zod, jszip, ws, etc.)
@@ -81,6 +82,7 @@ COPY packages/runner/src                            ./packages/runner/src
 COPY packages/runner/build.ts                       ./packages/runner/build.ts
 
 RUN if [ "$BUILD_RUNNER_BIN" = "true" ]; then \
+      if [ -n "$JASOJEON_RUNNER_BACKEND_URL" ]; then export JASOJEON_RUNNER_BACKEND_URL; fi; \
       bun run packages/runner/build.ts; \
     else \
       mkdir -p packages/runner/dist-bin; \

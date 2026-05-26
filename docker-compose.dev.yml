@@ -42,6 +42,10 @@ services:
       context: .
       dockerfile: packages/backend/Dockerfile
       # BUILD_RUNNER_BIN 명시 X → Dockerfile 기본값 'true' 사용 (runner-bin stage 활성)
+      args:
+        # dev 러너 바이너리에 .shop URL 을 박는다. 미지정 시 build.ts 폴백(.com,prod)이 박혀
+        # 자소전.shop 에서 받은 러너가 prod 로 붙는 버그가 됨 (regression: 6ef46f5).
+        JASOJEON_RUNNER_BACKEND_URL: ${PUBLIC_BASE_URL}
     restart: unless-stopped
     depends_on:
       postgres:
