@@ -302,13 +302,10 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
                   <span className="providers-field-label">기본 모델</span>
                   <CustomSelect
                     value={model}
-                    options={[
-                      { value: "", label: "기본값 사용" },
-                      ...provider.capabilities.modelOptions.map((option) => ({
-                        value: option.value,
-                        label: option.label,
-                      })),
-                    ]}
+                    options={provider.capabilities.modelOptions.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
                     onChange={setModel}
                     ariaLabel="기본 모델"
                   />
@@ -326,13 +323,10 @@ function ProviderDetail(props: ProvidersPageProps & { provider: ProviderRuntimeS
                 <span className="providers-field-label">기본 Effort 수준</span>
                 <CustomSelect
                   value={effort}
-                  options={[
-                    { value: "", label: "기본값 사용" },
-                    ...provider.capabilities.effortOptions.map((option) => ({
-                      value: option.value,
-                      label: option.label,
-                    })),
-                  ]}
+                  options={provider.capabilities.effortOptions.map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                  }))}
                   onChange={setEffort}
                   ariaLabel="기본 Effort 수준"
                 />
