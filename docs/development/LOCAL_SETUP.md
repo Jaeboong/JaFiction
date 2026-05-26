@@ -148,3 +148,29 @@ ssh -i /tmp/oci.key ubuntu@168.107.25.12
 **주의**: 이 서버의 `~/project/Jasojeon` 파일을 직접 수정하지 않는다. deploy 가
 `git reset --hard origin/develop` 로 덮어쓴다. 수정이 필요하면 로컬에서 commit →
 `git push origin develop` → 자동 배포 확인.
+
+---
+
+## 9. 자소전.shop edge nginx Basic Auth + 러너 예외 (서버 전용, repo 밖)
+
+`.shop`(dev/staging) 은 **edge(prod) nginx 가 SSL 종단 + Basic Auth** 로 외부 노출을 막는다.
+이 설정 파일들은 `.gitignore` 대상이라 repo 에 없고 **OCI 서버에만** 존재한다:
+
+| 파일 (호스트) | 역할 |
+|---------------|------|
+| `/home/ubuntu/jasojeon-dev-nginx/dev-jasojeon.conf` | `.shop` vhost — edge nginx(`jasojeon-prod-nginx-1`)에 bind-mount. `satisfy any` = IP allowlist(`121.151.242.246`) **또는** Basic Auth |
+| `/home/ubuntu/jasojeon-dev-nginx/dev-jasojeon.htpasswd` | Basic Auth 사용자 |
+
+**hosted 러너는 Basic Auth 자격증명을 보내지 않는다.** 따라서 페어링/연결 경로는
+`auth_basic off; allow all;` 로 예외 처리되어 있다 (각 경로는 자체 보안 보유):
+
+- `^~ /auth/device-claim` — claim 등록(설계상 무인증) + 폴링(pollToken)
+- `= /auth/device/resolve` — deviceToken 으로 보호 (없으면 404)
+- `= /runner/ws` — device token 인증
+
+그 외(`/`, `/api/`, SPA)는 Basic Auth 유지. 예외를 빠뜨리면 러너가 `POST /auth/device-claim`
+에서 **401** 을 받아 페어링 자체가 시작되지 않는다 (`No backends could be connected. Exiting.`).
+
+> 수정 절차: 호스트 파일 편집 → `docker exec jasojeon-prod-nginx-1 nginx -t` →
+> 통과 시 `nginx -s reload` (restart 아님). 편집 전 `.bak-<ts>` 백업 필수.
+> 이 설정은 deploy 로 재생성되지 않는 prod 스택이므로 직접 관리한다.
