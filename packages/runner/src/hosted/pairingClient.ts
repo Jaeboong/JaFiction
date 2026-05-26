@@ -93,6 +93,7 @@ export async function registerClaim(
   opts: {
     backendUrl: string;
     deviceId?: string;
+    runnerInstanceId?: string;
     abortSignal?: AbortSignal;
   },
   deps: AutoClaimDeps = {}
@@ -111,6 +112,7 @@ export async function registerClaim(
         os: process.platform,
         runnerVersion: RUNNER_VERSION,
         ...(opts.deviceId ? { deviceId: opts.deviceId } : {}),
+        ...(opts.runnerInstanceId ? { runnerInstanceId: opts.runnerInstanceId } : {}),
       }),
     });
   } catch (err) {

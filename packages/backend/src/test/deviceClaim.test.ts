@@ -57,7 +57,7 @@ async function login(
 
 async function registerClaim(
   app: Awaited<ReturnType<typeof buildApp>>,
-  overrides: Partial<{ hostname: string; os: string; runnerVersion: string; deviceId: string }> = {}
+  overrides: Partial<{ hostname: string; os: string; runnerVersion: string; deviceId: string; runnerInstanceId: string }> = {}
 ) {
   return app.inject({
     method: "POST",
@@ -67,6 +67,7 @@ async function registerClaim(
       os: overrides.os ?? "linux",
       runnerVersion: overrides.runnerVersion ?? "0.1.0",
       deviceId: overrides.deviceId,
+      runnerInstanceId: overrides.runnerInstanceId,
     },
   });
 }
@@ -434,6 +435,218 @@ test("revoke: authenticated user revokes device and revokedAt is set", async () 
   });
   const { devices: list } = JSON.parse(listRes.body) as { devices: Array<{ id: string; revokedAt: string | null }> };
   assert.equal(list.find((d) => d.id === deviceId), undefined, "revoked device should be hidden from active list");
+
+  await app.close();
+});
+
+// ---------------------------------------------------------------------------
+// Fix-2: register supersede — same runnerInstanceId clears old pending claim
+// ---------------------------------------------------------------------------
+
+test("Fix-2 supersede: re-register with same runnerInstanceId removes old pending claim", async () => {
+  const deps = makeTestDeps();
+  const app = await buildApp(deps);
+
+  // First registration
+  const firstReg = await registerClaim(app, {
+    hostname: "runner-host",
+    runnerInstanceId: "instance-abc",
+  });
+  assert.equal(firstReg.statusCode, 200, firstReg.body);
+  const { claimId: firstClaimId, pollToken: firstPollToken } = JSON.parse(firstReg.body) as {
+    claimId: string;
+    pollToken: string;
+  };
+
+  // Second registration with same instanceId (supersedes first)
+  const secondReg = await registerClaim(app, {
+    hostname: "runner-host",
+    runnerInstanceId: "instance-abc",
+  });
+  assert.equal(secondReg.statusCode, 200, secondReg.body);
+  const { claimId: secondClaimId } = JSON.parse(secondReg.body) as { claimId: string };
+
+  // First claim should be gone (superseded)
+  const firstPollRes = await app.inject({
+    method: "GET",
+    url: `/auth/device-claim/${firstClaimId}?pollToken=${firstPollToken}`,
+  });
+  assert.equal(firstPollRes.statusCode, 200);
+  const firstPollBody = JSON.parse(firstPollRes.body) as { status: string };
+  assert.equal(firstPollBody.status, "expired", "old claim should be deleted by supersede");
+
+  // Second claim still exists
+  assert.notEqual(secondClaimId, firstClaimId, "new claimId should differ");
+
+  await app.close();
+});
+
+test("Fix-2 supersede: different runnerInstanceId keeps both pending claims", async () => {
+  const deps = makeTestDeps();
+  const app = await buildApp(deps);
+  const cookie = await login(app, deps, "sub-diff-inst", "diffinst@example.com");
+
+  await registerClaim(app, { hostname: "host-a", runnerInstanceId: "instance-A" });
+  await registerClaim(app, { hostname: "host-b", runnerInstanceId: "instance-B" });
+
+  // Both survive → multiple_claims
+  const approveRes = await app.inject({
+    method: "POST",
+    url: "/api/device-claim/approve",
+    headers: { cookie },
+    payload: {},
+  });
+  assert.equal(approveRes.statusCode, 200);
+  const body = JSON.parse(approveRes.body) as {
+    status: string;
+    claims: Array<{ hostname: string }>;
+  };
+  assert.equal(body.status, "multiple_claims");
+  assert.equal(body.claims.length, 2);
+
+  await app.close();
+});
+
+test("Fix-2 supersede: approved entry is NOT deleted when same instanceId re-registers", async () => {
+  const deps = makeTestDeps();
+  const app = await buildApp(deps);
+  const cookie = await login(app, deps, "sub-approved-safe", "approvedsafe@example.com");
+
+  // Register, approve (status → approved, not yet polled by runner)
+  const firstReg = await registerClaim(app, {
+    hostname: "runner-host",
+    runnerInstanceId: "instance-xyz",
+  });
+  const { claimId: firstClaimId, pollToken: firstPollToken } = JSON.parse(firstReg.body) as {
+    claimId: string;
+    pollToken: string;
+  };
+
+  const approveRes = await app.inject({
+    method: "POST",
+    url: "/api/device-claim/approve",
+    headers: { cookie },
+    payload: { claimId: firstClaimId },
+  });
+  assert.equal(approveRes.statusCode, 200);
+  const approveBody = JSON.parse(approveRes.body) as { status: string };
+  assert.equal(approveBody.status, "approved");
+
+  // Re-register with same instanceId — should not delete the already-approved claim
+  await registerClaim(app, {
+    hostname: "runner-host",
+    runnerInstanceId: "instance-xyz",
+  });
+
+  // The approved claim should still be retrievable by the runner
+  const pollRes = await app.inject({
+    method: "GET",
+    url: `/auth/device-claim/${firstClaimId}?pollToken=${firstPollToken}`,
+  });
+  assert.equal(pollRes.statusCode, 200);
+  const pollBody = JSON.parse(pollRes.body) as { status: string; token: string };
+  assert.equal(pollBody.status, "approved", "approved claim must survive supersede");
+  assert.ok(pollBody.token, "token must be present");
+
+  await app.close();
+});
+
+test("Fix-2 supersede: no runnerInstanceId in body leaves existing pending claim intact", async () => {
+  const deps = makeTestDeps();
+  const app = await buildApp(deps);
+  const cookie = await login(app, deps, "sub-no-inst", "noinst@example.com");
+
+  // First claim (legacy runner without instanceId)
+  const firstReg = await registerClaim(app, { hostname: "legacy-host" });
+  assert.equal(firstReg.statusCode, 200);
+
+  // Second claim also without instanceId — no supersede
+  const secondReg = await registerClaim(app, { hostname: "legacy-host-2" });
+  assert.equal(secondReg.statusCode, 200);
+
+  // Both claims still pending → multiple_claims
+  const approveRes = await app.inject({
+    method: "POST",
+    url: "/api/device-claim/approve",
+    headers: { cookie },
+    payload: {},
+  });
+  assert.equal(approveRes.statusCode, 200);
+  const body = JSON.parse(approveRes.body) as { status: string };
+  assert.equal(body.status, "multiple_claims");
+
+  await app.close();
+});
+
+// ---------------------------------------------------------------------------
+// Fix-3: approve 2-minute window removed — old pending claims (within TTL) approved
+// ---------------------------------------------------------------------------
+
+test("Fix-3: approve matches a pending claim older than 2 minutes (within TTL)", async () => {
+  const deps = makeTestDeps();
+  const app = await buildApp(deps);
+  const cookie = await login(app, deps, "sub-old-claim", "oldclaim@example.com");
+
+  // Seed a claim that is 3 minutes old directly in Redis (past the old 2-min gate)
+  const claimId = "old-claim-id-12345";
+  const pollToken = "test-poll-token-abc";
+  const oldEntry = {
+    hostname: "old-runner",
+    os: "linux",
+    runnerVersion: "0.1.0",
+    ip: "127.0.0.1",
+    pollToken,
+    registeredAt: Date.now() - 3 * 60 * 1000,
+    status: "pending" as const,
+  };
+  await deps.redis.set(`claim:${claimId}`, JSON.stringify(oldEntry), "EX", 600);
+
+  const approveRes = await app.inject({
+    method: "POST",
+    url: "/api/device-claim/approve",
+    headers: { cookie },
+    payload: {},
+  });
+  assert.equal(approveRes.statusCode, 200, approveRes.body);
+  const body = JSON.parse(approveRes.body) as { status: string; deviceId: string };
+  assert.equal(body.status, "approved", "3-minute-old pending claim must be approved (no 2-min window)");
+  assert.ok(body.deviceId, "deviceId should be present");
+
+  await app.close();
+});
+
+test("Fix-3 multiple_claims guard still active: two pending claims from same IP → multiple_claims", async () => {
+  const deps = makeTestDeps();
+  const app = await buildApp(deps);
+  const cookie = await login(app, deps, "sub-multi-guard", "multiguard@example.com");
+
+  // Seed two old-ish claims (> 2 min old, different instanceIds, same IP)
+  const claimA = "claim-guard-A";
+  const claimB = "claim-guard-B";
+  const baseEntry = {
+    os: "linux",
+    runnerVersion: "0.1.0",
+    ip: "127.0.0.1",
+    pollToken: "tok",
+    registeredAt: Date.now() - 3 * 60 * 1000,
+    status: "pending" as const,
+  };
+  await deps.redis.set(`claim:${claimA}`, JSON.stringify({ ...baseEntry, hostname: "host-A", runnerInstanceId: "inst-A" }), "EX", 600);
+  await deps.redis.set(`claim:${claimB}`, JSON.stringify({ ...baseEntry, hostname: "host-B", runnerInstanceId: "inst-B" }), "EX", 600);
+
+  const approveRes = await app.inject({
+    method: "POST",
+    url: "/api/device-claim/approve",
+    headers: { cookie },
+    payload: {},
+  });
+  assert.equal(approveRes.statusCode, 200);
+  const body = JSON.parse(approveRes.body) as {
+    status: string;
+    claims: Array<{ hostname: string }>;
+  };
+  assert.equal(body.status, "multiple_claims", "multiple_claims guard must still fire when > 1 pending same-IP");
+  assert.equal(body.claims.length, 2);
 
   await app.close();
 });

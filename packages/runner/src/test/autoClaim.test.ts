@@ -72,6 +72,55 @@ test("registerClaim includes deviceId when present", async () => {
   assert.equal(body.deviceId, "device-uuid-1");
 });
 
+test("registerClaim includes runnerInstanceId when provided", async () => {
+  const { fetch: mockFetch, calls } = makeMockFetch([
+    {
+      ok: true,
+      status: 200,
+      body: {
+        claimId: "claim-uuid-5678",
+        pollToken: "poll-token-efgh",
+        expiresAt: new Date(Date.now() + 600_000).toISOString(),
+      },
+    },
+  ]);
+
+  await registerClaim(
+    {
+      backendUrl: "http://localhost:4000",
+      runnerInstanceId: "runner-instance-uuid-test",
+    },
+    { fetch: mockFetch }
+  );
+
+  assert.ok(calls[0].init?.body, "expected request body");
+  const body = JSON.parse(String(calls[0].init?.body)) as { runnerInstanceId?: string };
+  assert.equal(body.runnerInstanceId, "runner-instance-uuid-test");
+});
+
+test("registerClaim omits runnerInstanceId when not provided", async () => {
+  const { fetch: mockFetch, calls } = makeMockFetch([
+    {
+      ok: true,
+      status: 200,
+      body: {
+        claimId: "claim-uuid-9999",
+        pollToken: "poll-token-zzzz",
+        expiresAt: new Date(Date.now() + 600_000).toISOString(),
+      },
+    },
+  ]);
+
+  await registerClaim(
+    { backendUrl: "http://localhost:4000" },
+    { fetch: mockFetch }
+  );
+
+  assert.ok(calls[0].init?.body, "expected request body");
+  const body = JSON.parse(String(calls[0].init?.body)) as Record<string, unknown>;
+  assert.ok(!("runnerInstanceId" in body), "runnerInstanceId must be absent when not provided");
+});
+
 test("happy path: register → pending poll → approved poll returns token", async () => {
   const { fetch: mockFetch } = makeMockFetch([
     {

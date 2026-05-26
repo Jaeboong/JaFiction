@@ -18,6 +18,8 @@ import {
 import { createRpcDispatcher } from "./hosted/rpcDispatcher";
 import { startEventForwarding } from "./hosted/eventForwarder";
 import type { RunnerContext } from "./runnerContext";
+import { getOrCreateRunnerInstanceId } from "./hosted/runnerInstanceId";
+import { acquireInstanceLock } from "./hosted/instanceLock";
 import type { Logger } from "./hosted/outboundClient";
 
 function parseBackendUrls(): string[] {
@@ -41,6 +43,13 @@ export async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Load or create the stable runner instance ID before taking the lock
+  // so a disk error here doesn't leave an uncleaned lock behind.
+  const runnerInstanceId = await getOrCreateRunnerInstanceId();
+
+  // Acquire single-instance lock (last-wins). Returns a cleanup function.
+  const releaseLock = await acquireInstanceLock();
+
   const safeMeta = (meta?: Record<string, unknown>): unknown =>
     meta === undefined ? "" : redactSecrets(meta);
   const logger: Logger = {
@@ -55,7 +64,7 @@ export async function main(): Promise<void> {
   // 한 백엔드가 오프라인이거나 페어링 실패해도 다른 백엔드 연결은 계속 진행.
   const results = await Promise.all(
     backendUrls.map((url) =>
-      connectToBackend({ backendUrl: url, ctx, logger }).catch((err: unknown) => {
+      connectToBackend({ backendUrl: url, ctx, logger, runnerInstanceId }).catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         process.stderr.write(`[runner][${url}] Skipping backend: ${msg}\n`);
         return null;
@@ -65,6 +74,7 @@ export async function main(): Promise<void> {
 
   const clients = results.filter((c): c is OutboundClientHandle => c !== null);
   if (clients.length === 0) {
+    await releaseLock();
     process.stderr.write("[runner] No backends could be connected. Exiting.\n");
     process.exit(1);
   }
@@ -72,6 +82,7 @@ export async function main(): Promise<void> {
   const shutdown = (signal: "SIGINT" | "SIGTERM") => {
     console.log(`[runner] ${signal} received — shutting down`);
     void Promise.all([
+      releaseLock(),
       ...clients.map((client) => client.close()),
       ctx.jobPostingFetcher?.close?.() ?? Promise.resolve()
     ]).then(() => process.exit(0));
@@ -89,8 +100,9 @@ async function pairAndPersist(opts: {
   backendUrl: string;
   logger: Logger;
   forceReclaim?: boolean;
+  runnerInstanceId?: string;
 }): Promise<{ deviceToken: string; deviceId: string }> {
-  const { backendUrl, logger, forceReclaim } = opts;
+  const { backendUrl, logger, forceReclaim, runnerInstanceId } = opts;
 
   let deviceToken = forceReclaim ? undefined : await loadDeviceToken(backendUrl);
   let deviceId = forceReclaim ? undefined : await loadDeviceId(backendUrl);
@@ -111,7 +123,7 @@ async function pairAndPersist(opts: {
   let claim: Awaited<ReturnType<typeof registerClaim>> | undefined;
 
   try {
-    claim = await registerClaim({ backendUrl, deviceId });
+    claim = await registerClaim({ backendUrl, deviceId, runnerInstanceId });
   } catch (err) {
     if (!deviceToken) {
       throw new Error(`Auto-claim failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -186,13 +198,14 @@ async function connectToBackend(opts: {
   backendUrl: string;
   ctx: RunnerContext;
   logger: Logger;
+  runnerInstanceId?: string;
 }): Promise<OutboundClientHandle> {
-  const { backendUrl, ctx, logger } = opts;
+  const { backendUrl, ctx, logger, runnerInstanceId } = opts;
 
   let selfHealAttempted = false;
   let permanentlyClosed = false;
 
-  const initialPair = await pairAndPersist({ backendUrl, logger, forceReclaim: false });
+  const initialPair = await pairAndPersist({ backendUrl, logger, forceReclaim: false, runnerInstanceId });
 
   // backend 에서 DART_API_KEY fetch (실패해도 runner 는 정상 부팅)
   await fetchAndCacheDartApiKey(backendUrl, initialPair.deviceToken).catch((err: unknown) => {
@@ -220,7 +233,7 @@ async function connectToBackend(opts: {
     await currentInner.close().catch(() => {});
     let repaired: { deviceToken: string; deviceId: string };
     try {
-      repaired = await pairAndPersist({ backendUrl, logger, forceReclaim: true });
+      repaired = await pairAndPersist({ backendUrl, logger, forceReclaim: true, runnerInstanceId });
     } catch (err) {
       logger.error(`[runner][${backendUrl}] re-pairing failed`, { error: String(err) });
       permanentlyClosed = true;

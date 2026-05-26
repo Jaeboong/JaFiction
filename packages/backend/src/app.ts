@@ -78,6 +78,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: deps.logger ?? (deps.env.NODE_ENV !== "test" ? defaultLoggerConfig() : false),
     bodyLimit: 20 * 1024 * 1024,
+    trustProxy: true,
   });
 
   // Plugins
