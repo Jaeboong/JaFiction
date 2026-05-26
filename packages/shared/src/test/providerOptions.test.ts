@@ -7,7 +7,8 @@ import {
   customModelOptionValue,
   getProviderCapabilities,
   isCustomModelSelection,
-  loadProviderCapabilities
+  loadProviderCapabilities,
+  parseCodexDiscoveredModelOptions
 } from "../core/providerOptions";
 import { cleanupTempWorkspace, createTempWorkspace } from "./helpers";
 
@@ -101,6 +102,85 @@ test("claude model discovery prefers explicit versions and keeps alias options a
   assert.ok(capabilities.modelOptions.some((option) => option.value === "opus"));
   assert.ok(capabilities.modelOptions.some((option) => option.value === "claude-haiku-3-5"));
   assert.equal(isCustomModelSelection("claude", "claude-sonnet-4-6", capabilities), false);
+});
+
+test("parseCodexDiscoveredModelOptions returns empty array for undefined source", () => {
+  assert.deepEqual(parseCodexDiscoveredModelOptions(undefined), []);
+});
+
+test("parseCodexDiscoveredModelOptions returns empty array for invalid JSON", () => {
+  assert.deepEqual(parseCodexDiscoveredModelOptions("not valid json"), []);
+});
+
+test("parseCodexDiscoveredModelOptions returns empty array when models field is missing", () => {
+  assert.deepEqual(parseCodexDiscoveredModelOptions(JSON.stringify({ fetched_at: "2026-01-01" })), []);
+});
+
+test("parseCodexDiscoveredModelOptions returns empty array when models is not an array", () => {
+  assert.deepEqual(parseCodexDiscoveredModelOptions(JSON.stringify({ models: "oops" })), []);
+});
+
+test("parseCodexDiscoveredModelOptions extracts only visibility:list entries", () => {
+  const source = JSON.stringify({
+    models: [
+      { slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list" },
+      { slug: "codex-auto-review", display_name: "Codex Auto Review", visibility: "hide" },
+      { slug: "gpt-5.4", display_name: "GPT-5.4", visibility: "list" }
+    ]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.deepEqual(
+    options.map((o) => o.value),
+    ["gpt-5.5", "gpt-5.4"]
+  );
+});
+
+test("parseCodexDiscoveredModelOptions uses display_name as label when present", () => {
+  const source = JSON.stringify({
+    models: [{ slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list" }]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.equal(options[0]?.label, "GPT-5.5");
+  assert.equal(options[0]?.value, "gpt-5.5");
+});
+
+test("parseCodexDiscoveredModelOptions falls back to slug when display_name is absent", () => {
+  const source = JSON.stringify({
+    models: [{ slug: "gpt-5.4", visibility: "list" }]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.equal(options[0]?.label, "gpt-5.4");
+});
+
+test("parseCodexDiscoveredModelOptions falls back to slug when display_name is empty string", () => {
+  const source = JSON.stringify({
+    models: [{ slug: "gpt-5.4", display_name: "", visibility: "list" }]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.equal(options[0]?.label, "gpt-5.4");
+});
+
+test("parseCodexDiscoveredModelOptions deduplicates entries with the same slug", () => {
+  const source = JSON.stringify({
+    models: [
+      { slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list" },
+      { slug: "gpt-5.5", display_name: "GPT-5.5 duplicate", visibility: "list" }
+    ]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.equal(options.length, 1);
+  assert.equal(options[0]?.value, "gpt-5.5");
+});
+
+test("parseCodexDiscoveredModelOptions skips non-object entries in models array", () => {
+  const source = JSON.stringify({
+    models: [null, "string-entry", 42, { slug: "gpt-5.4", visibility: "list" }]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.deepEqual(
+    options.map((o) => o.value),
+    ["gpt-5.4"]
+  );
 });
 
 test("gemini model discovery reads installed config values and filters internal-only models", async (t) => {

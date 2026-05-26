@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import * as fs from "node:fs/promises";
+import * as os from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
 import { ProviderCapabilities, ProviderId, ProviderSettingOption } from "./types";
@@ -15,10 +16,11 @@ const providerCapabilitiesMap: Record<ProviderId, ProviderCapabilities> = {
   codex: {
     modelOptions: [
       defaultModelOption,
-      { value: "codex-mini-latest", label: "codex-mini-latest" },
+      { value: "gpt-5.5", label: "gpt-5.5" },
       { value: "gpt-5.4", label: "gpt-5.4" },
       { value: "gpt-5.4-mini", label: "gpt-5.4-mini" },
       { value: "gpt-5.3-codex", label: "gpt-5.3-codex" },
+      { value: "gpt-5.2", label: "gpt-5.2" },
       customModelOption
     ],
     effortOptions: [
@@ -160,6 +162,8 @@ export function buildProviderArgs(
 
 async function discoverProviderModelOptions(providerId: ProviderId, command: string): Promise<ProviderSettingOption[]> {
   switch (providerId) {
+    case "codex":
+      return parseCodexDiscoveredModelOptions(await readCodexModelsCache());
     case "claude":
       return parseClaudeDiscoveredModelOptions(await readCommandText(command));
     case "gemini":
@@ -204,6 +208,46 @@ export function parseGeminiDiscoveredModelOptions(source: string | undefined): P
   }
 
   return [...discovered].map((value) => ({ value, label: value === "auto" ? "Auto" : value }));
+}
+
+export function parseCodexDiscoveredModelOptions(source: string | undefined): ProviderSettingOption[] {
+  if (!source) {
+    return [];
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
+    return [];
+  }
+  const models = (parsed as Record<string, unknown>)?.["models"];
+  if (!Array.isArray(models)) {
+    return [];
+  }
+  const options: ProviderSettingOption[] = [];
+  const seen = new Set<string>();
+  for (const entry of models) {
+    if (typeof entry !== "object" || entry === null) {
+      continue;
+    }
+    const record = entry as Record<string, unknown>;
+    const slug = record["slug"];
+    if (typeof slug !== "string" || !slug || seen.has(slug)) {
+      continue;
+    }
+    if (record["visibility"] !== "list") {
+      continue;
+    }
+    const displayName = record["display_name"];
+    seen.add(slug);
+    options.push({ value: slug, label: typeof displayName === "string" && displayName ? displayName : slug });
+  }
+  return options;
+}
+
+async function readCodexModelsCache(): Promise<string | undefined> {
+  const codexHome = process.env["CODEX_HOME"]?.trim() || path.join(os.homedir(), ".codex");
+  return readTextFileIfExists(path.join(codexHome, "models_cache.json"));
 }
 
 function mergeModelOptions(
