@@ -11,7 +11,7 @@
 | P2 | 공고 파서 메이저 사이트 어댑터 | Chunk 0 (인프라) + Chunk 0.5 (Puppeteer Fetcher) 완료, Chunk 1+ (실 어댑터) 대기 | develop / feat/p2-posting-parser-adapters | [링크](2026-04-19-posting-parser-p2-major-adapters.md) |
 | P3 | 공고 파서 후속 (API 조사 분기) | 대기 — API 조사 결과에 따라 scope 확정 | — | [링크](2026-04-17-posting-parser-refactor.md) |
 | 내 경험 | "내 경험" 워크스페이스 경험 저장소 (개요 페이지 대체) | Phase 1 구현 완료 — 테스트 80/80 + 웹 빌드 green, 로컬 러너 재빌드 후 동작 검증 대기 | develop | [링크](2026-05-27-my-experience-store-design.md) |
-| 서버 동기화 | 사용자 경험 데이터 서버 동기화 (다기기 일관성) | v1 구현 플랜 확정 — 구현 착수 대기 (청크 A/B/C) | develop | [스코핑](2026-05-27-server-sync-scoping.md) · [v1 플랜](2026-05-27-server-sync-v1-implementation.md) |
+| 서버 동기화 | 사용자 경험 데이터 서버 동기화 (다기기 일관성) | v1 구현 완료 — PR #6 (feat/server-sync-v1→develop), check.sh green, 배포 전 SYNC_ENCRYPTION_KEY·러너 재빌드 필요 | feat/server-sync-v1 | [스코핑](2026-05-27-server-sync-scoping.md) · [v1 플랜](2026-05-27-server-sync-v1-implementation.md) |
 
 보류:
 
