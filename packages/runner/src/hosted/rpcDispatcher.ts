@@ -49,6 +49,7 @@ import {
   submitProviderCliCode,
   callProviderLogout
 } from "../routes/providerCliHandlers";
+import { syncDisable, syncNow } from "../routes/syncHandlers";
 
 // ---------------------------------------------------------------------------
 // Logger interface — narrow surface so callers can provide console or pino
@@ -327,10 +328,10 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
       return profileGetDocumentPreview(ctx, req.payload);
 
     case "sync_now":
-      throw new Error("sync handler not yet implemented");
+      return syncNow(ctx, req.payload);
 
     case "sync_disable":
-      throw new Error("sync handler not yet implemented");
+      return syncDisable(ctx, req.payload);
 
     case "check_provider_cli_status":
       return checkProviderCliStatus(ctx, req.payload);

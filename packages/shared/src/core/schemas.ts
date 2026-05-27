@@ -239,7 +239,9 @@ export const ProjectRecordSchema = z.object({
 
 export const AppPreferencesSchema = z.object({
   lastCoordinatorProvider: ProviderIdSchema.optional(),
-  lastReviewMode: ReviewModeSchema.optional()
+  lastReviewMode: ReviewModeSchema.optional(),
+  serverSyncEnabled: z.boolean().default(false),
+  lastSyncedAt: z.string().optional()
 });
 
 export const RunRecordSchema = z.object({

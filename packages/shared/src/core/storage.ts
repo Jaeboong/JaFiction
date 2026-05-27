@@ -611,6 +611,15 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
     await writeJsonFile(this.paths.preferencesPath(), { ...preferences, lastReviewMode: reviewMode });
   }
 
+  async setServerSyncState(input: { enabled: boolean; lastSyncedAt?: string }): Promise<void> {
+    const preferences = await this.getPreferences();
+    await writeJsonFile(this.paths.preferencesPath(), {
+      ...preferences,
+      serverSyncEnabled: input.enabled,
+      lastSyncedAt: input.lastSyncedAt ?? preferences.lastSyncedAt
+    });
+  }
+
   async createRun(record: RunRecord): Promise<string> { return this.runs.createRun(record); }
   async updateRun(projectSlug: string, runId: string, updates: Partial<RunRecord>): Promise<RunRecord> { return this.runs.updateRun(projectSlug, runId, updates); }
   async getRun(projectSlug: string, runId: string): Promise<RunRecord> { return this.runs.getRun(projectSlug, runId); }

@@ -181,16 +181,17 @@ function startInnerClient(opts: {
   onAuthFailure: (reason: string) => void;
 }): { inner: OutboundClientHandle; dispose: () => void } {
   const { backendUrl, deviceToken, ctx, logger, onAuthFailure } = opts;
-  const dispatcher = createRpcDispatcher({ runnerContext: ctx, logger });
+  const hostedCtx: RunnerContext = { ...ctx, backendUrl, deviceToken };
+  const dispatcher = createRpcDispatcher({ runnerContext: hostedCtx, logger });
   const inner = startHostedOutboundClient({
     backendUrl,
     deviceToken,
-    runnerContext: ctx,
+    runnerContext: hostedCtx,
     onRpc: dispatcher,
     onAuthFailure,
     logger,
   });
-  const disposeForwarding = startEventForwarding(inner, ctx);
+  const disposeForwarding = startEventForwarding(inner, hostedCtx);
   return { inner, dispose: () => { disposeForwarding(); } };
 }
 

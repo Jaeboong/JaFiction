@@ -233,6 +233,8 @@ export interface ProjectRecord {
 export interface AppPreferences {
   lastCoordinatorProvider?: ProviderId;
   lastReviewMode?: ReviewMode;
+  serverSyncEnabled: boolean;
+  lastSyncedAt?: string;
 }
 
 export interface RunRecord {

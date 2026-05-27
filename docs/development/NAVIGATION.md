@@ -112,6 +112,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `profileRouter.ts` | 사용자 프로파일 | 프로파일 저장/불러오기 |
 | `insightsRouter.ts` | 인사이트 | 인사이트 조회 및 생성 트리거 |
 | `openDartRouter.ts` | OpenDart | 공시 데이터 프록시 |
+| `syncHandlers.ts` | 서버 동기화 | 호스티드 백엔드 sync 호출, 로컬 문서/프로젝트 적용, 경험 문서 참조 변환 |
 
 ---
 
@@ -186,6 +187,7 @@ Runner 테스트:
 | `packages/runner/src/test/sessionAuth.test.ts` | trusted origin allowlist, `/api/session`, cookie-backed API/WS auth |
 | `packages/runner/src/test/secretStore.test.ts` | machine-local key init, legacy secret migration, copied blob failure |
 | `packages/runner/src/test/runsRouter.test.ts` | addressed `runId` 409 regressions for intervention/abort |
+| `packages/runner/src/test/syncRefsTranslate.test.ts` | server sync 의 `experienceRefs.profileDocumentIds` 로컬 id ↔ sha256 변환 |
 
 ---
 

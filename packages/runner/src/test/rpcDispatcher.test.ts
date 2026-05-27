@@ -28,7 +28,7 @@ const fakeSidebarState: SidebarState = {
   providers: [],
   profileDocuments: [],
   projects: [],
-  preferences: {},
+  preferences: { serverSyncEnabled: false },
   agentDefaults: {},
   runState: { status: "idle" },
   defaultRubric: ""

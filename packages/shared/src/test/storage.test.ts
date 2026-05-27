@@ -417,6 +417,28 @@ test("storage persists the last selected review mode preference", async (t) => {
   assert.equal(preferences.lastReviewMode, "realtime");
 });
 
+test("storage persists server sync preferences with disabled default", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const storage = await createStorage(workspaceRoot);
+  assert.equal((await storage.getPreferences()).serverSyncEnabled, false);
+
+  await storage.setServerSyncState({
+    enabled: true,
+    lastSyncedAt: "2026-05-27T00:00:00.000Z"
+  });
+
+  const preferences = await storage.getPreferences();
+  assert.equal(preferences.serverSyncEnabled, true);
+  assert.equal(preferences.lastSyncedAt, "2026-05-27T00:00:00.000Z");
+
+  await storage.setServerSyncState({ enabled: false });
+  const disabled = await storage.getPreferences();
+  assert.equal(disabled.serverSyncEnabled, false);
+  assert.equal(disabled.lastSyncedAt, "2026-05-27T00:00:00.000Z");
+});
+
 test("storage loads profile document preview from normalized content before raw fallback", async (t) => {
   const workspaceRoot = await createTempWorkspace();
   t.after(async () => cleanupTempWorkspace(workspaceRoot));

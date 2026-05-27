@@ -109,7 +109,7 @@ const MINIMAL_SIDEBAR_STATE = {
   providers: [],
   profileDocuments: [],
   projects: [],
-  preferences: {},
+  preferences: { serverSyncEnabled: false },
   agentDefaults: {},
   runState: { status: "idle" },
   defaultRubric: "- fit"

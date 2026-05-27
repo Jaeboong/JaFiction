@@ -337,7 +337,7 @@ test("extension message schema accepts discussion ledger events and artifact fla
           ]
         }
       ],
-      preferences: {},
+      preferences: { serverSyncEnabled: false },
       agentDefaults: {},
       runState: { status: "idle" },
       defaultRubric: "- fit"
@@ -446,7 +446,7 @@ test("extension message schema requires typed sidebar state payload", () => {
         providers: [],
         profileDocuments: [],
         projects: [],
-        preferences: {},
+        preferences: { serverSyncEnabled: false },
         agentDefaults: {},
         defaultRubric: "- fit"
       }
