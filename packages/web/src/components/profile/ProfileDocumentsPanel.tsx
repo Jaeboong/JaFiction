@@ -186,12 +186,13 @@ export function ProfileDocumentsPanel({
             disabled={savingText}
           />
         </label>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151" }}>
           <input
             type="checkbox"
             checked={pinnedByDefault}
             onChange={(e) => setPinnedByDefault(e.target.checked)}
             disabled={savingText}
+            style={{ width: 16, height: 16, accentColor: "#4f46e5", flexShrink: 0 }}
           />
           새 프로젝트에서 기본으로 포함
         </label>
@@ -244,17 +245,20 @@ export function ProfileDocumentsPanel({
                     {doc.note ? ` · ${doc.note}` : ""}
                   </span>
                 </div>
-                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
-                  <input
-                    type="checkbox"
-                    checked={doc.pinnedByDefault}
-                    disabled={pendingPinId === doc.id}
-                    onChange={(e) => {
-                      void handleTogglePinned(doc.id, e.target.checked);
-                    }}
-                  />
-                  기본 포함
-                </label>
+                <button
+                  className={`projects-pin-button${doc.pinnedByDefault ? " is-pinned" : ""}`}
+                  type="button"
+                  disabled={pendingPinId === doc.id}
+                  aria-pressed={doc.pinnedByDefault}
+                  aria-label={doc.pinnedByDefault ? "기본 컨텍스트에서 제외" : "기본 컨텍스트에 포함"}
+                  title={doc.pinnedByDefault ? "기본 컨텍스트에 포함됨 (클릭하면 제외)" : "기본 컨텍스트에 포함하려면 클릭"}
+                  onClick={() => { void handleTogglePinned(doc.id, !doc.pinnedByDefault); }}
+                >
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M12 17v5" />
+                    <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                  </svg>
+                </button>
                 <button
                   type="button"
                   className="projects-secondary-button"
