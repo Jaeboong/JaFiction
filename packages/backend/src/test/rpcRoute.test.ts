@@ -160,6 +160,52 @@ describe("POST /api/rpc", () => {
     }
   });
 
+  it("session + multiple attached devices → routes to first device returned by store", async () => {
+    const redis = makeFakePubSubRedis();
+    const hub = createDeviceHub({ redis });
+    const userId = "user-rpc-latest";
+    const userMap = new Map<string, UserRow>([[userId, makeUser(userId)]]);
+    const store = makeInMemorySessionStore(userMap);
+    const { raw } = await store.createSession(userId);
+
+    const oldRunner = attachFakeRunner({
+      hub,
+      deviceId: "dev-old",
+      userIds: [userId],
+      handler: (req) => ({ v: 1, id: req.id, ok: true, result: { deviceId: "dev-old" } })
+    });
+    const newRunner = attachFakeRunner({
+      hub,
+      deviceId: "dev-new",
+      userIds: [userId],
+      handler: (req) => ({ v: 1, id: req.id, ok: true, result: { deviceId: "dev-new" } })
+    });
+
+    const { app, port } = await buildTestApp(
+      store,
+      hub,
+      makeMemoryRpcDeviceStore(["dev-new", "dev-old"])
+    );
+    try {
+      const { status, body } = await post(
+        port,
+        { v: 1, id: "req-latest", op: "get_state", payload: {} },
+        `${SESSION_COOKIE}=${raw}`
+      );
+      assert.strictEqual(status, 200);
+      assert.deepStrictEqual(body, {
+        v: 1,
+        id: "req-latest",
+        ok: true,
+        result: { deviceId: "dev-new" }
+      });
+    } finally {
+      oldRunner.close();
+      newRunner.close();
+      await app.close();
+    }
+  });
+
   it("fake runner sends error → error envelope returned (not HTTP error)", async () => {
     const redis = makeFakePubSubRedis();
     const hub = createDeviceHub({ redis });

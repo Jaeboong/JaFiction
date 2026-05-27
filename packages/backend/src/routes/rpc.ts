@@ -7,14 +7,14 @@
  * forwards the request to the runner via DeviceHub, and returns the response.
  *
  * Id pass-through design: the browser-supplied req.id is forwarded directly to
- * the runner's pending-RPC map keyed by that id. This is safe for MVP (single
- * device per user). Future concern: concurrent browser tabs with the same RPC
- * id could collide in the per-device map. Mitigate later by prefixing with a
- * backend-generated nonce and stripping it before returning to the browser.
+ * the selected runner's pending-RPC map keyed by that id. Future concern:
+ * concurrent browser tabs routed to the same runner with the same RPC id could
+ * collide in the per-device map. Mitigate later by prefixing with a backend-
+ * generated nonce and stripping it before returning to the browser.
  */
 
 import type { FastifyInstance } from "fastify";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { RpcRequestSchema } from "@jasojeon/shared";
 import type { RpcResponse } from "@jasojeon/shared";
 import type { Db } from "../db/client";
@@ -39,7 +39,8 @@ export function createDrizzleRpcDeviceStore(db: Db): RpcDeviceStore {
         .select({ id: devices.id })
         .from(devices)
         .innerJoin(device_users, eq(device_users.device_id, devices.id))
-        .where(and(eq(device_users.user_id, userId), isNull(devices.revoked_at)));
+        .where(and(eq(device_users.user_id, userId), isNull(devices.revoked_at)))
+        .orderBy(sql`${devices.last_seen_at} DESC NULLS LAST`);
       return rows.map((r) => r.id);
     }
   };
@@ -76,7 +77,7 @@ export async function registerRpc(
       }
       const req = parsed.data;
 
-      // Find first active + connected device for this user.
+      // Prefer the most recently active connected runner for this user.
       const deviceIds = await deps.deviceStore.listActiveDeviceIds(user.id);
       const deviceId = deviceIds.find((id) => deps.hub.isConnected(id));
 
