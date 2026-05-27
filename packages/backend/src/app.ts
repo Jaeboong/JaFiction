@@ -16,6 +16,7 @@ import { registerBrowserEvents } from "./ws/browserEvents";
 import { registerRpc, createDrizzleRpcDeviceStore } from "./routes/rpc";
 import { registerRunnerDownload } from "./routes/runnerDownload";
 import { registerRunnerDartKey } from "./routes/runnerDartKey";
+import { registerSync } from "./routes/sync";
 import { createSubscribeAdapter } from "./redis/subscribeAdapter";
 import { createDeviceHub } from "./ws/deviceHub";
 import type { DeviceHub } from "./ws/deviceHub";
@@ -60,6 +61,26 @@ export const BACKEND_LOG_REDACT_PATHS: readonly string[] = [
   "payload.apiKey",
   "req.body.payload.apiKey",
   "body.payload.apiKey",
+  "payload.documents[*].title",
+  "payload.documents[*].note",
+  "payload.documents[*].projectSlug",
+  "payload.documents[*].contentBase64",
+  "payload.projects[*].slug",
+  "payload.projects[*].record",
+  "req.body.documents[*].title",
+  "req.body.documents[*].note",
+  "req.body.documents[*].projectSlug",
+  "req.body.documents[*].contentBase64",
+  "req.body.projects[*].slug",
+  "req.body.projects[*].record",
+  "body.documents[*].title",
+  "body.documents[*].note",
+  "body.documents[*].projectSlug",
+  "body.documents[*].contentBase64",
+  "body.projects[*].slug",
+  "body.projects[*].record",
+  "SYNC_ENCRYPTION_KEY",
+  "env.SYNC_ENCRYPTION_KEY",
   // Session cookie echoed into logs
   "req.headers.cookie",
   "headers.cookie"
@@ -147,6 +168,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     deviceStore: createDrizzleDeviceStore(deps.db),
     env: deps.env,
   });
+
+  await registerSync(app, { db: deps.db, env: deps.env });
 
   // Lightweight session probe — lets the web client verify session validity
   // over HTTP before opening a WebSocket (JS cannot read WS 401 directly).

@@ -1015,8 +1015,8 @@ test("B3: rpc:save_project — accepts supported field (companyName) and persist
 // ---------------------------------------------------------------------------
 // OP_NAMES count sanity
 // ---------------------------------------------------------------------------
-test("OP_NAMES contains exactly 48 ops", () => {
-  assert.equal(OP_NAMES.length, 48);
+test("OP_NAMES contains exactly 50 ops", () => {
+  assert.equal(OP_NAMES.length, 50);
 });
 
 // ---------------------------------------------------------------------------

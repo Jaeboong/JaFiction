@@ -775,6 +775,24 @@ export const ProfileGetDocumentPreviewResultSchema = z.object({
 export type ProfileGetDocumentPreviewPayload = z.infer<typeof ProfileGetDocumentPreviewPayloadSchema>;
 export type ProfileGetDocumentPreviewResult = z.infer<typeof ProfileGetDocumentPreviewResultSchema>;
 
+// sync_now
+export const SyncNowPayloadSchema = z.object({}).strict();
+export const SyncNowResultSchema = z.object({
+  syncedDocuments: z.number(),
+  syncedProjects: z.number(),
+  lastSyncedAt: z.string()
+}).strict();
+export type SyncNowPayload = z.infer<typeof SyncNowPayloadSchema>;
+export type SyncNowResult = z.infer<typeof SyncNowResultSchema>;
+
+// sync_disable
+export const SyncDisablePayloadSchema = z.object({}).strict();
+export const SyncDisableResultSchema = z.object({
+  ok: z.literal(true)
+}).strict();
+export type SyncDisablePayload = z.infer<typeof SyncDisablePayloadSchema>;
+export type SyncDisableResult = z.infer<typeof SyncDisableResultSchema>;
+
 // ---------------------------------------------------------------------------
 // Provider CLI auth — 설치/인증 상태 확인 및 인증 플로우
 // ---------------------------------------------------------------------------
@@ -854,6 +872,8 @@ export const OP_NAMES = [
   "profile_upload_document_chunk",
   "profile_set_document_pinned",
   "profile_get_document_preview",
+  "sync_now",
+  "sync_disable",
   "check_provider_cli_status",
   "start_provider_cli_auth",
   "submit_provider_cli_code",
@@ -920,6 +940,8 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("profile_upload_document_chunk"), payload: ProfileUploadDocumentChunkPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("profile_set_document_pinned"), payload: ProfileSetDocumentPinnedPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("profile_get_document_preview"), payload: ProfileGetDocumentPreviewPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("sync_now"), payload: SyncNowPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("sync_disable"), payload: SyncDisablePayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("check_provider_cli_status"), payload: CheckProviderCliStatusPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("start_provider_cli_auth"), payload: StartProviderCliAuthPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("submit_provider_cli_code"), payload: SubmitProviderCliCodePayloadSchema }).strict(),

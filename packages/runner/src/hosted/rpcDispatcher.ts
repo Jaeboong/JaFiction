@@ -326,6 +326,12 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
     case "profile_get_document_preview":
       return profileGetDocumentPreview(ctx, req.payload);
 
+    case "sync_now":
+      throw new Error("sync handler not yet implemented");
+
+    case "sync_disable":
+      throw new Error("sync handler not yet implemented");
+
     case "check_provider_cli_status":
       return checkProviderCliStatus(ctx, req.payload);
 

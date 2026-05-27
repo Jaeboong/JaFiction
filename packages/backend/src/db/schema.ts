@@ -5,8 +5,13 @@ import {
   text,
   timestamp,
   unique,
+  customType,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
 
 // ---------------------------------------------------------------------------
 // users
@@ -105,4 +110,42 @@ export const runs_meta = pgTable(
     finished_at: timestamp("finished_at"),
   },
   (t) => ({ uniq: unique().on(t.device_id, t.project_slug, t.run_id) })
+);
+
+// ---------------------------------------------------------------------------
+// synced_documents
+// ---------------------------------------------------------------------------
+export const synced_documents = pgTable(
+  "synced_documents",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    scope: text("scope").notNull(),
+    project_slug_hash: text("project_slug_hash"),
+    content_sha256: text("content_sha256").notNull(),
+    created_at_iso: text("created_at_iso").notNull(),
+    enc_payload: bytea("enc_payload").notNull(),
+    created_at: timestamp("created_at").notNull().default(sql`now()`),
+  },
+  (t) => ({ uniq: unique().on(t.user_id, t.scope, t.project_slug_hash, t.content_sha256) })
+);
+
+// ---------------------------------------------------------------------------
+// synced_projects
+// ---------------------------------------------------------------------------
+export const synced_projects = pgTable(
+  "synced_projects",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    slug_hash: text("slug_hash").notNull(),
+    record_updated_at: timestamp("record_updated_at").notNull(),
+    enc_record: bytea("enc_record").notNull(),
+    created_at: timestamp("created_at").notNull().default(sql`now()`),
+  },
+  (t) => ({ uniq: unique().on(t.user_id, t.slug_hash) })
 );

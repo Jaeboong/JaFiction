@@ -32,7 +32,9 @@ import type {
   SaveProjectResult,
   SidebarState,
   StartRunResult,
-  SubmitInterventionResult
+  SubmitInterventionResult,
+  SyncDisableResult,
+  SyncNowResult
 } from "@jasojeon/shared";
 
 export interface SessionPayload {
@@ -138,6 +140,14 @@ export class RunnerClient {
 
   async fetchState(): Promise<SidebarState> {
     return this.rpcCall<SidebarState>("get_state", {});
+  }
+
+  async syncNow(): Promise<SyncNowResult> {
+    return this.rpcCall<SyncNowResult>("sync_now", {});
+  }
+
+  async syncDisable(): Promise<SyncDisableResult> {
+    return this.rpcCall<SyncDisableResult>("sync_disable", {});
   }
 
   async getAgentDefaults(): Promise<AgentDefaults> {

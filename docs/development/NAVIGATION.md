@@ -63,6 +63,8 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `runRepository.ts` | Run 레코드 CRUD |
 | `manifestStore.ts` | 프로젝트 매니페스트 저장 및 읽기 |
 | `storagePaths.ts` | 저장소 경로 상수 |
+| `syncTypes.ts` | 서버 동기화 wire 타입과 Zod 스키마 |
+| `syncMerge.ts` | 서버 동기화 세트의 결정적 합집합/충돌 병합 |
 | `roleAssignments.ts` | 에세이 역할(작성자/검토자 등) 배정 로직 |
 | `essayQuestionWorkflow.ts` | 자소서 문항 상태 관리 워크플로 |
 | `viewModels.ts` | UI로 노출되는 뷰모델 타입 |
@@ -159,6 +161,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `providerOptions.test.ts` | providerOptions.ts |
 | `contextCompiler.test.ts` | contextCompiler.ts |
 | `storage.test.ts` | storage.ts |
+| `syncMerge.test.ts` | syncMerge.ts |
 | `runSessionManager.test.ts` | runSessionManager.ts |
 | `roleAssignments.test.ts` | roleAssignments.ts |
 | `sidebarStateStore.test.ts` | sidebarStateStore.ts |
