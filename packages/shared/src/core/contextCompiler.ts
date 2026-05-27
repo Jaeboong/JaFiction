@@ -23,8 +23,9 @@ export class ContextCompiler {
   async compile(request: CompileContextRequest): Promise<CompileContextResult> {
     const profile = request.profile ?? "full";
     const selectedIds = new Set(request.selectedDocumentIds);
+    const experienceProfileIds = new Set(request.project.experienceRefs?.profileDocumentIds ?? []);
     const includedProfileDocuments = request.profileDocuments.filter(
-      (document) => document.pinnedByDefault || selectedIds.has(document.id)
+      (document) => document.pinnedByDefault || selectedIds.has(document.id) || experienceProfileIds.has(document.id)
     );
     const pinnedProjectIds = new Set(request.project.pinnedDocumentIds);
     const includedProjectDocuments = request.projectDocuments.filter(

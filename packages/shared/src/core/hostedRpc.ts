@@ -10,7 +10,8 @@ import {
   RunRecordSchema,
   RunChatMessageSchema,
   RunLedgerEntrySchema,
-  AgentDefaultsSchema
+  AgentDefaultsSchema,
+  ExperienceRefsSchema
 } from "./schemas";
 import { SidebarStateSchema } from "./viewModels";
 import { SourceTierSchema } from "./sourceTier";
@@ -69,6 +70,7 @@ const ProjectDetailSchema = z.object({
   openDartSkipRequested: z.boolean().optional(),
   rubric: z.string(),
   pinnedDocumentIds: z.array(z.string()),
+  experienceRefs: ExperienceRefsSchema.default({ profileDocumentIds: [], githubRepos: [], notionDirective: null }),
   charLimit: z.number().int().min(1).optional(),
   notionPageIds: z.array(z.string()).optional(),
   createdAt: z.string(),
@@ -90,7 +92,7 @@ const WorkspaceFileEntrySchema = z.object({
 }).strict();
 
 // ProjectPatch: partial update for save_project.
-// Only fields that updateProjectInfo() already persists are accepted here.
+// Fields accepted here either flow through updateProjectInfo() or the direct ProjectRecord update branch.
 // rubric, pinnedDocumentIds, charLimit, notionPageIds are intentionally excluded —
 // TODO: add dedicated ops (save_project_rubric, save_project_char_limit, etc.) in a
 // later phase when the web UI needs them. Using .strict() so callers receive a clear
@@ -115,7 +117,8 @@ const ProjectPatchSchema = z.object({
   openDartCandidates: z.array(OpenDartCandidateSchema).nullable().optional(),
   openDartSkipRequested: z.boolean().optional(),
   postingReviewReasons: z.array(_rpcReviewNeededReasonSchema).optional(),
-  jobPostingFieldConfidence: z.record(_rpcJobPostingFieldKeySchema, SourceTierSchema).optional()
+  jobPostingFieldConfidence: z.record(_rpcJobPostingFieldKeySchema, SourceTierSchema).optional(),
+  experienceRefs: ExperienceRefsSchema.optional()
 }).strict();
 
 // ProviderConfig for save_provider_config

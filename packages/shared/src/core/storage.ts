@@ -198,6 +198,7 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       jobPostingManualFallback: false,
       rubric: defaultRubric(),
       pinnedDocumentIds: [],
+      experienceRefs: { profileDocumentIds: [], githubRepos: [], notionDirective: null },
       insightStatus: "idle",
       postingReviewReasons: [],
       jobPostingFieldConfidence: {},

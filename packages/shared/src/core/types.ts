@@ -217,6 +217,11 @@ export interface ProjectRecord {
   essayAnswerStates?: ProjectEssayAnswerState[];
   rubric: string;
   pinnedDocumentIds: string[];
+  experienceRefs: {
+    profileDocumentIds: string[];
+    githubRepos: string[];
+    notionDirective: string | null;
+  };
   charLimit?: number;
   notionPageIds?: string[];
   createdAt: string;

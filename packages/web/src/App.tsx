@@ -52,7 +52,7 @@ interface TabIndicatorStyle {
 }
 
 const tabs: Array<{ id: AppTab; label: string }> = [
-  { id: "overview", label: "개요" },
+  { id: "overview", label: "내 경험" },
   { id: "providers", label: "프로바이더" },
   { id: "projects", label: "지원서" },
   { id: "runs", label: "실행" },
@@ -523,9 +523,11 @@ export function App() {
         <section className="app-view">
           {selectedTab === "overview" ? (
             <OverviewPage
-              hasHealthyProvider={state.providers.some((p) => p.authStatus === "healthy")}
-              hasProject={state.projects.length > 0}
-              onFinish={(target) => setSelectedTab(target === "providers" ? "providers" : "projects")}
+              client={client}
+              profileDocuments={state.profileDocuments}
+              onProfileDocumentsChanged={() => {
+                void refreshProviderState();
+              }}
             />
           ) : null}
 
@@ -536,11 +538,7 @@ export function App() {
               storageRoot={storageRoot}
               runnerBaseUrlDraft={runnerBaseUrlDraft}
               lastUpdatedAt={lastUpdatedAt}
-              client={client}
               onSelectSection={setSelectedSettingsSection}
-              onProfileDocumentsChanged={() => {
-                void refreshProviderState();
-              }}
               onRunnerBaseUrlDraftChange={setRunnerBaseUrlDraft}
               onApplyRunnerBaseUrl={() => setRunnerBaseUrl(runnerBaseUrlDraft)}
               onSaveAgentDefaults={async (agentDefaults) => {
@@ -695,6 +693,7 @@ export function App() {
           {selectedTab === "projects" ? (
             <ProjectsPage
               projects={state.projects}
+              profileDocuments={state.profileDocuments}
               selectedProjectSlug={selectedProject?.record.slug}
               onSelectProject={setSelectedProjectSlug}
               onAnalyzePosting={async (payload) => client.analyzeProjectPosting(payload)}

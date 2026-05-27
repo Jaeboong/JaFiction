@@ -14,6 +14,7 @@ function createProjectRecord(): ProjectRecord {
     qualifications: "TypeScript",
     rubric: "- fit",
     pinnedDocumentIds: [],
+    experienceRefs: { profileDocumentIds: [], githubRepos: [], notionDirective: null },
     postingReviewReasons: [],
     jobPostingFieldConfidence: {},
     createdAt: "2026-04-08T00:00:00.000Z",

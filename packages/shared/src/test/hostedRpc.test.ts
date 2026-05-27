@@ -262,7 +262,11 @@ test("save_project: patch extra field rejected", () => {
 test("save_project: patch accepts postingReviewReasons and jobPostingFieldConfidence", () => {
   const emptyFields = SaveProjectPayloadSchema.safeParse({
     slug: "alpha",
-    patch: { postingReviewReasons: [], jobPostingFieldConfidence: {} }
+    patch: {
+      postingReviewReasons: [],
+      jobPostingFieldConfidence: {},
+      experienceRefs: { profileDocumentIds: [], githubRepos: [], notionDirective: null }
+    }
   });
   assert.equal(emptyFields.success, true);
 
@@ -270,7 +274,12 @@ test("save_project: patch accepts postingReviewReasons and jobPostingFieldConfid
     slug: "alpha",
     patch: {
       postingReviewReasons: ["lowConfidenceExtraction"],
-      jobPostingFieldConfidence: { companyName: "factual" }
+      jobPostingFieldConfidence: { companyName: "factual" },
+      experienceRefs: {
+        profileDocumentIds: ["profile-1"],
+        githubRepos: [],
+        notionDirective: null
+      }
     }
   });
   assert.equal(withValues.success, true);

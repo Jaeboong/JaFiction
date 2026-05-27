@@ -1,4 +1,6 @@
 import type {
+  ContextDocument,
+  ExperienceRefs,
   JobPostingExtractionResult,
   ProjectInsightDocumentKey,
   ProjectInsightWorkspaceState,
@@ -31,8 +33,13 @@ function needsFieldBadge(value: string | undefined, tier: string | undefined): b
   return !value?.trim() || tier === "role";
 }
 
+function createEmptyExperienceRefs(): ExperienceRefs {
+  return { profileDocumentIds: [], githubRepos: [], notionDirective: null };
+}
+
 interface ProjectsPageProps {
   projects: ProjectViewModel[];
+  profileDocuments: readonly ContextDocument[];
   selectedProjectSlug?: string;
   onSelectProject(projectSlug: string): void;
   onAnalyzePosting(payload: Record<string, unknown>): Promise<JobPostingExtractionResult>;
@@ -51,6 +58,7 @@ interface ProjectsPageProps {
 
 export function ProjectsPage({
   projects,
+  profileDocuments,
   selectedProjectSlug,
   onSelectProject,
   onAnalyzePosting,
@@ -150,6 +158,7 @@ export function ProjectsPage({
           <ProjectWorkspace
             key={selectedProject.record.slug}
             project={selectedProject}
+            profileDocuments={profileDocuments}
             onFetchProjectInsights={onFetchProjectInsights}
             onSaveProjectDocument={onSaveProjectDocument}
             onUploadProjectDocuments={onUploadProjectDocuments}
@@ -476,6 +485,7 @@ interface UploadingItem {
 
 function ProjectWorkspace({
   project,
+  profileDocuments,
   onFetchProjectInsights,
   onSaveProjectDocument,
   onUploadProjectDocuments,
@@ -488,6 +498,7 @@ function ProjectWorkspace({
   onDeleteProject
 }: {
   project: ProjectViewModel;
+  profileDocuments: readonly ContextDocument[];
   onFetchProjectInsights(projectSlug: string): Promise<ProjectInsightWorkspaceState>;
   onSaveProjectDocument(projectSlug: string, payload: Record<string, unknown>): Promise<void>;
   onUploadProjectDocuments(projectSlug: string, files: File[]): Promise<void>;
@@ -525,6 +536,7 @@ function ProjectWorkspace({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [pendingPinId, setPendingPinId] = useState<string | undefined>(undefined);
   const [isBulkPinning, setIsBulkPinning] = useState(false);
+  const [pendingExperienceDocId, setPendingExperienceDocId] = useState<string | undefined>(undefined);
 
   // state_snapshot 으로 insightStatus 가 generating 을 거친 뒤 벗어나면 낙관적 잠금 해제
   // pending → generating → ready/error 순서를 기다리므로, generating 을 보기 전에는 해제하지 않음
@@ -543,6 +555,7 @@ function ProjectWorkspace({
 
   const projectHasInsightDocuments = hasInsightDocuments(project.documents);
   const contextDocuments = project.documents.filter((document) => !isInsightDocumentTitle(document.title));
+  const selectedExperienceProfileIds = project.record.experienceRefs?.profileDocumentIds ?? [];
   const isInsightReady = project.record.insightStatus === "ready" || projectHasInsightDocuments;
   const isInsightGenerationPending = isGeneratingInsights || project.record.insightStatus === "generating";
   const insightStatusNote = buildInsightStatusNote(project.record);
@@ -670,6 +683,26 @@ function ProjectWorkspace({
       }
     } finally {
       setIsBulkPinning(false);
+    }
+  };
+
+  const handleToggleExperienceDocument = async (documentId: string, checked: boolean) => {
+    const previousRefs = project.record.experienceRefs ?? createEmptyExperienceRefs();
+    const previousIds = previousRefs.profileDocumentIds;
+    const nextIds = checked
+      ? previousIds.includes(documentId) ? previousIds : [...previousIds, documentId]
+      : previousIds.filter((id) => id !== documentId);
+
+    setPendingExperienceDocId(documentId);
+    try {
+      await onUpdateProject(project.record.slug, {
+        experienceRefs: {
+          ...previousRefs,
+          profileDocumentIds: nextIds
+        }
+      });
+    } finally {
+      setPendingExperienceDocId(undefined);
     }
   };
 
@@ -1154,6 +1187,44 @@ function ProjectWorkspace({
             )}
           </section>
 
+          <section className="projects-panel projects-experience-panel">
+            <div className="projects-panel-header projects-panel-header-column">
+              <div>
+                <h2>내 경험에서 가져오기</h2>
+                <p>내 경험 페이지에 등록한 워크스페이스 문서를 이 지원서 실행 컨텍스트에 포함합니다.</p>
+              </div>
+            </div>
+
+            {profileDocuments.length === 0 ? (
+              <div className="projects-experience-empty">
+                내 경험 페이지에서 자료를 먼저 추가하세요.
+              </div>
+            ) : (
+              <div className="projects-experience-list">
+                {profileDocuments.map((document) => {
+                  const checked = selectedExperienceProfileIds.includes(document.id);
+
+                  return (
+                    <label key={document.id} className={`projects-experience-row${checked ? " is-selected" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={pendingExperienceDocId === document.id}
+                        onChange={(event) => {
+                          void handleToggleExperienceDocument(document.id, event.target.checked);
+                        }}
+                      />
+                      <span className="projects-experience-copy">
+                        <strong>{document.title}</strong>
+                        <span>{sourceTypeLabel(document.sourceType)}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
           <section
             className={`projects-panel projects-document-panel ${isDragOver ? "is-drag-over" : ""}`}
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -1199,27 +1270,23 @@ function ProjectWorkspace({
 
             {contextDocuments.length > 0 ? (
               <div className="projects-doc-toolbar">
+                <button
+                  className={`projects-pin-button projects-pin-all${contextDocuments.every((document) => document.pinnedByDefault) ? " is-pinned" : ""}`}
+                  type="button"
+                  disabled={isBulkPinning}
+                  aria-pressed={contextDocuments.every((document) => document.pinnedByDefault)}
+                  aria-label={contextDocuments.every((document) => document.pinnedByDefault) ? "전체 실행 컨텍스트에서 제외" : "전체 실행 컨텍스트에 포함"}
+                  title={contextDocuments.every((document) => document.pinnedByDefault) ? "전체 해제" : "전체 선택"}
+                  onClick={() => { void handlePinAll(!contextDocuments.every((document) => document.pinnedByDefault)); }}
+                >
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M12 17v5" />
+                    <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                  </svg>
+                </button>
                 <span className="projects-doc-toolbar-count">
-                  실행 포함 {contextDocuments.filter((document) => document.pinnedByDefault).length} / {contextDocuments.length}
+                  {contextDocuments.filter((document) => document.pinnedByDefault).length}/{contextDocuments.length}
                 </span>
-                <div className="projects-doc-toolbar-actions">
-                  <button
-                    className="projects-chip-button"
-                    type="button"
-                    disabled={isBulkPinning || contextDocuments.every((document) => document.pinnedByDefault)}
-                    onClick={() => { void handlePinAll(true); }}
-                  >
-                    전체 선택
-                  </button>
-                  <button
-                    className="projects-chip-button"
-                    type="button"
-                    disabled={isBulkPinning || contextDocuments.every((document) => !document.pinnedByDefault)}
-                    onClick={() => { void handlePinAll(false); }}
-                  >
-                    전체 해제
-                  </button>
-                </div>
               </div>
             ) : null}
 
@@ -1279,7 +1346,7 @@ function ProjectWorkspace({
                       <tr key={document.id}>
                         <td>
                           <button
-                            className={`projects-star-button${document.pinnedByDefault ? " is-pinned" : ""}`}
+                            className={`projects-pin-button${document.pinnedByDefault ? " is-pinned" : ""}`}
                             type="button"
                             disabled={pendingPinId === document.id || isBulkPinning}
                             aria-pressed={document.pinnedByDefault}
@@ -1288,7 +1355,8 @@ function ProjectWorkspace({
                             onClick={() => { void handleTogglePinned(document.id, !document.pinnedByDefault); }}
                           >
                             <svg viewBox="0 0 24 24" focusable="false">
-                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                              <path d="M12 17v5" />
+                              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
                             </svg>
                           </button>
                         </td>

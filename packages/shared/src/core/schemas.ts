@@ -191,6 +191,13 @@ export const ProjectEssayAnswerStateSchema = z.object({
 const ReviewNeededReasonSchema = z.enum(REVIEW_NEEDED_REASONS);
 const JobPostingFieldKeySchema = z.enum(JOB_POSTING_FIELD_KEYS);
 
+export const ExperienceRefsSchema = z.object({
+  profileDocumentIds: z.array(z.string()).default([]),
+  githubRepos: z.array(z.string()).default([]),
+  notionDirective: z.string().nullable().default(null)
+});
+export type ExperienceRefs = z.infer<typeof ExperienceRefsSchema>;
+
 export const ProjectRecordSchema = z.object({
   slug: z.string(),
   companyName: z.string(),
@@ -221,6 +228,7 @@ export const ProjectRecordSchema = z.object({
   essayAnswerStates: z.array(ProjectEssayAnswerStateSchema).optional(),
   rubric: z.string(),
   pinnedDocumentIds: z.array(z.string()),
+  experienceRefs: ExperienceRefsSchema.default({ profileDocumentIds: [], githubRepos: [], notionDirective: null }),
   charLimit: z.number().int().min(1).optional(),
   notionPageIds: z.array(z.string()).optional(),
   createdAt: z.string(),

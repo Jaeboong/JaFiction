@@ -1,8 +1,6 @@
 import type { SidebarState } from "@jasojeon/shared";
 import { useEffect, useRef } from "react";
 import { AgentEffortSection } from "../components/AgentEffortSection";
-import { ProfileDocumentsPanel } from "../components/profile/ProfileDocumentsPanel";
-import type { RunnerClient } from "../api/client";
 import { authStatusLabel, statusToneForAuthStatus } from "../formatters";
 import "../styles/overview.css";
 
@@ -14,12 +12,10 @@ interface SettingsPageProps {
   storageRoot: string;
   runnerBaseUrlDraft: string;
   lastUpdatedAt?: number;
-  client: RunnerClient;
   onSelectSection(value: SettingsSection): void;
   onRunnerBaseUrlDraftChange(value: string): void;
   onApplyRunnerBaseUrl(): void;
   onSaveAgentDefaults(agentDefaults: SidebarState["agentDefaults"]): Promise<void>;
-  onProfileDocumentsChanged(): void;
 }
 
 const rubricCards = [
@@ -37,11 +33,9 @@ export function SettingsPage({
   storageRoot,
   runnerBaseUrlDraft,
   lastUpdatedAt,
-  client,
   onRunnerBaseUrlDraftChange,
   onApplyRunnerBaseUrl,
-  onSaveAgentDefaults,
-  onProfileDocumentsChanged
+  onSaveAgentDefaults
 }: SettingsPageProps) {
   const healthyProviders = state.providers.filter((p) => p.authStatus === "healthy").length;
   const executionLabel = state.runState.status === "running"
@@ -172,13 +166,6 @@ export function SettingsPage({
             </div>
           </section>
 
-          {/* 프로필 문서 */}
-          <ProfileDocumentsPanel
-            client={client}
-            documents={state.profileDocuments}
-            onDocumentsChanged={onProfileDocumentsChanged}
-          />
-
           {/* OpenDart 연동 */}
           <section ref={opendartRef} className="settings-opendart-panel" aria-label="OpenDart 연동">
             <div className="overview-section-header overview-section-header--with-action">
@@ -224,4 +211,3 @@ export function SettingsPage({
     </section>
   );
 }
-

@@ -64,12 +64,13 @@ export async function saveProject(
   await ctx.runBusy("프로젝트 정보를 업데이트하는 중...", async () => {
     const current = await ctx.storage().getProject(slug);
     await ctx.storage().updateProjectInfo(slug, normalizeProjectPatch(current.companyName, patch));
-    if (patch.postingReviewReasons !== undefined || patch.jobPostingFieldConfidence !== undefined) {
+    if (patch.postingReviewReasons !== undefined || patch.jobPostingFieldConfidence !== undefined || patch.experienceRefs !== undefined) {
       const refreshed = await ctx.storage().getProject(slug);
       await ctx.storage().updateProject({
         ...refreshed,
         postingReviewReasons: patch.postingReviewReasons ?? refreshed.postingReviewReasons,
-        jobPostingFieldConfidence: patch.jobPostingFieldConfidence ?? refreshed.jobPostingFieldConfidence
+        jobPostingFieldConfidence: patch.jobPostingFieldConfidence ?? refreshed.jobPostingFieldConfidence,
+        experienceRefs: patch.experienceRefs ?? refreshed.experienceRefs
       });
     }
     await ctx.stateStore.refreshProjects(slug);

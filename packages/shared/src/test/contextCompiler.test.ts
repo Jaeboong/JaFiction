@@ -54,6 +54,46 @@ test("context compiler includes pinned and selected documents only", async (t) =
   assert.ok(compiled.includedDocuments.some((document) => document.id === pinnedProject.id));
 });
 
+test("context compiler includes profile documents referenced by project experience refs", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const storage = await createStorage(workspaceRoot);
+  const project = await storage.createProject("Kakao", "Backend");
+  const compiler = new ContextCompiler(storage);
+
+  const experienceProfile = await storage.saveProfileTextDocument("Experience profile", "Include from my experience");
+  const unreferencedProfile = await storage.saveProfileTextDocument("Unused profile", "Do not include from my experience");
+  const pinnedExperienceProfile = await storage.saveProfileTextDocument("Pinned profile", "Pinned and referenced once", true);
+  const projectWithExperienceRefs = {
+    ...await storage.getProject(project.slug),
+    experienceRefs: {
+      profileDocumentIds: [experienceProfile.id, pinnedExperienceProfile.id, "missing-profile-document"],
+      githubRepos: [],
+      notionDirective: null
+    }
+  };
+
+  const compiled = await compiler.compile({
+    project: projectWithExperienceRefs,
+    profileDocuments: await storage.listProfileDocuments(),
+    projectDocuments: await storage.listProjectDocuments(project.slug),
+    selectedDocumentIds: [],
+    question: "Why Kakao?",
+    draft: "Draft"
+  });
+
+  assert.match(compiled.markdown, /Include from my experience/);
+  assert.match(compiled.markdown, /Pinned and referenced once/);
+  assert.doesNotMatch(compiled.markdown, /Do not include from my experience/);
+  assert.ok(compiled.includedDocuments.some((document) => document.id === experienceProfile.id));
+  assert.ok(!compiled.includedDocuments.some((document) => document.id === unreferencedProfile.id));
+  assert.equal(
+    compiled.includedDocuments.filter((document) => document.id === pinnedExperienceProfile.id).length,
+    1
+  );
+});
+
 test("context compiler applies full, compact, and minimal prompt profiles", async (t) => {
   const workspaceRoot = await createTempWorkspace();
   t.after(async () => cleanupTempWorkspace(workspaceRoot));

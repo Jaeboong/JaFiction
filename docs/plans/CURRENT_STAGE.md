@@ -10,6 +10,7 @@
 |---------|------|------|--------|----------|
 | P2 | 공고 파서 메이저 사이트 어댑터 | Chunk 0 (인프라) + Chunk 0.5 (Puppeteer Fetcher) 완료, Chunk 1+ (실 어댑터) 대기 | develop / feat/p2-posting-parser-adapters | [링크](2026-04-19-posting-parser-p2-major-adapters.md) |
 | P3 | 공고 파서 후속 (API 조사 분기) | 대기 — API 조사 결과에 따라 scope 확정 | — | [링크](2026-04-17-posting-parser-refactor.md) |
+| 내 경험 | "내 경험" 워크스페이스 경험 저장소 (개요 페이지 대체) | Phase 1 구현 완료 — 테스트 80/80 + 웹 빌드 green, 로컬 러너 재빌드 후 동작 검증 대기 | develop | [링크](2026-05-27-my-experience-store-design.md) |
 
 보류:
 
