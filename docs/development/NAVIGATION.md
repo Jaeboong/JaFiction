@@ -141,8 +141,12 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `pages/ProjectsPage.tsx` | 프로젝트 목록 페이지 |
 | `pages/ProvidersPage.tsx` | 프로바이더 설정 페이지 |
 | `pages/OverviewPage.tsx` | "내 경험" 워크스페이스 경험 문서 관리 페이지 |
+| `pages/SettingsPage.tsx` | 러너 연결, 서버 연동, OpenDart, 평가 기준, 에이전트 역할 설정 페이지 |
+| `pages/SettingsPage.test.tsx` | 설정 페이지 서버 연동 섹션 렌더링 회귀 테스트 |
 | `components/AgentDefaultsSummary.tsx` | 에이전트 기본값 요약 컴포넌트 |
 | `components/AgentEffortSection.tsx` | 에이전트 노력 수준 섹션 |
+| `components/ConfirmDeleteModal.tsx` | 프로젝트 삭제와 설정 확인에 쓰는 재사용 확인 모달 |
+| `components/ConfirmDeleteModal.test.tsx` | 확인 모달의 단순 확인 모드 렌더링 회귀 테스트 |
 | `components/ProjectInsightModal.tsx` | 프로젝트 인사이트 모달 |
 | `components/ReviewerCard.tsx` | reviewer 응답을 구조화된 카드로 파싱·렌더링 |
 | `formatters.ts` | 날짜·수치 포매터 |

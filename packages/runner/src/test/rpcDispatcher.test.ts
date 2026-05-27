@@ -1643,6 +1643,20 @@ test("rpc:save_agent_defaults — persists defaults and returns {ok:true}", asyn
   }
 });
 
+test("rpc:save_agent_defaults — can persist server sync preference", async () => {
+  const h = await makeHarness();
+  try {
+    const res = await h.dispatch(makeEnvelope("save_agent_defaults", {
+      agentDefaults: {},
+      serverSyncEnabled: true
+    }));
+    assert.equal(res.ok, true);
+    assert.equal((await h.storage.getPreferences()).serverSyncEnabled, true);
+  } finally {
+    await h.cleanup();
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Stage 11.4 — run lifecycle parity dispatcher wiring
 // ---------------------------------------------------------------------------

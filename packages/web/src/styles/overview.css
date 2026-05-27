@@ -804,6 +804,25 @@
   cursor: not-allowed;
 }
 
+.settings-secondary-button-danger {
+  color: #dc2626;
+}
+
+.settings-sync-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.settings-sync-toggle-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: #4f46e5;
+}
+
 .settings-status-chip {
   display: inline-flex;
   align-items: center;
@@ -832,7 +851,7 @@
 
 .settings-status-chip.tone-neutral {
   background: #f3f4f6;
-  color: #6b7280;
+  color: #374151;
 }
 
 /* OverviewPage — reopen button */

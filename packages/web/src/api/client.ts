@@ -155,8 +155,14 @@ export class RunnerClient {
     return result.agentDefaults;
   }
 
-  async saveAgentDefaults(agentDefaults: AgentDefaults): Promise<void> {
-    await this.rpcCall("save_agent_defaults", { agentDefaults });
+  async saveAgentDefaults(
+    agentDefaults: AgentDefaults,
+    preferences?: { readonly serverSyncEnabled: boolean }
+  ): Promise<void> {
+    await this.rpcCall("save_agent_defaults", {
+      agentDefaults,
+      ...(preferences ? { serverSyncEnabled: preferences.serverSyncEnabled } : {})
+    });
   }
 
   async listProjects(): Promise<ListProjectsResult> {

@@ -1,10 +1,11 @@
-import type { SidebarState } from "@jasojeon/shared";
-import { useEffect, useRef } from "react";
+import type { SidebarState, SyncNowResult } from "@jasojeon/shared";
+import { useEffect, useRef, useState } from "react";
 import { AgentEffortSection } from "../components/AgentEffortSection";
-import { authStatusLabel, statusToneForAuthStatus } from "../formatters";
+import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
+import { authStatusLabel, formatDateTime, statusToneForAuthStatus } from "../formatters";
 import "../styles/overview.css";
 
-export type SettingsSection = "dashboard" | "rubric" | "storage" | "agent-effort" | "opendart";
+export type SettingsSection = "dashboard" | "server-sync" | "rubric" | "storage" | "agent-effort" | "opendart";
 
 interface SettingsPageProps {
   state: SidebarState;
@@ -16,7 +17,12 @@ interface SettingsPageProps {
   onRunnerBaseUrlDraftChange(value: string): void;
   onApplyRunnerBaseUrl(): void;
   onSaveAgentDefaults(agentDefaults: SidebarState["agentDefaults"]): Promise<void>;
+  onSaveServerSyncEnabled(enabled: boolean): Promise<void>;
+  onSyncNow?: () => Promise<SyncNowResult>;
+  onSyncDisable?: () => Promise<void>;
 }
+
+type ServerSyncModal = "consent" | "disable" | undefined;
 
 const rubricCards = [
   { index: "01", title: "경력 적합성", description: "지원 직무와의 경력 매칭도 및 역량 일치 여부" },
@@ -27,16 +33,31 @@ const rubricCards = [
   { index: "06", title: "핵심 역량 강조", description: "회사 핵심 가치와 직무 필수 역량의 노출 정도" }
 ] as const;
 
+const settingsNavItems: ReadonlyArray<{ readonly id: SettingsSection; readonly label: string }> = [
+  { id: "dashboard", label: "대시보드" },
+  { id: "server-sync", label: "서버 연동" },
+  { id: "opendart", label: "OpenDart" },
+  { id: "rubric", label: "평가 기준" },
+  { id: "agent-effort", label: "에이전트 배정" }
+];
+
 export function SettingsPage({
   state,
   selectedSection,
   storageRoot,
   runnerBaseUrlDraft,
   lastUpdatedAt,
+  onSelectSection,
   onRunnerBaseUrlDraftChange,
   onApplyRunnerBaseUrl,
-  onSaveAgentDefaults
+  onSaveAgentDefaults,
+  onSaveServerSyncEnabled,
+  onSyncNow,
+  onSyncDisable
 }: SettingsPageProps) {
+  const [serverSyncModal, setServerSyncModal] = useState<ServerSyncModal>();
+  const [syncPending, setSyncPending] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncNowResult | undefined>();
   const healthyProviders = state.providers.filter((p) => p.authStatus === "healthy").length;
   const executionLabel = state.runState.status === "running"
     ? "분석 진행 중"
@@ -50,9 +71,15 @@ export function SettingsPage({
       : "neutral";
   const openDartLabel = state.openDartConfigured ? authStatusLabel(state.openDartConnectionStatus) : "미연결";
   const openDartTone = state.openDartConfigured ? statusToneForAuthStatus(state.openDartConnectionStatus) : "neutral";
+  const serverSyncEnabled = state.preferences.serverSyncEnabled;
+  const serverSyncLabel = serverSyncEnabled ? "연동됨" : "미연동";
+  const serverSyncTone = serverSyncEnabled ? "positive" : "neutral";
+  const lastSyncedAt = syncResult?.lastSyncedAt ?? state.preferences.lastSyncedAt;
+  const canSyncNow = serverSyncEnabled && Boolean(onSyncNow) && !syncPending;
 
   const mainRef = useRef<HTMLElement | null>(null);
   const topRef = useRef<HTMLElement | null>(null);
+  const serverSyncRef = useRef<HTMLElement | null>(null);
   const rubricRef = useRef<HTMLElement | null>(null);
   const rolesRef = useRef<HTMLElement | null>(null);
   const opendartRef = useRef<HTMLElement | null>(null);
@@ -63,6 +90,7 @@ export function SettingsPage({
     const sectionMap: Record<SettingsSection, HTMLElement | null> = {
       dashboard: topRef.current,
       storage: topRef.current,
+      "server-sync": serverSyncRef.current,
       rubric: rubricRef.current,
       "agent-effort": rolesRef.current,
       opendart: opendartRef.current
@@ -79,12 +107,45 @@ export function SettingsPage({
     mainRef.current.scrollTo({ top: target.offsetTop - 24, behavior: "auto" });
   }, [selectedSection]);
 
+  const handleSyncNow = async () => {
+    if (!canSyncNow || !onSyncNow) {
+      return;
+    }
+
+    setSyncPending(true);
+    try {
+      const result = await onSyncNow();
+      setSyncResult(result);
+    } catch {
+      return;
+    } finally {
+      setSyncPending(false);
+    }
+  };
+
   return (
     <section
       className="overview-page"
       data-last-updated-at={lastUpdatedAt ?? ""}
       data-storage-root={storageRoot}
     >
+      <aside className="overview-sidebar" aria-label="설정 섹션">
+        <div className="overview-sidebar-header">
+          <span className="overview-sidebar-title">Settings</span>
+        </div>
+        <nav className="overview-sidebar-body">
+          {settingsNavItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`overview-menu-item${selectedSection === item.id ? " is-active" : ""}`}
+              onClick={() => onSelectSection(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
       <main ref={mainRef} className="overview-main">
         <div className="overview-main-inner">
 
@@ -166,6 +227,54 @@ export function SettingsPage({
             </div>
           </section>
 
+          {/* 서버 연동 */}
+          <section ref={serverSyncRef} className="settings-opendart-panel" aria-label="서버 연동">
+            <div className="overview-section-header overview-section-header--with-action">
+              <h2 className="overview-section-title">서버 연동</h2>
+              <span className={`settings-status-chip tone-${serverSyncTone}`}>{serverSyncLabel}</span>
+            </div>
+            <div className="settings-opendart-body">
+              <p className="settings-opendart-desc">
+                서버 연동을 켜면 여러 기기에서 프로필 문서와 지원서 프로젝트 정보를 일관되게 유지할 수 있습니다.
+              </p>
+              <label className="settings-sync-toggle-row">
+                <input
+                  type="checkbox"
+                  checked={serverSyncEnabled}
+                  data-testid="server-sync-toggle"
+                  onChange={() => setServerSyncModal(serverSyncEnabled ? "disable" : "consent")}
+                />
+                <span>서버 연동</span>
+              </label>
+              <div className="settings-opendart-actions">
+                <button
+                  type="button"
+                  className="settings-primary-button"
+                  disabled={!canSyncNow}
+                  onClick={() => void handleSyncNow()}
+                >
+                  {syncPending ? "동기화 중..." : "지금 동기화"}
+                </button>
+                <button
+                  type="button"
+                  className="settings-secondary-button settings-secondary-button-danger"
+                  disabled={!serverSyncEnabled || !onSyncDisable}
+                  onClick={() => setServerSyncModal("disable")}
+                >
+                  연동 해제
+                </button>
+              </div>
+              {syncResult ? (
+                <p className="settings-opendart-desc">
+                  {syncResult.syncedDocuments}개 문서 · {syncResult.syncedProjects}개 지원서 동기화됨
+                </p>
+              ) : null}
+              <p className="settings-opendart-desc">
+                마지막 동기화: {formatDateTime(lastSyncedAt)}
+              </p>
+            </div>
+          </section>
+
           {/* OpenDart 연동 */}
           <section ref={opendartRef} className="settings-opendart-panel" aria-label="OpenDart 연동">
             <div className="overview-section-header overview-section-header--with-action">
@@ -208,6 +317,41 @@ export function SettingsPage({
 
         </div>
       </main>
+      <ConfirmDeleteModal
+        isOpen={serverSyncModal === "consent"}
+        title="서버 연동 동의"
+        message="프로필 문서·지원서 컨텍스트 문서의 내용과 회사명 등 프로젝트 정보가 서버에 업로드됩니다. 서버는 저장 시 암호화하지만, 병합을 위해 서버가 메모리에서 복호화할 수 있습니다(종단간 암호화 아님). 실행 기록은 업로드되지 않습니다."
+        confirmLabel="동의하고 켜기"
+        cancelLabel="취소"
+        onCancel={() => setServerSyncModal(undefined)}
+        onConfirm={async () => {
+          try {
+            await onSaveServerSyncEnabled(true);
+            setServerSyncModal(undefined);
+          } catch {
+            return;
+          }
+        }}
+      />
+      <ConfirmDeleteModal
+        isOpen={serverSyncModal === "disable"}
+        title="서버 연동 해제"
+        message="연동을 해제하면 서버에 저장된 동기화 데이터가 삭제됩니다. 계속할까요?"
+        confirmLabel="연동 해제"
+        cancelLabel="취소"
+        onCancel={() => setServerSyncModal(undefined)}
+        onConfirm={async () => {
+          try {
+            if (onSyncDisable) {
+              await onSyncDisable();
+            }
+            setSyncResult(undefined);
+            setServerSyncModal(undefined);
+          } catch {
+            return;
+          }
+        }}
+      />
     </section>
   );
 }

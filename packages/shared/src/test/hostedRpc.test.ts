@@ -776,7 +776,7 @@ test("opendart_delete_key: empty payload accepted; extra field rejected", () => 
 test("save_agent_defaults: requires agentDefaults object; result is {ok:true}", () => {
   const ok = RpcRequestSchema.safeParse({
     v: 1, id: "r-save-defaults", op: "save_agent_defaults",
-    payload: { agentDefaults: {} }
+    payload: { agentDefaults: {}, serverSyncEnabled: true }
   });
   assert.equal(ok.success, true);
   const missing = SaveAgentDefaultsPayloadSchema.safeParse({});

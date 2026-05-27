@@ -141,6 +141,18 @@ describe("RunnerClient shape-wrap (hosted)", () => {
     }
   });
 
+  it("saveAgentDefaults can persist the server sync preference through the same op", async () => {
+    const client = new RunnerClient("http://hosted.test");
+    try {
+      await client.saveAgentDefaults({}, { serverSyncEnabled: true });
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body));
+      assert.equal(body.op, "save_agent_defaults");
+      assert.equal(body.payload.serverSyncEnabled, true);
+    } finally {
+      restore();
+    }
+  });
+
   // ---------------------------------------------------------------------------
   // Stage 11.4 — run lifecycle parity (hosted branch + expanded result shapes)
   // ---------------------------------------------------------------------------

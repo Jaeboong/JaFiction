@@ -649,7 +649,8 @@ export type OpendartDeleteKeyResult = z.infer<typeof OpendartDeleteKeyResultSche
 // save_agent_defaults — mirrors configRouter PUT /agent-defaults
 // Deferred from Stage 11.1 — lives here because 11.3 owns the Settings plane.
 export const SaveAgentDefaultsPayloadSchema = z.object({
-  agentDefaults: AgentDefaultsSchema
+  agentDefaults: AgentDefaultsSchema,
+  serverSyncEnabled: z.boolean().optional()
 }).strict();
 export const SaveAgentDefaultsResultSchema = z.object({
   ok: z.literal(true)
