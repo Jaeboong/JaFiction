@@ -2,10 +2,10 @@ import type { SidebarState, SyncNowResult } from "@jasojeon/shared";
 import { useEffect, useRef, useState } from "react";
 import { AgentEffortSection } from "../components/AgentEffortSection";
 import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
-import { authStatusLabel, formatDateTime, statusToneForAuthStatus } from "../formatters";
+import { formatDateTime } from "../formatters";
 import "../styles/overview.css";
 
-export type SettingsSection = "dashboard" | "server-sync" | "rubric" | "storage" | "agent-effort" | "opendart";
+export type SettingsSection = "dashboard" | "server-sync" | "rubric" | "storage" | "agent-effort";
 
 interface SettingsPageProps {
   state: SidebarState;
@@ -36,7 +36,6 @@ const rubricCards = [
 const settingsNavItems: ReadonlyArray<{ readonly id: SettingsSection; readonly label: string }> = [
   { id: "dashboard", label: "대시보드" },
   { id: "server-sync", label: "서버 연동" },
-  { id: "opendart", label: "OpenDart" },
   { id: "rubric", label: "평가 기준" },
   { id: "agent-effort", label: "에이전트 배정" }
 ];
@@ -69,8 +68,6 @@ export function SettingsPage({
     : state.runState.status === "aborting"
       ? "warning"
       : "neutral";
-  const openDartLabel = state.openDartConfigured ? authStatusLabel(state.openDartConnectionStatus) : "미연결";
-  const openDartTone = state.openDartConfigured ? statusToneForAuthStatus(state.openDartConnectionStatus) : "neutral";
   const serverSyncEnabled = state.preferences.serverSyncEnabled;
   const serverSyncLabel = serverSyncEnabled ? "연동됨" : "미연동";
   const serverSyncTone = serverSyncEnabled ? "positive" : "neutral";
@@ -82,7 +79,6 @@ export function SettingsPage({
   const serverSyncRef = useRef<HTMLElement | null>(null);
   const rubricRef = useRef<HTMLElement | null>(null);
   const rolesRef = useRef<HTMLElement | null>(null);
-  const opendartRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!mainRef.current) return;
@@ -92,8 +88,7 @@ export function SettingsPage({
       storage: topRef.current,
       "server-sync": serverSyncRef.current,
       rubric: rubricRef.current,
-      "agent-effort": rolesRef.current,
-      opendart: opendartRef.current
+      "agent-effort": rolesRef.current
     };
 
     if (selectedSection === "dashboard" || selectedSection === "storage") {
@@ -217,13 +212,6 @@ export function SettingsPage({
                     : "활성 세션 없음"}
                 </div>
               </article>
-              <article className="overview-stat-card">
-                <div className="overview-stat-label">OpenDart</div>
-                <div className="overview-stat-status">
-                  <span className={`overview-stat-status-dot tone-${openDartTone}`} aria-hidden="true" />
-                  <span className="overview-stat-status-value overview-stat-status-value--muted">{openDartLabel}</span>
-                </div>
-              </article>
             </div>
           </section>
 
@@ -271,19 +259,6 @@ export function SettingsPage({
               ) : null}
               <p className="settings-opendart-desc">
                 마지막 동기화: {formatDateTime(lastSyncedAt)}
-              </p>
-            </div>
-          </section>
-
-          {/* OpenDart 연동 */}
-          <section ref={opendartRef} className="settings-opendart-panel" aria-label="OpenDart 연동">
-            <div className="overview-section-header overview-section-header--with-action">
-              <h2 className="overview-section-title">OpenDart 연동</h2>
-              <span className={`settings-status-chip tone-${openDartTone}`}>{openDartLabel}</span>
-            </div>
-            <div className="settings-opendart-body">
-              <p className="settings-opendart-desc">
-                금융감독원 전자공시시스템(OpenDART) API 키는 서버에서 관리됩니다. 별도 설정이 필요하지 않습니다.
               </p>
             </div>
           </section>
