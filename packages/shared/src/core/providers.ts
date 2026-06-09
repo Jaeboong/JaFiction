@@ -521,13 +521,19 @@ function cloneRuntimeState(state: ProviderRuntimeState): ProviderRuntimeState {
   };
 }
 
-function buildEnvironment(
+export function buildEnvironment(
   providerId: ProviderId,
   authMode: AuthMode,
   apiKey: string | undefined,
   command: string
 ): NodeJS.ProcessEnv {
   const env = withCommandDirectoryInPath(process.env, command);
+  // Gemini CLI 0.45.2+ refuses headless execution outside a "trusted" directory.
+  // The runner always spawns in its own storage root (~/.jasojeon) — never
+  // user-supplied repo content — so bypassing the trust gate is safe here.
+  if (providerId === "gemini") {
+    env.GEMINI_CLI_TRUST_WORKSPACE = "true";
+  }
   if (authMode !== "apiKey" || !apiKey) {
     return env;
   }
