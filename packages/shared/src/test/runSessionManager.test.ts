@@ -98,6 +98,45 @@ test("round-complete session stays paused and intervention switches to continuat
   assert.equal(manager.snapshot().status, "paused");
 });
 
+test("State B: waitForIntervention re-arms resolveIntervention across two consecutive rounds preserving the same runId", async () => {
+  const manager = new RunSessionManager();
+  const sessionId = manager.start("alpha", "realtime");
+  manager.setRunId(sessionId, "run-1");
+
+  // Round 1: park and resume
+  const round1 = manager.waitForIntervention(sessionId, {
+    projectSlug: "alpha",
+    runId: "run-1",
+    round: 1,
+    reviewMode: "realtime",
+    coordinatorProvider: "codex"
+  });
+  assert.equal(manager.snapshot().status, "paused");
+  assert.equal(manager.snapshot().runId, "run-1");
+  assert.equal(manager.submitIntervention("run-1", "라운드 1 피드백"), "resumed");
+  assert.equal(await round1, "라운드 1 피드백");
+  assert.equal(manager.snapshot().status, "running");
+  assert.equal(manager.snapshot().runId, "run-1");
+
+  // Round 2: re-arm with same sessionId and same runId
+  const round2 = manager.waitForIntervention(sessionId, {
+    projectSlug: "alpha",
+    runId: "run-1",
+    round: 2,
+    reviewMode: "realtime",
+    coordinatorProvider: "codex"
+  });
+  assert.equal(manager.snapshot().status, "paused");
+  assert.equal(manager.snapshot().runId, "run-1");
+  assert.equal(manager.submitIntervention("run-1", "/done"), "resumed");
+  assert.equal(await round2, "/done");
+  assert.equal(manager.snapshot().status, "running");
+  assert.equal(manager.snapshot().runId, "run-1");
+
+  manager.finish(sessionId);
+  assert.deepEqual(manager.snapshot(), { status: "idle" });
+});
+
 test("finishAddressedRun closes the addressed active session", () => {
   const manager = new RunSessionManager();
   const sessionId = manager.start("alpha", "realtime");
