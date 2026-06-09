@@ -1,6 +1,13 @@
 # Gemini run 무출력 — 근본 원인 & 수정 플랜
 
-> 작성: 2026-06-10 · 대상: develop · 후속: `docs/plans/2026-06-10-handoff-local-runner-gemini.md`
+> 작성: 2026-06-10 · 대상: develop · 후속: `2026-06-10-handoff-local-runner-gemini.md`
+>
+> **상태**: ✅ 완료 (2026-06-10)
+> **커밋**: `cf6f8fa` fix(shared): trust workspace for headless Gemini CLI runs
+> **CI**: deploy-dev run 27221199910 — success
+> **검증**: 실측(cwd=`~/.jasojeon`)으로 env 주입 전/후 exit 55(빈 stdout) → exit 0(정상 stream-json) 확인. 신규 단위 테스트 3개 green.
+> **사용자 액션**: 배포 완료 후 `/api/runner/download` 에서 러너 exe 재다운로드·실행해야 반영됨.
+> **스코프 밖 팔로업(미해결)**: §5 — 파서 `status:"error"` 미표면화(`providerStreaming.ts:236`), UI `turn-failed` 렌더 확인.
 
 ---
 
