@@ -30,6 +30,13 @@ test("codex args include model and effort config", () => {
   ]);
 });
 
+test("codex args use stdin when the prompt argument is empty", () => {
+  assert.deepEqual(
+    buildProviderArgs("codex", "", false, {}),
+    ["exec", "--skip-git-repo-check", "--json", "-"]
+  );
+});
+
 test("claude args include model and effort flags", () => {
   const args = buildProviderArgs("claude", "Reply with OK.", false, {
     model: "sonnet",

@@ -6,7 +6,8 @@ import { NotionConnectPlan, NotionMcpCheckResult } from "./notionMcp";
 import {
   buildCodexNotionConnectPlan,
   buildCodexNotionDisconnectPlan,
-  parseCodexNotionStatus
+  parseCodexNotionStatus,
+  repairCodexNotionConfigFile
 } from "./notionMcpCodex";
 import {
   buildClaudeNotionConnectPlan,
@@ -56,6 +57,8 @@ const IGNORED_PROVIDER_STDERR_PATTERNS = [
   /stream did not contain valid UTF-8/i,
   /Failed to kill MCP process group/i
 ];
+
+let codexConfigRepairQueue: Promise<void> = Promise.resolve();
 
 export interface ProviderSecretStore {
   get(key: string): Promise<string | undefined>;
@@ -200,10 +203,13 @@ export class ProviderRegistry {
       throw new Error(`${providerNames[providerId]}는 API 키 방식에서 API 키가 필요합니다.`);
     }
 
-    // On Windows, Claude is typically invoked as claude.cmd. Passing long prompts
-    // with special characters (<<<, >>>, quotes) as argv causes cmd.exe to
-    // misinterpret them as redirection operators. Use stdin delivery instead.
-    const useStdin = providerId === "claude" && process.platform === "win32";
+    if (providerId === "codex") {
+      await repairCodexConfigBeforeUse();
+    }
+
+    // Codex supports `-` for stdin and receives prompts that can exceed OS argv
+    // limits. Windows Claude also needs stdin to avoid cmd.exe escaping limits.
+    const useStdin = providerId === "codex" || (providerId === "claude" && process.platform === "win32");
     const args = buildProviderArgs(providerId, useStdin ? "" : prompt, testOnly, {
       model: normalizeProviderSettingValue(options.modelOverride) ?? this.getModel(providerId),
       effort: normalizeProviderSettingValue(options.effortOverride) ?? this.getEffort(providerId)
@@ -305,6 +311,7 @@ export class ProviderRegistry {
     try {
       switch (providerId) {
         case "codex": {
+          await repairCodexConfigBeforeUse();
           const processResult = await runProcess(command, ["mcp", "list", "--json"], this.storage.storageRoot, env);
           result = parseCodexNotionStatus(processResult.stdout);
           break;
@@ -483,6 +490,20 @@ export class ProviderRegistry {
       notionMcpMessage: status.message
     });
   }
+}
+
+async function repairCodexConfigBeforeUse(): Promise<void> {
+  const repair = codexConfigRepairQueue.then(async () => {
+    try {
+      await repairCodexNotionConfigFile();
+    } catch (error) {
+      console.warn(
+        `[ProviderRegistry] Codex Notion MCP 설정 자동 복구 실패: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  });
+  codexConfigRepairQueue = repair.catch(() => undefined);
+  await repair;
 }
 
 function secretKey(providerId: ProviderId): string {

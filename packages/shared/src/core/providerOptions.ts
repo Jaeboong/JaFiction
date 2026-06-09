@@ -123,7 +123,7 @@ export function buildProviderArgs(
       if (effort) {
         args.push("-c", `model_reasoning_effort=${JSON.stringify(effort)}`);
       }
-      args.push(prompt);
+      args.push(prompt || "-");
       return args;
     }
     case "claude": {
