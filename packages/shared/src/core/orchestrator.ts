@@ -1406,10 +1406,14 @@ export class ReviewOrchestrator {
                 escalationQuestion = buildRealtimeBlockingFallbackQuestion(reviewerPackets);
               }
               await persistTurnsAndChat();
-              await handleRealtimeAwaitingUserInput(round, escalationQuestion, {
+              const outcome = await handleRealtimeAwaitingUserInput(round, escalationQuestion, {
                 markAwaitingStatus: true
               });
-              break;
+              if (outcome === "done") {
+                break;
+              }
+              round += 1;
+              continue roundLoop;
             }
 
             const finalContextMarkdown = await buildCompiledContextMarkdown(currentDraft, round, "round", "full");
