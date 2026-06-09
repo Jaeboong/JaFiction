@@ -47,9 +47,9 @@ const providerCapabilitiesMap: Record<ProviderId, ProviderCapabilities> = {
     modelOptions: [
       defaultModelOption,
       { value: "auto", label: "Auto" },
-      { value: "gemini-2.5-flash", label: "gemini-2.5-flash" },
-      { value: "gemini-2.5-pro", label: "gemini-2.5-pro" },
-      { value: "gemini-3-flash-preview", label: "gemini-3-flash-preview" },
+      { value: "pro", label: "Pro" },
+      { value: "flash", label: "Flash" },
+      { value: "flash-lite", label: "Flash-Lite" },
       customModelOption
     ],
     effortOptions: [],
@@ -161,8 +161,6 @@ async function discoverProviderModelOptions(providerId: ProviderId, command: str
       return parseCodexDiscoveredModelOptions(await readCodexModelsCache());
     case "claude":
       return parseClaudeDiscoveredModelOptions(await readCommandText(command));
-    case "gemini":
-      return parseGeminiDiscoveredModelOptions(await readGeminiModelsConfig(command));
     default:
       return [];
   }
@@ -181,28 +179,6 @@ export function parseClaudeDiscoveredModelOptions(source: string | undefined): P
   return [...discovered]
     .sort(compareClaudeModelValues)
     .map((value) => ({ value, label: formatClaudeModelLabel(value) }));
-}
-
-export function parseGeminiDiscoveredModelOptions(source: string | undefined): ProviderSettingOption[] {
-  if (!source) {
-    return [];
-  }
-
-  const discovered = new Set<string>();
-  for (const match of source.matchAll(/["']((?:auto-)?gemini-[a-z0-9.-]+)["']/gi)) {
-    const value = match[1];
-    if (/customtools/i.test(value)) {
-      continue;
-    }
-
-    discovered.add(value);
-  }
-
-  if (/["']auto["']/.test(source)) {
-    discovered.add("auto");
-  }
-
-  return [...discovered].map((value) => ({ value, label: value === "auto" ? "Auto" : value }));
 }
 
 export function parseCodexDiscoveredModelOptions(source: string | undefined): ProviderSettingOption[] {
@@ -286,37 +262,6 @@ async function readCommandText(command: string): Promise<string | undefined> {
       return extractPrintableText(buffer);
     } catch {
       continue;
-    }
-  }
-
-  return undefined;
-}
-
-async function readGeminiModelsConfig(command: string): Promise<string | undefined> {
-  const locations = await resolveCommandLocations(command);
-  const relativeCandidates = [
-    "../node_modules/@google/gemini-cli-core/dist/src/config/models.js",
-    "../node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/config/models.js",
-    "../lib/node_modules/@google/gemini-cli-core/dist/src/config/models.js",
-    "../lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/config/models.js"
-  ];
-
-  for (const location of locations) {
-    let currentDir = path.dirname(location);
-    for (let depth = 0; depth < 6; depth += 1) {
-      for (const relativeCandidate of relativeCandidates) {
-        const filePath = path.resolve(currentDir, relativeCandidate);
-        const text = await readTextFileIfExists(filePath);
-        if (text) {
-          return text;
-        }
-      }
-
-      const parentDir = path.dirname(currentDir);
-      if (parentDir === currentDir) {
-        break;
-      }
-      currentDir = parentDir;
     }
   }
 

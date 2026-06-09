@@ -190,40 +190,10 @@ test("parseCodexDiscoveredModelOptions skips non-object entries in models array"
   );
 });
 
-test("gemini model discovery reads installed config values and filters internal-only models", async (t) => {
-  const workspaceRoot = await createTempWorkspace();
-  t.after(async () => cleanupTempWorkspace(workspaceRoot));
-
-  const commandPath = path.join(workspaceRoot, "bin", "gemini");
-  const modelsPath = path.join(
-    workspaceRoot,
-    "node_modules",
-    "@google",
-    "gemini-cli-core",
-    "dist",
-    "src",
-    "config",
-    "models.js"
-  );
-  await fs.mkdir(path.dirname(commandPath), { recursive: true });
-  await fs.mkdir(path.dirname(modelsPath), { recursive: true });
-  await fs.writeFile(commandPath, "", "utf8");
-  await fs.writeFile(
-    modelsPath,
-    [
-      "export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';",
-      "export const PREVIEW_GEMINI_FLASH_MODEL = 'gemini-3-flash-preview';",
-      "export const PREVIEW_GEMINI_CUSTOM_MODEL = 'gemini-3.1-pro-preview-customtools';",
-      "export const GEMINI_MODEL_ALIAS_AUTO = 'auto';"
-    ].join("\n"),
-    "utf8"
-  );
-
-  const capabilities = await loadProviderCapabilities("gemini", commandPath);
+test("gemini exposes stable model aliases without dynamic discovery", () => {
+  const capabilities = getProviderCapabilities("gemini");
   const values = capabilities.modelOptions.map((option) => option.value);
 
-  assert.ok(values.includes("auto"));
-  assert.ok(values.includes("gemini-2.5-pro"));
-  assert.ok(values.includes("gemini-3-flash-preview"));
-  assert.equal(values.includes("gemini-3.1-pro-preview-customtools"), false);
+  assert.deepEqual(values, ["", "auto", "pro", "flash", "flash-lite", customModelOptionValue]);
+  assert.equal(values.includes("gemini-2.5-pro"), false);
 });
