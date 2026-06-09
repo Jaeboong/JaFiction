@@ -12,10 +12,12 @@ import {
   ForJobStorage,
   RunSessionManager,
   SidebarState,
+  essayRoleIds,
   providerIds
 } from "@jasojeon/shared";
 import { createRpcDispatcher, redactForLog, Logger } from "../hosted/rpcDispatcher";
 import type { RunnerContext } from "../runnerContext";
+import { buildContinuationRunRequest } from "../routes/runsHandlers";
 
 // ---------------------------------------------------------------------------
 // Minimal fake SidebarState
@@ -1743,6 +1745,54 @@ test("rpc:submit_intervention — dispatcher accepts updated envelope; surface e
     // → dispatcher maps to invalid_input. The new result shape never reaches
     // the wire in this path, but schema coverage is pinned in hostedRpc.test.
     assert.equal(res.ok, false);
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("buildContinuationRunRequest preserves the prior run's Codex role assignments and context", async () => {
+  const h = await makeHarness();
+  try {
+    const project = await h.storage.createProject({ companyName: "Xenon" });
+    const roleAssignments = essayRoleIds
+      .filter((role) => role !== "insight_analyst")
+      .map((role) => ({
+        role,
+        providerId: "codex" as const,
+        useProviderDefaults: true
+      }));
+    await h.storage.createRun({
+      id: "codex-run",
+      projectSlug: project.slug,
+      projectQuestionIndex: 0,
+      question: "직무 지원 동기",
+      draft: "기존 초안",
+      reviewMode: "realtime",
+      roleAssignments,
+      coordinatorProvider: "codex",
+      reviewerProviders: ["codex", "codex", "codex"],
+      rounds: 1,
+      maxRoundsPerSection: 2,
+      selectedDocumentIds: ["doc-1", "doc-2"],
+      status: "completed",
+      startedAt: "2026-06-09T00:00:00.000Z",
+      finishedAt: "2026-06-09T00:01:00.000Z"
+    });
+    await h.storage.saveRunTextArtifact(project.slug, "codex-run", "revised-draft.md", "수정된 초안");
+
+    const continuation = await h.storage.loadRunContinuationContext(project.slug, "codex-run");
+    const request = buildContinuationRunRequest(project.slug, "codex-run", continuation, "파일을 확인했어?");
+
+    assert.equal(request.coordinatorProvider, "codex");
+    assert.deepEqual(request.reviewerProviders, ["codex", "codex", "codex"]);
+    assert.ok(request.roleAssignments?.every((assignment) => assignment.providerId === "codex"));
+    assert.equal(request.question, "직무 지원 동기");
+    assert.equal(request.draft, "수정된 초안");
+    assert.equal(request.projectQuestionIndex, 0);
+    assert.equal(request.maxRoundsPerSection, 2);
+    assert.deepEqual(request.selectedDocumentIds, ["doc-1", "doc-2"]);
+    assert.equal(request.continuationFromRunId, "codex-run");
+    assert.equal(request.continuationNote, "파일을 확인했어?");
   } finally {
     await h.cleanup();
   }
