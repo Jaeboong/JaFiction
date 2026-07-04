@@ -120,6 +120,20 @@ Do not embed harness fixes inside product runtime code, and vice versa.
 
 Use the `Agent` tool with `subagent_type: "Explore"` for broad codebase searches instead of repeated Grep/Glob cycles.
 
+### Workflow(멀티에이전트 오케스트레이션) model·effort 라우팅
+
+Workflow 기동 시 각 `agent()`의 `model`/`effort`는 오케스트레이터가 단계 성격을 판단해 **명시적으로 조절**한다 — 일괄 세션 상속에 맡기지 말 것 (2026-07-04 지시):
+
+| 단계 성격 | model | effort |
+|-----------|-------|--------|
+| 기계적 스캔·수집·대량 초벌 (fixture 스캔, 라벨 초벌, 포맷 변환) | sonnet (초경량은 haiku) | low~medium |
+| 일반 구현 (스펙이 확정된 코드 작성) | sonnet ~ 세션 모델 | medium~high |
+| 게이트 판정·적대적 검증·judge 채점·설계 결정·miss 분석 | 세션 최상위 (상속) | high~xhigh |
+
+- 애매하면 상위 티어를 택한다 (특히 ultracode 세션에서는 과잉이 부족보다 싼 오류).
+- 검증(Verify)·judge 단계는 어떤 경우에도 하향하지 않는다.
+- 라우팅 판단(어느 단계를 어느 티어로)은 워크플로우 기동 보고 시 한 줄로 명시한다.
+
 ---
 
 ## Subagent Delegation

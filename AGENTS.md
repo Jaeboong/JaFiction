@@ -156,6 +156,15 @@ test(scope): description
 - Planning/architecture → use a Plan subagent
 - Parallel independent concerns → run parallel agents
 
+### Workflow model/effort routing
+
+When launching multi-agent workflows, set each `agent()`'s `model`/`effort` explicitly per stage — do not blanket-inherit session settings:
+
+- Mechanical scan/collection/bulk drafting → sonnet (haiku for trivial), effort low~medium
+- Standard implementation against a fixed spec → sonnet ~ session model, effort medium~high
+- Gate judgment, adversarial verification, judge scoring, design decisions → top session model (inherit), effort high~xhigh
+- When in doubt, pick the higher tier. Never downgrade Verify/judge stages.
+
 ## Codex Delegation
 
 **Claude's role**: orchestration, judgment, user communication only.  
