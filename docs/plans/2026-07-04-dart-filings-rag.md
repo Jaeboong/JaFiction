@@ -1,6 +1,6 @@
 # 2026-07-04 — DART 사업보고서 원문 RAG (문항별 근거 검색)
 
-**Status:** confirmed (2026-07-04, 모든 §7 질문 확정 — §11 참조. P0 착수 대기)
+**Status:** confirmed — **P0 완료 (2026-07-05, 게이트 PASS 20/20)**, P1 대기 (OpenAI 키 확보 후 착수. §12 P0 결과 참조)
 **Scope:** OpenDART 공시서류 원문(document.xml)을 청킹·임베딩해 서버 공유 인덱스로 만들고, 자소서 run 시작 시 문항 기반 검색 결과를 드래프터/리뷰어 프롬프트에 근거 블록으로 주입한다.
 **Driving data:** 없음 — P0이 recon 역할을 겸한다. P0 산출물(`services/filings-retrieval/eval/fixtures/`의 results.json/report.md)이 이후 스테이지의 driving data가 된다.
 **Precedents:** [2026-04-17 posting-parser-refactor](./2026-04-17-posting-parser-refactor.md) (fixture 게이트 방법론), [2026-04-09 convergence-quality-improvements](./completed_plans/2026-04-09-convergence-quality-improvements.md) (테스트-우선 오케스트레이터 변경)
@@ -172,6 +172,8 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 - "사업의 내용" 대분류는 파싱 성공 건 전부에서 식별
 - 통과하면 P1.
 
+> **결과 (2026-07-05): PASS 20/20** — 상세는 §12. 세부 plan은 [completed_plans/2026-07-04-dart-filings-rag-p0.md](./completed_plans/2026-07-04-dart-filings-rag-p0.md).
+
 **위험**: DART 원문 XML 스키마 편차(회사·연도별), zip 내 다중 문서, 일일 쿼터(fixture 수집 throttle 2초/건).
 
 ### P1 — 인덱싱·검색 품질 (임베딩 API 벤치)
@@ -313,3 +315,20 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 | §7 Q5 (P4) | **v1 비범위** — P3 게이트 통과 후 별도 승인 | 단발 검색의 효과부터 측정 | P4 진입 조건 |
 | §7 Q6 (prod) | **dev 전용 시작** | prod 휴면 (.env.production 부재) | A2 배포 |
 | §7 Q7 (웹 UI) | **v1 비범위** — notices 텍스트로만 노출 | UI 표면 최소화, 조용한 실패 금지는 notices로 충족 | 원칙 4 |
+
+## 12. P0 결과 (2026-07-05)
+
+**게이트 PASS 20/20** (기준 ≥18). 전 사 strict 파싱 성공, 텍스트 보존율 1.000, SECTION-1 14개 식별, 트리 깊이 3, "사업의 내용" 20/20 식별. acceptance 0.9145(미래에셋)~0.9714(LG전자), 총 청크 9,052개(중앙값 733~793자). pytest 54 passed. 산출물: `services/filings-retrieval/eval/{results.json,report.md,goldens/}` (커밋 `b77db35`, minor fix `68056ef`). 적대적 검증 3렌즈(plan 충실도/관례/게이트 무결성) + 독립 재계산(±0.03%p)으로 판정 지지.
+
+### 파싱 실측 발견 (P1 이후에도 유효한 제약)
+
+- **수집**: `A001` 조회에 분기·반기 혼입 → `report_nm` "사업보고서" 필터 필수. [기재정정]/[첨부정정] rcept_no는 document.xml 미존재(status 014) 가능 → `last_reprt_at=N` 원본 fallback (실측 3사, `dart_client.py` 구현·테스트 완료).
+- **파싱**: 20/20 전건 미이스케이프 XML (bare `&`, 의사마크업 `<배틀그라운드>`, 속성 따옴표 결함). lxml `recover=True` 단독은 **침묵 부분손실**(LG화학 45.5%만 잔존) → 검증된 3단계 새니타이즈 체인 + strict 파싱 + 보존율 게이트로 해소. 태그 화이트리스트 33종.
+- **구조**: SECTION-1 골격 20/20 동일(14종). LIBRARY는 실콘텐츠 컨테이너(리노공업 "사업의 내용"이 통째로 하위) — 정정 4개사의 확인서 중복만 SECTION-1-in-LIBRARY로 제외. 금융 3사는 SECTION-2 레벨만 상이(영업의 현황 등 5종), 현대차는 (제조서비스업)/(금융업) 접두어 혼합형.
+
+### P1 관찰 항목 (게이트 무관, 검색 품질에서 재평가)
+
+- 섹션 말미 <500자 잔여 청크 421건(4.7%) + <100자 미세 청크 0.74% ("해당사항 없음" 류) — 임베딩 노이즈 가능성.
+- **XII. 상세표가 A7 제외 목록에 없음** — 표 위주 섹션이 인덱싱 대상에 잔존. P1 검색 노이즈로 판명 시 제외 추가.
+- rowspan/colspan 불일치 표는 행 라벨 문맥 소실(값 plain join fallback) — P1 recall miss 분석 시 확인.
+- 새니타이즈의 이론적 잔여 케이스(깨진 내용이 속성 형태로 시작)는 정상 빈 속성 해석 우선으로 의도된 트레이드오프 (코퍼스 실측 0건).

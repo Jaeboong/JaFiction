@@ -2,7 +2,7 @@
 
 > 이 파일은 진행 중인 스테이지와 최근 완료 스테이지를 추적한다.
 > 업데이트: 스테이지 완료 또는 새 스테이지 시작 시마다 갱신.
-> 최종 갱신: 2026-07-04 (DART 사업보고서 RAG P0 착수 등재)
+> 최종 갱신: 2026-07-05 (DART RAG P0 완료 — 게이트 PASS 20/20, P1 대기)
 
 ## 현재 진행 중
 
@@ -12,7 +12,7 @@
 | P3 | 공고 파서 후속 (API 조사 분기) | 대기 — API 조사 결과에 따라 scope 확정 | — | [링크](2026-04-17-posting-parser-refactor.md) |
 | 내 경험 | "내 경험" 워크스페이스 경험 저장소 (개요 페이지 대체) | Phase 1 구현 완료 — 테스트 80/80 + 웹 빌드 green, 로컬 러너 재빌드 후 동작 검증 대기 | develop | [링크](2026-05-27-my-experience-store-design.md) |
 | 서버 동기화 | 사용자 경험 데이터 서버 동기화 (다기기 일관성) | v1 구현 완료 — PR #6 (feat/server-sync-v1→develop), check.sh green, 배포 전 SYNC_ENCRYPTION_KEY·러너 재빌드 필요 | feat/server-sync-v1 | [스코핑](2026-05-27-server-sync-scoping.md) · [v1 플랜](2026-05-27-server-sync-v1-implementation.md) |
-| DART RAG P0 | 사업보고서 원문 수집·파싱 recon (fixture 20개사) | 착수 (2026-07-04) — corps.txt 확정, 스캐폴드·파서·fixture 하니스 구현 진행 | develop | [링크](2026-07-04-dart-filings-rag.md) |
+| DART RAG | 사업보고서 원문 RAG (문항별 근거 검색) | P0 완료 (게이트 PASS 20/20) — P1 임베딩 벤치 대기, 선결: OpenAI API 키 확보 | develop | [마스터](2026-07-04-dart-filings-rag.md) |
 
 보류:
 
@@ -24,6 +24,7 @@
 
 | 완료일 | 스테이지 / 플랜 | 파일 |
 |--------|----------------|------|
+| 2026-07-05 | DART RAG P0 — 수집·파싱 recon (게이트 PASS 20/20, pytest 54, 커밋 `b77db35`·`68056ef`) | [2026-07-04-dart-filings-rag-p0.md](completed_plans/2026-07-04-dart-filings-rag-p0.md) |
 | 2026-04-19 | P2 Chunk 0.5 — JobPostingFetcher 인터페이스 + PuppeteerFetcher (커밋 `82538c0`) | [2026-04-19-posting-parser-p2-chunk0.5-detail.md](completed_plans/2026-04-19-posting-parser-p2-chunk0.5-detail.md) |
 | 2026-04-19 | P2 Chunk 0.5 — 다음 세션 핸드오프 (역할 종료) | [2026-04-19-posting-parser-p2-chunk0.5-next-session.md](completed_plans/2026-04-19-posting-parser-p2-chunk0.5-next-session.md) |
 | 2026-04-19 | P0 + P1 공고 파서 리팩터 핸드오프 (PR #4 머지) | [2026-04-19-posting-parser-p0-p1-handoff.md](completed_plans/2026-04-19-posting-parser-p0-p1-handoff.md) |
@@ -76,8 +77,8 @@
   └─ P3 (API 조사 분기) — 대기
 
 DART 사업보고서 원문 RAG (마스터 plan: 2026-07-04-dart-filings-rag.md)
-  ├─ P0 (수집·파싱 recon, fixture 20개사)   ← 진행 중
-  ├─ P1 (임베딩 API 벤치·검색 품질) — 대기
+  ├─ P0 (수집·파싱 recon, fixture 20개사) — 완료 (게이트 PASS 20/20)
+  ├─ P1 (임베딩 API 벤치·검색 품질)       ← 다음 (선결: OpenAI 키)
   ├─ P2 (배포·연동) — 대기
   └─ P3 (오케스트레이터 주입 + A/B) — 대기
 ```
