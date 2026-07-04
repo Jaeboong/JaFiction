@@ -56,6 +56,21 @@ def _business_section_found(section1_titles: list[str]) -> bool:
     return any(BUSINESS_SECTION_KEY in normalize_title(title) for title in section1_titles)
 
 
+def gate_fail_reasons(acceptance: float, section1_count: int, tree_depth: int) -> list[str]:
+    """회사별 게이트 판정 — acceptance는 반올림 전 진값으로 비교한다.
+
+    round(0.89996, 4) == 0.9 라서 반올림값 판정은 경계 미달을 통과로 오판한다.
+    """
+    reasons: list[str] = []
+    if acceptance < ACCEPTANCE_THRESHOLD:
+        reasons.append("acceptance-below-0.90")
+    if section1_count < SECTION1_MIN:
+        reasons.append("section1-below-5")
+    if tree_depth < TREE_DEPTH_MIN:
+        reasons.append("tree-depth-below-2")
+    return reasons
+
+
 def evaluate_company(client: DartClient, spec, force: bool) -> dict:
     record: dict = {
         "stock_code": spec.stock_code,
@@ -105,10 +120,11 @@ def evaluate_company(client: DartClient, spec, force: bool) -> dict:
     result = chunk_document(parsed)
     lengths = sorted(len(chunk.text) for chunk in result.chunks)
     section1_titles = [section.title for section in parsed.sections]
+    acceptance = result.text_acceptance_rate
     record.update(
         parse_ok=True,
         parse_mode=parsed.parse_mode,
-        text_acceptance_rate=round(result.text_acceptance_rate, 4),
+        text_acceptance_rate=round(acceptance, 4),  # 표시/저장용 반올림
         narrative_ratio=(
             round(result.narrative_chars / parsed.doc_text_chars, 4)
             if parsed.doc_text_chars
@@ -134,12 +150,9 @@ def evaluate_company(client: DartClient, spec, force: bool) -> dict:
         library_excluded_sections=parsed.library_excluded_section1_titles,
         business_section_found=_business_section_found(section1_titles),
     )
-    if record["text_acceptance_rate"] < ACCEPTANCE_THRESHOLD:
-        record["fail_reasons"].append("acceptance-below-0.90")
-    if record["section1_count"] < SECTION1_MIN:
-        record["fail_reasons"].append("section1-below-5")
-    if record["tree_depth"] < TREE_DEPTH_MIN:
-        record["fail_reasons"].append("tree-depth-below-2")
+    record["fail_reasons"].extend(
+        gate_fail_reasons(acceptance, record["section1_count"], record["tree_depth"])
+    )
     record["gate_pass"] = not record["fail_reasons"]
     return record
 
@@ -261,7 +274,7 @@ def write_report(companies: list[dict], gate: dict) -> None:
     REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def regen_goldens(client: DartClient, companies_by_stock: dict[str, dict]) -> list[Path]:
+def regen_goldens(client: DartClient) -> list[Path]:
     GOLDENS_DIR.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for stock_code in GOLDEN_STOCK_CODES:
@@ -316,7 +329,7 @@ def main() -> int:
     print(f"report:  {REPORT_PATH.relative_to(SERVICE_DIR)}")
 
     if args.regen_goldens:
-        for path in regen_goldens(client, {c["stock_code"]: c for c in companies}):
+        for path in regen_goldens(client):
             print(f"golden:  {path.relative_to(SERVICE_DIR)}")
 
     print(f"\nGATE: {'PASS' if gate['pass'] else 'FAIL'} "

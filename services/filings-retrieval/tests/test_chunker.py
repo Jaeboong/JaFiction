@@ -171,6 +171,50 @@ def test_acceptance_metrics_counted():
     assert 0.9 <= result.text_acceptance_rate <= 1.05
 
 
+def test_bold_span_subheading_boundary_gets_separator():
+    # 리노공업/삼성전자 실측: <P><SPAN USERMARK="B">소제목</SPAN>본문…이 융착됨
+    doc = make_doc(
+        "<SECTION-1><TITLE>II. 사업의 내용</TITLE>"
+        '<P><SPAN USERMARK="B">다. 수주현황</SPAN>당사는 주문제작 방식으로 생산합니다.</P>'
+        '<P><SPAN USERMARK="F-14 B">가. 매출실적</SPAN>2025년 매출은 증가하였습니다.</P>'
+        "</SECTION-1>"
+    )
+    result = chunk_document(make_parsed(doc))
+    text = "\n".join(chunk.text for chunk in result.chunks)
+    assert "다. 수주현황 당사는" in text
+    assert "가. 매출실적 2025년" in text
+    assert "수주현황당사는" not in text
+    assert "매출실적2025년" not in text
+
+
+def test_inline_span_fragments_get_no_separator():
+    # 실측: 비굵은 SPAN은 단어 중간에서 쪼개진다 — 공백 삽입 금지
+    doc = make_doc(
+        "<SECTION-1><TITLE>II. 사업의 내용</TITLE>"
+        '<P><SPAN USERMARK="U">독립이사</SPAN>는 8인 이내로 한다.</P>'
+        '<P><SPAN USERMARK="F-13 ">Worm Wheel Cover 용</SPAN>도 개발</P>'
+        "<P><SPAN>내역은 다음과 같습니다</SPAN>.</P>"
+        "</SECTION-1>"
+    )
+    result = chunk_document(make_parsed(doc))
+    text = "\n".join(chunk.text for chunk in result.chunks)
+    assert "독립이사는 8인" in text
+    assert "Cover 용도 개발" in text
+    assert "같습니다." in text
+
+
+def test_nested_block_paragraphs_in_table_cell_separated():
+    # TD 안의 인접 P 문단 경계에는 구분자가 생겨야 한다
+    doc = make_doc(
+        "<SECTION-1><TITLE>II. 사업의 내용</TITLE>"
+        "<TABLE><TBODY><TR><TD><P>첫째 문단</P><P>둘째 문단</P></TD></TR></TBODY></TABLE>"
+        "</SECTION-1>"
+    )
+    result = chunk_document(make_parsed(doc))
+    text = "\n".join(chunk.text for chunk in result.chunks)
+    assert "첫째 문단 둘째 문단" in text
+
+
 def test_inline_library_content_is_chunked():
     # 리노공업 실측: II. 사업의 내용의 SECTION-2 전부가 LIBRARY 하위 (실 콘텐츠)
     doc = make_doc(

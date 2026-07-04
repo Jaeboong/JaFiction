@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from .document_parser import SECTION_TAGS
 from .models import Chunk, ChunkingResult, ParsedDocument, SectionNode
 
-CHUNKER_VERSION = "0.1.0"
+CHUNKER_VERSION = "0.1.1"
 
 CHUNK_MIN_CHARS = 500
 CHUNK_MAX_CHARS = 800
@@ -57,6 +57,46 @@ def _norm_text(text: str) -> str:
     return " ".join(text.split())
 
 
+_INLINE_TAGS = frozenset(["SPAN", "A"])
+
+
+def _is_block_boundary(element) -> bool:
+    """블록 레벨 여부 — SPAN·A는 인라인이라 경계가 아니다.
+
+    단 굵은 SPAN(USERMARK 토큰 'B')은 실측상 본문 소제목으로 쓰인다
+    ('<SPAN USERMARK="B">다. 수주현황</SPAN>당사는…' 류) — 경계로 취급.
+    비굵은 SPAN은 단어 중간 분리('용'+'도', '독립이사'+'는')가 실재해 제외.
+    """
+    tag = element.tag
+    if not isinstance(tag, str):
+        return False
+    if tag not in _INLINE_TAGS:
+        return True
+    return tag == "SPAN" and "B" in (element.get("USERMARK") or "").split()
+
+
+def _nested_text(element) -> str:
+    """중첩 요소 텍스트 연결 — 블록 경계에만 공백 구분자, 인라인 조각은 그대로."""
+    parts: list[str] = []
+
+    def rec(node) -> None:
+        if node.text:
+            parts.append(node.text)
+        for child in node:
+            if isinstance(child.tag, str):
+                boundary = _is_block_boundary(child)
+                if boundary:
+                    parts.append(" ")
+                rec(child)
+                if boundary:
+                    parts.append(" ")
+            if child.tail:
+                parts.append(child.tail)
+
+    rec(element)
+    return "".join(parts)
+
+
 @dataclass(frozen=True)
 class _Unit:
     text: str
@@ -88,7 +128,13 @@ def _section_own_text_chars(section_el) -> int:
                 or child is first_title
             )
             if not skip_subtree:
+                # 분자(_nested_text)와 동일한 블록 경계 회계 — 일관성 유지.
+                boundary = _is_block_boundary(child)
+                if boundary:
+                    parts.append(" ")
                 rec(child)
+                if boundary:
+                    parts.append(" ")
             if child.tail:
                 parts.append(child.tail)
 
@@ -101,7 +147,7 @@ def _table_units(table_el):
     headers: list[str] = []
     for tr in thead_rows:
         cells = [
-            _norm_text("".join(cell.itertext()))
+            _norm_text(_nested_text(cell))
             for cell in tr
             if isinstance(cell.tag, str) and cell.tag in _CELL_TAGS
         ]
@@ -114,7 +160,7 @@ def _table_units(table_el):
     body_rows.extend(table_el.findall("TR"))
     for tr in body_rows:
         cells = [
-            _norm_text("".join(cell.itertext()))
+            _norm_text(_nested_text(cell))
             for cell in tr
             if isinstance(cell.tag, str) and cell.tag in _CELL_TAGS
         ]
@@ -154,7 +200,7 @@ def _iter_units(section_el):
                     yield _Unit(_norm_text(child.text), len(_norm_text(child.text)))
                 yield from rec(child)
             else:
-                text = _norm_text("".join(child.itertext()))
+                text = _norm_text(_nested_text(child))
                 if text:
                     yield _Unit(text, len(text))
             if child.tail and child.tail.strip():

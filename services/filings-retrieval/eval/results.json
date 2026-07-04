@@ -1,5 +1,5 @@
 {
-  "chunker_version": "0.1.0",
+  "chunker_version": "0.1.1",
   "gate": {
     "pass": true,
     "companies_passed": 20,
@@ -44,7 +44,7 @@
       "chunk_length": {
         "min": 19,
         "max": 800,
-        "mean": 716.8,
+        "mean": 716.9,
         "median": 745
       },
       "included_sections": [
@@ -106,7 +106,7 @@
       "chunk_length": {
         "min": 25,
         "max": 800,
-        "mean": 710.5,
+        "mean": 710.6,
         "median": 756
       },
       "included_sections": [
@@ -168,7 +168,7 @@
       "chunk_length": {
         "min": 5,
         "max": 800,
-        "mean": 703.0,
+        "mean": 703.1,
         "median": 752
       },
       "included_sections": [
@@ -480,7 +480,7 @@
       "chunk_length": {
         "min": 10,
         "max": 800,
-        "mean": 739.9,
+        "mean": 740.0,
         "median": 793
       },
       "included_sections": [
@@ -518,7 +518,7 @@
       "parse_ok": true,
       "parse_mode": "strict",
       "text_acceptance_rate": 0.934,
-      "narrative_ratio": 0.3523,
+      "narrative_ratio": 0.3524,
       "text_preservation_rate": 0.9999,
       "section1_count": 14,
       "section1_titles": [
@@ -540,9 +540,9 @@
       "tree_depth": 3,
       "chunk_count": 210,
       "chunk_length": {
-        "min": 30,
+        "min": 31,
         "max": 800,
-        "mean": 684.5,
+        "mean": 684.7,
         "median": 741
       },
       "included_sections": [
@@ -580,7 +580,7 @@
       "parse_ok": true,
       "parse_mode": "strict",
       "text_acceptance_rate": 0.9352,
-      "narrative_ratio": 0.2902,
+      "narrative_ratio": 0.2903,
       "text_preservation_rate": 0.9999,
       "section1_count": 14,
       "section1_titles": [
@@ -604,7 +604,7 @@
       "chunk_length": {
         "min": 22,
         "max": 800,
-        "mean": 661.1,
+        "mean": 661.2,
         "median": 753
       },
       "included_sections": [
@@ -642,7 +642,7 @@
       "parse_ok": true,
       "parse_mode": "strict",
       "text_acceptance_rate": 0.9476,
-      "narrative_ratio": 0.472,
+      "narrative_ratio": 0.4723,
       "text_preservation_rate": 0.9996,
       "section1_count": 14,
       "section1_titles": [
@@ -666,7 +666,7 @@
       "chunk_length": {
         "min": 10,
         "max": 800,
-        "mean": 636.9,
+        "mean": 637.3,
         "median": 735
       },
       "included_sections": [
@@ -890,7 +890,7 @@
       "parse_ok": true,
       "parse_mode": "strict",
       "text_acceptance_rate": 0.9366,
-      "narrative_ratio": 0.4895,
+      "narrative_ratio": 0.4896,
       "text_preservation_rate": 1.0,
       "section1_count": 14,
       "section1_titles": [
@@ -1080,7 +1080,7 @@
       "parse_ok": true,
       "parse_mode": "strict",
       "text_acceptance_rate": 0.9156,
-      "narrative_ratio": 0.4265,
+      "narrative_ratio": 0.4266,
       "text_preservation_rate": 1.0,
       "section1_count": 14,
       "section1_titles": [

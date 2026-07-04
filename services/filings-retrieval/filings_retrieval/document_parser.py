@@ -67,7 +67,10 @@ SECTION_TAGS = ("SECTION-1", "SECTION-2", "SECTION-3")
 
 _DECL_ENCODING_RE = re.compile(rb'<\?xml[^>]*encoding=["\']([A-Za-z0-9._-]+)["\']')
 _BARE_AMP_RE = re.compile(r"&(?!(?:amp|lt|gt|quot|apos);|#[0-9]+;|#x[0-9A-Fa-f]+;)")
-_ATTR_QUOTE_PAIR_RE = re.compile(r'=""([^"<>\r\n]*)""')
+# 부정 전방탐색: ="" 직후가 「다음 속성(NAME=")」 형태면 인접한 두 정상 빈 속성
+# (A="" B="")이므로 병합 수리 금지. 깨진 쌍따옴표는 내용이 속성 형태가 아니다
+# (LG화학 ENG=""Gain (loss)"", KB금융 ENG="" KB Insurance Co., Ltd "" 실측).
+_ATTR_QUOTE_PAIR_RE = re.compile(r'=""(?!\s*[A-Za-z][-:\w]*=")([^"<>\r\n]*)""')
 _ATTR_QUOTE_LEAD_RE = re.compile(r'=""(?=[^\s">])')
 _TAG_TOKEN_RE = re.compile(r"</?([A-Za-z][A-Za-z0-9-]*)")
 _TAG_STRIP_RE = re.compile(r"<[^>]*>")

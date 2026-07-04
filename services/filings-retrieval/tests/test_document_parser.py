@@ -101,6 +101,31 @@ def test_sanitize_keeps_legit_empty_attribute():
     assert sanitize_xml(source) == source
 
 
+def test_sanitize_keeps_adjacent_empty_attributes():
+    # 인접한 두 정상 빈 속성이 깨진 쌍따옴표로 오인·병합되면 안 된다 (B 소실 회귀)
+    source = '<TD A="" B="">v</TD>'
+    assert sanitize_xml(source) == source
+
+
+def test_sanitize_keeps_multiple_empty_attributes_before_value():
+    source = '<TD ENG="" ACODE="" WIDTH="5">v</TD>'
+    assert sanitize_xml(source) == source
+
+
+def test_sanitize_attr_double_quote_pair_space_padded():
+    # KB금융 실측: 내용이 공백으로 시작/끝나는 깨진 쌍따옴표도 수리돼야 한다
+    source = '<TH COLSPAN="8" ENG="" KB Insurance Co., Ltd "">v</TH>'
+    assert sanitize_xml(source) == (
+        '<TH COLSPAN="8" ENG="&quot; KB Insurance Co., Ltd &quot;">v</TH>'
+    )
+
+
+def test_sanitize_broken_pair_next_to_empty_attribute():
+    # 정상 빈 속성 + 깨진 쌍따옴표 혼재 시 깨진 쪽만 수리
+    source = '<TD A="" ENG=""Gain (loss)"">v</TD>'
+    assert sanitize_xml(source) == '<TD A="" ENG="&quot;Gain (loss)&quot;">v</TD>'
+
+
 def test_sanitize_pseudo_markup_escaped():
     cases = {
         "<P>작품 <배틀그라운드> 흥행</P>": "<P>작품 &lt;배틀그라운드> 흥행</P>",
