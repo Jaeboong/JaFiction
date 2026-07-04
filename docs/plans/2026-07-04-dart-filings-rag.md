@@ -1,6 +1,6 @@
 # 2026-07-04 — DART 사업보고서 원문 RAG (문항별 근거 검색)
 
-**Status:** draft (미해결 질문 §7 사용자 확정 대기)
+**Status:** draft (§7 Q2 확정 — 임베딩은 외부 API, 2026-07-04 §11 참조. 나머지 질문 확정 대기)
 **Scope:** OpenDART 공시서류 원문(document.xml)을 청킹·임베딩해 서버 공유 인덱스로 만들고, 자소서 run 시작 시 문항 기반 검색 결과를 드래프터/리뷰어 프롬프트에 근거 블록으로 주입한다.
 **Driving data:** 없음 — P0이 recon 역할을 겸한다. P0 산출물(`services/filings-retrieval/eval/fixtures/`의 results.json/report.md)이 이후 스테이지의 driving data가 된다.
 **Precedents:** [2026-04-17 posting-parser-refactor](./2026-04-17-posting-parser-refactor.md) (fixture 게이트 방법론), [2026-04-09 convergence-quality-improvements](./completed_plans/2026-04-09-convergence-quality-improvements.md) (테스트-우선 오케스트레이터 변경)
@@ -23,7 +23,7 @@
 
 1. **수집/파싱** (P0): 임의 상장사의 최신 사업보고서 원문을 섹션 트리로 파싱할 수 있는가 → 텍스트 수용률·섹션 식별 수·트리 깊이로 측정.
 2. **검색 품질** (P1): 문항 텍스트로 관련 섹션 청크를 찾을 수 있는가 → 라벨셋 recall@5(신뢰구간 포함) / 형태소 BM25 베이스라인 대비.
-3. **인덱싱 처리량** (P1): 서버(ARM 4코어 공유)에서 회사당 time-to-ready가 운영 가능한 수준인가.
+3. **인덱싱 소요/안정성** (P1): 임베딩 API 기반 인덱싱이 rate limit 안에서 회사당 수 분 내 완료되는가.
 4. **제품 효과** (P3): 근거 주입이 초안의 grounded-claim 수/비율을 올리는가 → 드래프터 턴 단위 paired A/B.
 
 ---
@@ -46,13 +46,15 @@
 
 사업보고서 코퍼스는 회사 단위·사용자 무관 데이터다. 러너 로컬(사용자 Windows 머신)에 두면 (a) 사용자마다 임베딩 수단(모델 배포 또는 API 키)이 필요하고, (b) 같은 회사를 사용자마다 중복 인덱싱하며(DART 쿼터 낭비), (c) 머신 변경 시 재구축된다. OCI 서버(ARM64 4코어 공유, RAM 18Gi 가용, 디스크 62G 여유)에 1회 인덱싱해 전 사용자가 공유한다.
 
-### A2. 검색 서비스 = Python FastAPI 컨테이너 `filings-retrieval`
+### A2. 검색 서비스 = Python FastAPI 컨테이너 `filings-retrieval` (임베딩은 외부 API)
 
-- 담당: document.xml 수집 → XML 파싱·섹션 분리·청킹 → 임베딩 → 인덱스 저장 → 검색 API.
-- 배포: `docker-compose.dev.yml`에 service 블록 추가 (backend와 동일 네트워크, 외부 미노출 — nginx 변경 불필요). env는 루트 `.env.dev`의 `DART_API_KEY` 재사용 + 내부 호출 보호용 `FILINGS_SERVICE_TOKEN`(공유 시크릿 헤더) 신설.
-- **빌드 비용**: deploy가 `build --no-cache`이므로 PyTorch aarch64 휠 재설치가 매 배포에 반복된다 → 의존성을 미리 구운 베이스 이미지(별도 태그, 의존성 변경 시에만 재빌드)를 `FROM`으로 사용. 모델 가중치는 named volume + 기동 시 다운로드.
-- **동시성**: `/ensure`는 장시간 CPU 작업 → corpCode 단위 락 + 단일 인덱싱 워커 큐(동시 1건). compose `cpus` 제한으로 backend 보호.
-- ARM64 네이티브 빌드 필수 (backend Dockerfile의 multi-arch 선례).
+- 담당: document.xml 수집 → XML 파싱·섹션 분리·청킹 → **임베딩(외부 API 호출)** → 인덱스 저장 → 검색 API.
+- **임베딩 = 외부 API (2026-07-04 확정, §11)**: 서버에 GPU가 없고 4코어를 다수 스택과 공유하므로 로컬 추론은 동시 사용자 시 체감 품질을 해친다. 서버 단일키 모델 유지 — 루트 `.env.dev`에 `EMBEDDING_PROVIDER` / `EMBEDDING_MODEL` / `EMBEDDING_API_KEY` 신설. **모델은 P1 벤치로 선정** (후보: OpenAI `text-embedding-3-small`(베이스라인)·`text-embedding-3-large`, Upstage `solar-embedding-1-large`(query/passage 분리 — 문항→공시 서술의 비대칭 검색에 구조적 부합), Google `gemini-embedding-001`(선택)). 쿼리 임베딩도 서비스에서 수행 — 러너는 텍스트만 보내고 키는 서버 밖으로 나가지 않는다.
+- **프라이버시 경계**: 외부 API로 나가는 것은 공시 원문 청크(공공 데이터)와 검색 쿼리(문항+직무명)뿐. 사용자 초안·개인 경험 텍스트는 쿼리에 포함하지 않는다 (A4 쿼리 구성 규칙으로 강제).
+- **컨테이너 경량화**: 로컬 추론 제거로 PyTorch aarch64 휠·모델 volume·베이스 이미지 분리가 전부 불필요 (파싱 + numpy + httpx 수준). `build --no-cache` 배포 부담 문제 해소.
+- 배포: `docker-compose.dev.yml`에 service 블록 추가 (backend와 동일 네트워크, 외부 미노출 — nginx 변경 불필요). `DART_API_KEY` 재사용 + 내부 호출 보호용 `FILINGS_SERVICE_TOKEN`(공유 시크릿 헤더) 신설.
+- **동시성**: corpCode 단위 락 + 단일 인덱싱 워커 큐(동시 1건) 유지 — 병목은 CPU가 아니라 임베딩 API rate limit(429 backoff)으로 이동.
+- ARM64 네이티브 빌드 (경량화로 부담 대폭 감소).
 
 ### A3. 벡터 저장 = 서비스 내장 SQLite (pgvector 아님, v1 한정)
 
@@ -116,7 +118,7 @@
 
 ### A7. 인덱싱 범위 = 서술 섹션 한정
 
-재무제표 본문·감사보고서 첨부는 인덱싱하지 않는다 (수치는 기존 `fnlttSinglAcntAll` 정형 API가 이미 커버). 대상은 서술 대분류(회사의 개요, 사업의 내용 전체, 이사의 경영진단 등)로 한정해 회사당 청크 수를 수천→수백 규모로 줄인다 — ARM CPU 인덱싱 처리량(P1 게이트)의 1차 완화책.
+재무제표 본문·감사보고서 첨부는 인덱싱하지 않는다 (수치는 기존 `fnlttSinglAcntAll` 정형 API가 이미 커버). 대상은 서술 대분류(회사의 개요, 사업의 내용 전체, 이사의 경영진단 등)로 한정해 회사당 청크 수를 수천→수백 규모로 줄인다 — 검색 노이즈 감소 + 임베딩 API 비용·rate limit 부담 완화 (회사당 약 20~50만 토큰 → 모델별 $0.005~0.07 수준).
 
 ### 공유 인터페이스 스케치 (`packages/shared/src/core/filingsEvidence/types.ts`)
 
@@ -172,31 +174,32 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 
 **위험**: DART 원문 XML 스키마 편차(회사·연도별), zip 내 다중 문서, 일일 쿼터(fixture 수집 throttle 2초/건).
 
-### P1 — 인덱싱·검색 품질 + 처리량
+### P1 — 인덱싱·검색 품질 (임베딩 API 벤치)
 
-**목표**: 검색이 라벨셋 기준을 통과하고, 형태소 BM25 베이스라인을 이기고, 서버에서 인덱싱이 운영 가능한 속도로 돈다.
+**목표**: 후보 임베딩 API 중 라벨셋 기준을 통과하고 형태소 BM25 베이스라인을 이기는 모델을 수치로 선정한다.
 
 **작업**:
-1. 임베딩 2후보 벤치: `BAAI/bge-m3` vs `intfloat/multilingual-e5-small`. **품질 평가는 개발 머신에서, 지연·처리량은 서버에서 실측** (서버 4코어로 2모델×20사 전량 임베딩은 시간상 불가할 수 있음). ONNX int8 양자화 + batch 추론을 1급 완화책으로 함께 벤치.
+1. 후보 API 벤치 (동일 라벨셋·동일 청킹, A2 후보군): OpenAI 3-small(베이스라인)·3-large, Upstage solar-embedding-1-large, Gemini embedding(선택). 벤치 비용은 20개사 코퍼스 × 후보 수 기준 수 달러 미만 — 전 후보 동시 측정.
 2. 라벨셋: **100개 이상** (회사, 실전형 문항) 쌍에 관련 섹션 경로를 주석(LLM 초벌 + 사람 검수) → `eval/labeled_queries.json` 커밋. **hit 정의: 라벨된 섹션 경로에 속한 청크가 top-5 내 1개 이상.**
 3. BM25 베이스라인은 **kiwipiepy 형태소 토크나이즈** 적용 (조사·복합명사 붕괴로 인한 허수아비 비교 방지). 동일 라벨셋 paired 비교.
-4. 인덱스(A3 스키마) + 검색 구현, `eval/run_eval.py`가 recall@5(95% CI 포함) / MRR / 지연을 `report.md`로 재생성. 지연은 쿼리당 10회 반복(총 1,000+ 샘플)으로 p95 산출.
+4. 인덱스(A3 스키마) + 검색 구현, `eval/run_eval.py`가 recall@5(95% CI 포함) / MRR / 지연 / **모델별 토큰 사용량·비용**을 `report.md`로 재생성. 429 backoff 구현 포함. 지연은 쿼리당 10회 반복(총 1,000+ 샘플)으로 p95 산출.
+5. miss 분석에서 임베딩 한계(유사 섹션 혼동 등)로 판명되면 reranker API를 P3 전 contingency로 검토.
 
 **게이트**:
-- 선택 모델 recall@5 점추정 ≥ 0.80 **및 95% CI 하한 ≥ 0.70**
+- 선정 모델 recall@5 점추정 ≥ 0.80 **및 95% CI 하한 ≥ 0.70** (동률이면 저비용·운영 단순성 우선)
 - paired 비교에서 BM25 대비 recall@5 우위 (동률이면 dense 채택 근거 재검토)
-- 단건 쿼리 p95 < 1.0s (서버, WAN 마진 확보용으로 초안 1.5s에서 강화)
-- **인덱싱 처리량: 회사당 time-to-ready ≤ 30분 (서버 실측, A7 범위 기준)** — 미달 시 e5-small/int8/배치 크기로 재측정, 그래도 미달이면 아키텍처 재논의(외부 임베딩 API 등, §7 Q2)
+- 단건 검색 p95 < 1.5s (쿼리 임베딩 API 왕복 포함, 서버 기준)
+- **회사당 time-to-ready ≤ 10분 (배치 임베딩, rate limit 내)**
 - 통과하면 P2.
 
-**위험**: ARM CPU에서 bge-m3 추론 지연·처리량(A7 범위 축소 + int8로 완화, 그래도 병목이면 e5-small), 한국어 공시 문체와 다국어 모델의 정합.
+**위험**: 임베딩 API rate limit(배치 크기·backoff로 완화), 한국어 공시 문체와 다국어 모델의 정합(벤치로 검출), 외부 API 런타임 의존 신설(§8).
 
 ### P2 — 배포·연동 (백엔드 프록시 + 러너 게이트웨이)
 
 **목표**: dev 서버에 서비스가 뜨고, 러너가 인덱싱 트리거·검색 round-trip에 성공한다.
 
 **작업**:
-1. FastAPI 서비스화 (`/ensure`, `/search`, `/status`, 공유 시크릿 검증, corpCode 락+단일 워커 큐) + Dockerfile(의존성 베이스 이미지 분리, arm64) + `docker-compose.dev.yml` service 블록·backend environment 매핑(`FILINGS_SERVICE_URL`, `FILINGS_SERVICE_TOKEN`)·named volume + **aarch64 컨테이너에서 로드·검색 스모크 테스트**.
+1. FastAPI 서비스화 (`/ensure`, `/search`, `/status`, 공유 시크릿 검증, corpCode 락+단일 워커 큐) + Dockerfile(경량, arm64) + `docker-compose.dev.yml` service 블록·backend environment 매핑(`FILINGS_SERVICE_URL`, `FILINGS_SERVICE_TOKEN`)·service env(`EMBEDDING_PROVIDER`/`EMBEDDING_MODEL`/`EMBEDDING_API_KEY`, 루트 `.env.dev` 추가)·named volume(인덱스) + **aarch64 컨테이너 검색 스모크 테스트**.
 2. 백엔드 프록시 라우트 `runnerFilings.ts` (deviceToken 인증, optional env, 미설정 시 501).
 3. 러너 `FilingsEvidenceGateway` HTTP 구현(hostedCtx per-run 생성) + `FILINGS_RAG_ENABLED` flag + `insightsHandlers` corpCode 확정 직후 fire-and-forget ensure + **search 시 status=absent이면 ensure kick** (기존 프로젝트 백필).
 4. 실패 분류: 서비스 에러는 `classifyInsightFailure` 규약(원문은 로그, UI에는 분류 메시지)을 따른다.
@@ -255,7 +258,7 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 ## 7. 미해결 질문 (사용자 확인 필요)
 
 1. **인덱스 위치**: 서버 공유 인덱스 + Python 컨테이너(A1/A2 제안) 승인? 대안은 러너 로컬(사용자별 임베딩 수단 필요 — 비권장).
-2. **임베딩 모델**: P1 벤치로 bge-m3 vs e5-small 결정(제안). ARM CPU 처리량이 둘 다 미달하면 외부 임베딩 API 허용 여부? (새 키·비용 발생)
+2. ~~**임베딩 모델**: P1 벤치로 bge-m3 vs e5-small 결정(제안). ARM CPU 처리량이 둘 다 미달하면 외부 임베딩 API 허용 여부? (새 키·비용 발생)~~ → **확정 (2026-07-04, §11)**: 외부 임베딩 API 사용. 모델은 P1 벤치로 후보군 중 선정.
 3. **벡터 저장**: 서비스 내장 SQLite + numpy brute-force(A3 제안) vs pgvector 이미지 교체(볼륨 호환 리스크 감수)?
 4. **인덱싱 대상**: 최신 사업보고서(A001) 1개년, 서술 섹션 한정(A7 제안) 동의? vs 반기·분기 포함 / 복수 연도?
 5. **P4 에이전틱 재검색**: v1 비범위(제안) 동의?
@@ -269,7 +272,8 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 | 위험 | 완화 | 롤백 |
 |------|------|------|
 | 검색 서비스 다운/미배포 | 러너 5초 타임아웃, 근거 블록 없이 진행 + notices | `FILINGS_RAG_ENABLED=false` |
-| ARM CPU 인덱싱 처리량 부족 | A7 범위 축소 + int8/batch, P1 처리량 게이트로 선검증 | e5-small 강등 (인덱스 재구축 절차는 A3 버전 필드로 통제) |
+| 임베딩 API 장애/rate limit | 429 backoff + 인덱싱 큐 재시도, 검색 실패 시 근거 블록 없이 진행 + notices (원칙 4) | 기존 인덱스 유지, 복구 후 재개 |
+| 임베딩 모델 단종/교체 | `embedding_model` 컬럼(A3) — 변경 시 absent 강등 후 재임베딩 (API라 회사당 수 분·수 센트) | 후보군 내 대체 모델 전환 |
 | DART 일일 쿼터 소진 | rcept_no 단위 원문 캐시 + 30일 TTL 재조회, fixture throttle | ensure 중단, 기존 인덱스로 서빙 |
 | 프롬프트 예산 초과(특히 realtime minimal) | 프로필별 압축 + 문자 상한 + filingsEvidenceChars 계측 | 블록 주입 대상에서 realtime 리뷰어 제외 |
 | 드래프터가 블록 무시 / 초안 마커 오염 | A5 지위 부여·마커 금지 설계, P3 A/B·스모크로 검출 | 블록 문구 반복 개선 (게이트 재측정) |
@@ -286,6 +290,7 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 - [ ] P0 fixture corp 20곳 목록 선정
 - [ ] P1 라벨셋 100+ 주석 (LLM 초벌 + 사람 검수)
 - [ ] OpenDART 일일 쿼터 실측 확인 (공식 20,000건/일 — 실측 검증)
+- [ ] 임베딩 API 키 발급 (P1 벤치용 — 후보 중 최소 OpenAI + Upstage 2종)
 
 ## 10. 추적 / 라이프사이클
 
@@ -293,3 +298,9 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 - §7 확정 시: Status → confirmed + `Decisions Confirmed (날짜)` 섹션 추가.
 - 스테이지 세부 plan: 스테이지 착수 시 분화 (관례).
 - 완료 시 `completed_plans/` 이동 — **이동 시 Precedents 상대 링크 재작성 후 `./scripts/check.sh`(validate-doc-links) 재실행** (링크 파손 전례 방지).
+
+## 11. Decisions Confirmed (2026-07-04)
+
+| Q | 결정 | 근거 | 반영 위치 |
+|---|------|------|-----------|
+| §7 Q2 (임베딩) | 로컬 모델 대신 **외부 임베딩 API** 사용. 모델은 P1 벤치(후보: OpenAI 3-small/3-large, Upstage solar-embedding-1-large, Gemini embedding)로 recall@5 기준 선정 | 서버 무GPU·4코어 공유 — 동시 사용자 시 로컬 추론이 체감 품질 저하. 코퍼스 규모상 API 비용은 회사당 수 센트로 무시 가능, 진짜 비용 함수는 검색 miss. 쿼리가 추상 문항→공시 서술의 비대칭 매칭이라 한국어 의미 품질이 관건 → 벤치로 결정 | A2, P1, §8, §9 |
