@@ -289,7 +289,7 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 - [x] DART_API_KEY 서버 `.env.dev` 존재
 - [x] OCI 서버 자원 확인 (ARM64 4코어 / RAM 18Gi 가용 / 디스크 62G)
 - [ ] §7 미해결 질문 사용자 확정
-- [ ] P0 fixture corp 20곳 목록 선정
+- [x] P0 fixture corp 20곳 목록 선정 (2026-07-04, `services/filings-retrieval/eval/fixtures/corps.txt` — KOSPI대형 8 / KOSDAQ중견 6 / 금융 3 / IT플랫폼 3)
 - [ ] P1 라벨셋 100+ 주석 (LLM 초벌 + 사람 검수)
 - [ ] OpenDART 일일 쿼터 실측 확인 (공식 20,000건/일 — 실측 검증)
 - [ ] OpenAI API 키 발급 (사용자 진행 중 — P1부터 필요, P0는 불필요) / Upstage 키는 3-small 게이트 미달 시에만
