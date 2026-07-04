@@ -1,6 +1,6 @@
 # 2026-07-04 — DART 사업보고서 원문 RAG (문항별 근거 검색)
 
-**Status:** draft (§7 Q2 확정 — 임베딩은 외부 API, 2026-07-04 §11 참조. 나머지 질문 확정 대기)
+**Status:** confirmed (2026-07-04, 모든 §7 질문 확정 — §11 참조. P0 착수 대기)
 **Scope:** OpenDART 공시서류 원문(document.xml)을 청킹·임베딩해 서버 공유 인덱스로 만들고, 자소서 run 시작 시 문항 기반 검색 결과를 드래프터/리뷰어 프롬프트에 근거 블록으로 주입한다.
 **Driving data:** 없음 — P0이 recon 역할을 겸한다. P0 산출물(`services/filings-retrieval/eval/fixtures/`의 results.json/report.md)이 이후 스테이지의 driving data가 된다.
 **Precedents:** [2026-04-17 posting-parser-refactor](./2026-04-17-posting-parser-refactor.md) (fixture 게이트 방법론), [2026-04-09 convergence-quality-improvements](./completed_plans/2026-04-09-convergence-quality-improvements.md) (테스트-우선 오케스트레이터 변경)
@@ -179,7 +179,7 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 **목표**: 후보 임베딩 API 중 라벨셋 기준을 통과하고 형태소 BM25 베이스라인을 이기는 모델을 수치로 선정한다.
 
 **작업**:
-1. 후보 API 벤치 (동일 라벨셋·동일 청킹, A2 후보군): OpenAI 3-small(베이스라인)·3-large, Upstage solar-embedding-1-large, Gemini embedding(선택). 벤치 비용은 20개사 코퍼스 × 후보 수 기준 수 달러 미만 — 전 후보 동시 측정.
+1. 후보 API 벤치 — **단계식 (2026-07-04 확정, §11)**: 1차로 OpenAI 3-small 단독으로 게이트를 측정한다(키 확보 우선순위 반영). 게이트 통과 시 3-small 확정. 미달 시 Upstage solar-embedding-1-large를 투입해 동일 라벨셋 paired 비교, 그래도 미달이면 3-large/Gemini embedding 순차 투입. 벤치 비용은 후보당 수 달러 미만.
 2. 라벨셋: **100개 이상** (회사, 실전형 문항) 쌍에 관련 섹션 경로를 주석(LLM 초벌 + 사람 검수) → `eval/labeled_queries.json` 커밋. **hit 정의: 라벨된 섹션 경로에 속한 청크가 top-5 내 1개 이상.**
 3. BM25 베이스라인은 **kiwipiepy 형태소 토크나이즈** 적용 (조사·복합명사 붕괴로 인한 허수아비 비교 방지). 동일 라벨셋 paired 비교.
 4. 인덱스(A3 스키마) + 검색 구현, `eval/run_eval.py`가 recall@5(95% CI 포함) / MRR / 지연 / **모델별 토큰 사용량·비용**을 `report.md`로 재생성. 429 backoff 구현 포함. 지연은 쿼리당 10회 반복(총 1,000+ 샘플)으로 p95 산출.
@@ -257,6 +257,8 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 
 ## 7. 미해결 질문 (사용자 확인 필요)
 
+> **전체 확정 (2026-07-04)** — 결정 내용은 §11 Decisions Confirmed 참조. 아래 원본 질문은 참고용으로 보존.
+
 1. **인덱스 위치**: 서버 공유 인덱스 + Python 컨테이너(A1/A2 제안) 승인? 대안은 러너 로컬(사용자별 임베딩 수단 필요 — 비권장).
 2. ~~**임베딩 모델**: P1 벤치로 bge-m3 vs e5-small 결정(제안). ARM CPU 처리량이 둘 다 미달하면 외부 임베딩 API 허용 여부? (새 키·비용 발생)~~ → **확정 (2026-07-04, §11)**: 외부 임베딩 API 사용. 모델은 P1 벤치로 후보군 중 선정.
 3. **벡터 저장**: 서비스 내장 SQLite + numpy brute-force(A3 제안) vs pgvector 이미지 교체(볼륨 호환 리스크 감수)?
@@ -290,7 +292,7 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 - [ ] P0 fixture corp 20곳 목록 선정
 - [ ] P1 라벨셋 100+ 주석 (LLM 초벌 + 사람 검수)
 - [ ] OpenDART 일일 쿼터 실측 확인 (공식 20,000건/일 — 실측 검증)
-- [ ] 임베딩 API 키 발급 (P1 벤치용 — 후보 중 최소 OpenAI + Upstage 2종)
+- [ ] OpenAI API 키 발급 (사용자 진행 중 — P1부터 필요, P0는 불필요) / Upstage 키는 3-small 게이트 미달 시에만
 
 ## 10. 추적 / 라이프사이클
 
@@ -304,3 +306,10 @@ shared는 인터페이스만 정의하고, 러너가 hostedCtx 기반 HTTP 구�
 | Q | 결정 | 근거 | 반영 위치 |
 |---|------|------|-----------|
 | §7 Q2 (임베딩) | 로컬 모델 대신 **외부 임베딩 API** 사용. 모델은 P1 벤치(후보: OpenAI 3-small/3-large, Upstage solar-embedding-1-large, Gemini embedding)로 recall@5 기준 선정 | 서버 무GPU·4코어 공유 — 동시 사용자 시 로컬 추론이 체감 품질 저하. 코퍼스 규모상 API 비용은 회사당 수 센트로 무시 가능, 진짜 비용 함수는 검색 miss. 쿼리가 추상 문항→공시 서술의 비대칭 매칭이라 한국어 의미 품질이 관건 → 벤치로 결정 | A2, P1, §8, §9 |
+| §7 Q2 보강 (벤치 방식) | **단계식 벤치**: 1차 3-small 단독 게이트 측정 → 통과 시 확정, 미달 시 Upstage → 3-large/Gemini 순차 투입 | 키 조달 단순화(OpenAI 우선 확보). 게이트 기준이 있으므로 "통과하는 가장 단순한 모델" 선택이 측정 규율과 양립 | P1 작업 1 |
+| §7 Q1 (인덱스 위치) | **서버 공유 인덱스 + Python 컨테이너** (A1/A2 원안) | 러너 로컬은 사용자별 임베딩 수단 필요 + 중복 인덱싱. 임베딩 API 확정으로 사실상 유일한 선택지 | A1, A2 |
+| §7 Q3 (벡터 저장) | **서비스 내장 SQLite + numpy brute-force** (A3 원안) | 기존 Postgres 무접촉, 회사 단위 파티션이라 brute-force로 충분 | A3 |
+| §7 Q4 (인덱싱 대상) | **최신 사업보고서(A001) 1개년, 서술 섹션 한정** (A7 원안) | 수치는 정형 API가 커버, 비용·노이즈 최소화 | A7 |
+| §7 Q5 (P4) | **v1 비범위** — P3 게이트 통과 후 별도 승인 | 단발 검색의 효과부터 측정 | P4 진입 조건 |
+| §7 Q6 (prod) | **dev 전용 시작** | prod 휴면 (.env.production 부재) | A2 배포 |
+| §7 Q7 (웹 UI) | **v1 비범위** — notices 텍스트로만 노출 | UI 표면 최소화, 조용한 실패 금지는 notices로 충족 | 원칙 4 |
