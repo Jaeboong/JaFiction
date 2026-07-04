@@ -33,8 +33,8 @@ For a detailed file-level map (task → entry point, route table, test locations
 
 ## Product Plane vs Harness Plane
 
-- Product plane: `packages/shared/**`, `packages/runner/**`, `packages/web/**`
-- Harness plane: `scripts/**`, `tools/**`, `docs/development/**`, `docs/plans/**`, `.github/**`, root workflow docs
+- Product plane: `packages/shared/**`, `packages/runner/**`, `packages/web/**`, `services/**`
+- Harness plane: `scripts/**`, `tools/**`, `docs/development/**`, `docs/plans/**`, `.github/**`, root workflow docs; `services/*/eval/**` is service-local harness code
 
 Keep changes in the intended plane. Do not hide workflow fixes inside product runtime code when a harness fix is the right answer.
 

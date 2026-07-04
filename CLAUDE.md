@@ -72,8 +72,8 @@ Jasojeon is a web UI + local runner rewrite of the original `forJob` VS Code ext
 
 | Plane   | Paths |
 |---------|-------|
-| Product | `packages/shared/**`, `packages/runner/**`, `packages/web/**` |
-| Harness | `scripts/**`, `tools/**`, `docs/development/**`, `docs/plans/**`, `.github/**` |
+| Product | `packages/shared/**`, `packages/runner/**`, `packages/web/**`, `services/**` |
+| Harness | `scripts/**`, `tools/**`, `docs/development/**`, `docs/plans/**`, `.github/**`; `services/*/eval/**` is service-local harness code |
 
 Do not embed harness fixes inside product runtime code, and vice versa.
 
