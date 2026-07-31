@@ -13,6 +13,7 @@
     "test": "./scripts/test-all.sh",
     "docs-check": "./scripts/docs-check.sh",
     "check": "./scripts/check.sh",
+    "eval:rubric": "./scripts/with-node.sh --import tsx scripts/eval-rubric.ts",
     "smoke:local": "./scripts/status-dev-stack.sh",
     "dev:runner": "./scripts/start-dev-runner.sh --foreground",
     "dev:web": "./scripts/start-dev-web.sh --foreground",
@@ -22,6 +23,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.17",
-    "typescript": "^5.9.3"
+    "tsx": "^4.19.4",
+    "typescript": "^5.9.3",
+    "zod": "^3.24.4"
   }
 }
