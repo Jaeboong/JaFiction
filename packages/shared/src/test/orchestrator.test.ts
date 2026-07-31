@@ -3536,7 +3536,33 @@ test("realtime mode tracks duplicate reviewer slots separately", async (t) => {
   assert.match(storedTurnsRaw, /"participantId": "reviewer-2"/);
 });
 
-test("realtime mode pauses at the configured section round limit when blocking issues remain", async (t) => {
+test("run rejects a rounds value below 1 instead of silently coercing it to 1", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const storage = await createStorage(workspaceRoot);
+  const project = await storage.createProject("Baemin");
+  const compiler = new ContextCompiler(storage);
+  const gateway = new FakeGateway(healthyStates(), () => "unused");
+
+  const orchestrator = new ReviewOrchestrator(storage, compiler, gateway);
+  await assert.rejects(
+    orchestrator.run({
+      projectSlug: project.slug,
+      question: "Why Baemin?",
+      draft: "배달 서비스가 좋아서 지원합니다.",
+      reviewMode: "deepFeedback",
+      coordinatorProvider: "claude",
+      reviewerProviders: ["codex"],
+      rounds: 0,
+      selectedDocumentIds: []
+    }),
+    /rounds" must be an integer of at least 1, received 0/
+  );
+  assert.equal(gateway.calls.length, 0);
+});
+
+test("realtime mode escalates a blocking reviewer round to awaiting-user-input and honors /done", async (t) => {
   const workspaceRoot = await createTempWorkspace();
   t.after(async () => cleanupTempWorkspace(workspaceRoot));
 

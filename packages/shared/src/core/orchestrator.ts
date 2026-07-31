@@ -412,7 +412,10 @@ export class ReviewOrchestrator {
       }
 
       const interactiveMode = Boolean(requestUserIntervention);
-      const autoCycleLimit = Math.max(1, request.rounds || 1);
+      if (!Number.isInteger(request.rounds) || request.rounds < 1) {
+        throw new Error(`Run request "rounds" must be an integer of at least 1, received ${request.rounds}.`);
+      }
+      const autoCycleLimit = request.rounds;
       const savePromptMetricsArtifact = async () => {
         const promptMetrics = turns
           .map((turn) => turn.promptMetrics)
