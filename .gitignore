@@ -39,3 +39,6 @@ nginx/
 client_secret*.json
 *.pem
 *.key
+
+# 로컬 테스트 산출물 (자소서 샘플·채점 결과 — 커밋하지 않음)
+docs/test_output/
