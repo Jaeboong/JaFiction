@@ -174,6 +174,18 @@ realtime 루프는 **매 라운드 종료 시 awaiting-user-input으로 park한�
 
 **즉 이 항목의 성격은 "비용 리스크"가 아니라 "사용자에게 거짓말하는 컨트롤"이다.**
 
+**처리 완료 (2026-07-31)** — 사용자 결정으로 **죽은 UI 컨트롤을 제거**했다(커밋 `672cb28`).
+section-transition 기계장치 복원은 하지 않는다: 개념상 realtime 전용 노브인데 realtime은 실사용되지 않으므로,
+안 쓰는 모드를 위해 큰 기능을 되살리는 것은 이 문서가 §4에서 진단한 실패 패턴 자체다.
+
+- 제거: `RunsPage.tsx`의 드롭다운·state·되읽기·요청 필드, 미사용이 된 `normalizeMaxRoundsPerSectionInput`,
+  `runs.css`의 `.runs-rounds-*` 클래스
+- **데이터 계약은 유지**: `RunRecordSchema.maxRoundsPerSection`(기존 저장 레코드 로드 보호), shared 정규화,
+  `orchestrator.ts`의 저장 경로. 요청 스키마(`hostedRpc.ts:227`)가 optional이라 필드 미전송 시
+  `normalizeMaxRoundsPerSection(undefined)`가 1로 정규화되어 동작 변화 없음
+- 함께 처리: `ReviewOrchestrator.run()`이 `rounds < 1`을 조용히 1로 강제변환하지 않고 명시적 throw (커밋 `e103836`),
+  이름이 거짓말하던 테스트를 실제 내용에 맞게 정정
+
 ### 3.3 리뷰어 3인은 하드코딩이다
 
 `participants.ts:62-94`는 항상 정확히 3명(evidence / fit / voice)을 반환한다.
