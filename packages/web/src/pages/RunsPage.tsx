@@ -483,7 +483,6 @@ function RunComposerPanel({
   const [draft, setDraft] = useState("");
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(-1);
   const [draftCache, setDraftCache] = useState<Record<number, string>>({});
-  const [maxRoundsPerSection, setMaxRoundsPerSection] = useState("1");
   const [isStartingRun, setIsStartingRun] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const draftTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -538,7 +537,6 @@ function RunComposerPanel({
     if (selectedRunItem) {
       setQuestion(selectedRunItem.run.record.question);
       setDraft(selectedRunItem.run.record.draft);
-      setMaxRoundsPerSection(String(selectedRunItem.run.record.maxRoundsPerSection ?? 1));
       return;
     }
 
@@ -547,14 +545,12 @@ function RunComposerPanel({
       : questionFallback;
     setQuestion(initialQuestion);
     setDraft(initialQuestionIndex >= 0 ? findEssayAnswerDraft(essayAnswerStates, initialQuestionIndex) : "");
-    setMaxRoundsPerSection("1");
   }, [
     essayQuestionsSignature,
     questionFallback,
     selectedProject.record.slug,
     selectedRunItem?.run.record.draft,
     selectedRunItem?.run.record.id,
-    selectedRunItem?.run.record.maxRoundsPerSection,
     selectedRunItem?.run.record.question
   ]);
 
@@ -624,7 +620,6 @@ function RunComposerPanel({
     coordinatorProvider: participantSelection.coordinatorProvider,
     reviewerProviders: participantSelection.reviewerProviders,
     rounds: 1,
-    maxRoundsPerSection: normalizeMaxRoundsPerSectionInput(maxRoundsPerSection),
     selectedDocumentIds: contextDocuments
       .filter((document) => document.pinnedByDefault)
       .map((document) => document.id)
@@ -781,20 +776,7 @@ function RunComposerPanel({
         </div>
 
         <div className="runs-field">
-          <div className="runs-field-label-row">
-            <label className="runs-field-label">역할 할당 (Role Assignment)</label>
-            <div className="runs-field-label runs-rounds-label">
-              최대
-              <CustomSelect
-                value={maxRoundsPerSection}
-                options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
-                onChange={setMaxRoundsPerSection}
-                className="runs-rounds-custom-select"
-                ariaLabel="최대 라운드 수"
-              />
-              라운드
-            </div>
-          </div>
+          <label className="runs-field-label">역할 할당 (Role Assignment)</label>
           <div className="runs-role-table" role="table" aria-label="실행 역할 배정 요약">
             <div className="runs-role-table-head" role="row">
               <span role="columnheader">
@@ -1120,15 +1102,6 @@ function RunControlPanel({
       </div>
     </section>
   );
-}
-
-function normalizeMaxRoundsPerSectionInput(raw: string): number {
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed)) {
-    return 1;
-  }
-
-  return Math.min(5, Math.max(1, Math.trunc(parsed)));
 }
 
 function getVisibleRunFeedMessageContent(message: RunChatMessage): string | null {
