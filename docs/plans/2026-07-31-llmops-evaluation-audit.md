@@ -155,10 +155,24 @@ fixture 총괄 (`completed_plans/2026-04-17-posting-parser-fixtures/report.md`):
 - 유일한 자동 상한 `autoCycleLimit`(`orchestrator.ts:415, 828`)은 `interactiveMode === false`일 때만 유효한데,
   프로덕션 유일 호출부(`runsHandlers.ts:412-438`)가 항상 `requestUserIntervention`을 전달하므로
   `interactiveMode`는 항상 true → **이 분기는 프로덕션에서 도달 불가능**하다.
-- 실사용에서 cycle/round 수는 사용자가 `/done`·`/stop`·`/abort`를 입력할 때까지 무제한.
+- 실사용에서 cycle/round 수는 사용자가 `/done`·`/stop`·`/abort`를 입력할 때까지 계속될 수 있다.
 
-**함의:** cycle당 7콜 × 무제한 라운드. 비용 상한이 코드가 아니라 사용자의 인내심으로 결정된다.
-평가 이전에 이것부터가 운영 리스크다.
+**⚠ 2026-07-31 정정 — "무제한 자동 소진"은 틀렸다.**
+
+초안은 이를 "비용 상한이 사용자 인내심으로 결정된다"로 썼다. 구현 확인 결과 **절반만 맞다**:
+realtime 루프는 **매 라운드 종료 시 awaiting-user-input으로 park한다** (`orchestrator.ts:1461-1470` clean 경로,
+`:1411` blocking 경로). 즉 **사용자 동의 없이 라운드가 전진하는 경로가 없다.**
+`orchestrator.test.ts:1894`(`realtime clean-pass round parks in awaiting-user-input and continues in the same run`)가
+이를 명문화된 설계로 검증한다. 자동 폭주 리스크는 존재하지 않는다.
+
+**남는 실제 결함은 다른 것이다 — 아무 일도 하지 않는 살아있는 UI 노브.**
+
+`maxRoundsPerSection`은 죽은 필드가 아니다. `packages/web/src/pages/RunsPage.tsx:786-795`의
+"최대 N 라운드" 셀렉트로 **사용자에게 노출**되고, `:627`로 전송되어 `orchestrator.ts:284,305`로 영속화되고,
+`RunsPage.tsx:541`에서 되읽혀 표시된다. 사용자는 값을 바꾸고 저장되는 것을 보지만 **런타임 효과는 0이다.**
+게다가 이 셀렉트는 모드로 게이팅되어 있지 않아, 개념상 realtime 전용인 노브가 deepFeedback 실행에도 노출된다.
+
+**즉 이 항목의 성격은 "비용 리스크"가 아니라 "사용자에게 거짓말하는 컨트롤"이다.**
 
 ### 3.3 리뷰어 3인은 하드코딩이다
 
@@ -201,9 +215,16 @@ fixture 총괄 (`completed_plans/2026-04-17-posting-parser-fixtures/report.md`):
 
 **실험에 직결되는 함정:** 교차 채널이 사이클 간에만 있으므로, **arm E를 1 사이클로 측정하면 설계의 핵심 기제가
 한 번도 발화하지 않은 채로 재게 된다.** 그 상태의 "파이프라인이 값어치를 못 한다"는 발견이 아니라 하네스 아티팩트다.
-`schemas.ts:261`의 `rounds: z.number().int().min(0)`은 **0을 통과시키고**,
-`orchestrator.ts:415` `Math.max(1, request.rounds || 1)`이 이를 **조용히 1로 바꾼다**(에러·경고 없음).
-→ 사이클 수를 실험 변수로 명시·고정·보고하고, **arm E는 ≥2 사이클**이어야 한다.
+**⚠ 정정**: 초안은 `schemas.ts:261 rounds: z.number().int().min(0)`이 요청값 0을 통과시킨다고 썼으나
+**스키마를 잘못 지목했다.** 그 필드는 `RunRecordSchema`(`:247~`) 소속의 **완료 라운드 카운터**이고,
+`orchestrator.ts:305`가 run 생성 시 항상 `rounds: 0`으로 쓴다 — `min(0)`이 맞다.
+`orchestrator.ts:415`가 읽는 `request.rounds`는 `types.ts:451`의 plain TS interface 필드로 이 스키마와 무관하며,
+실제 요청 경계인 `hostedRpc.ts:226`·`webviewProtocol.ts:219`는 **이미 `min(1)`을 강제**한다.
+따라서 살아있는 버그가 아니라 공개 API(`ReviewOrchestrator.run()`)의 계약 갭이며,
+`orchestrator.ts:415-418`에서 조용한 강제변환 대신 명시적 throw로 방어했다(커밋 `e103836`).
+
+→ 그럼에도 **사이클 수를 실험 변수로 명시·고정·보고**하고 **arm E는 ≥2 사이클**이어야 한다는 결론은 유지된다.
+하네스가 `rounds`를 무엇으로 넘기든 그 값이 결과 해석을 지배하기 때문이다.
 
 ### 3.6.1 실제 결함 — 사이클 1의 계약 위반
 
