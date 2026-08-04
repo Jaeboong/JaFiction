@@ -412,7 +412,10 @@ export class ReviewOrchestrator {
       }
 
       const interactiveMode = Boolean(requestUserIntervention);
-      const autoCycleLimit = Math.max(1, request.rounds || 1);
+      if (!Number.isInteger(request.rounds) || request.rounds < 1) {
+        throw new Error(`Run request "rounds" must be an integer of at least 1, received ${request.rounds}.`);
+      }
+      const autoCycleLimit = request.rounds;
       const savePromptMetricsArtifact = async () => {
         const promptMetrics = turns
           .map((turn) => turn.promptMetrics)
@@ -620,6 +623,7 @@ export class ReviewOrchestrator {
         revisedDraft: request.draft
       };
       let finalizedRealtimeDraft = false;
+      let realtimeUserEnded = false;
       let completedRounds = 0;
 
       if (request.reviewMode === "deepFeedback") {
@@ -963,6 +967,7 @@ export class ReviewOrchestrator {
               round: awaitingRound,
               message: "Realtime session marked complete without a final draft."
             });
+            realtimeUserEnded = true;
             return "done";
           }
 
@@ -1406,10 +1411,14 @@ export class ReviewOrchestrator {
                 escalationQuestion = buildRealtimeBlockingFallbackQuestion(reviewerPackets);
               }
               await persistTurnsAndChat();
-              await handleRealtimeAwaitingUserInput(round, escalationQuestion, {
+              const outcome = await handleRealtimeAwaitingUserInput(round, escalationQuestion, {
                 markAwaitingStatus: true
               });
-              break;
+              if (outcome === "done") {
+                break;
+              }
+              round += 1;
+              continue roundLoop;
             }
 
             const finalContextMarkdown = await buildCompiledContextMarkdown(currentDraft, round, "round", "full");
@@ -1449,6 +1458,19 @@ export class ReviewOrchestrator {
               finalChecks: finalizerOutput.finalChecks
             };
             await persistTurnsAndChat();
+            // In interactive mode, park after a clean-pass round so the user can continue or end the session.
+            if (interactiveMode) {
+              const outcome = await handleRealtimeAwaitingUserInput(
+                round,
+                "이번 라운드를 마쳤습니다. 이어서 다듬을 방향을 알려주시거나 /done 으로 마칠 수 있어요.",
+                { markAwaitingStatus: true }
+              );
+              if (outcome === "done") {
+                break;
+              }
+              round += 1;
+              continue roundLoop;
+            }
             break;
           } catch (error) {
             if (isRunInterventionAbortError(error)) {
@@ -1481,7 +1503,7 @@ export class ReviewOrchestrator {
         await saveDiscussionLedgerArtifact();
       }
 
-      if (run.status === "awaiting-user-input") {
+      if (run.status === "awaiting-user-input" && !realtimeUserEnded) {
         return { run, turns, artifacts };
       }
 

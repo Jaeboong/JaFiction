@@ -63,6 +63,8 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `runRepository.ts` | Run 레코드 CRUD |
 | `manifestStore.ts` | 프로젝트 매니페스트 저장 및 읽기 |
 | `storagePaths.ts` | 저장소 경로 상수 |
+| `syncTypes.ts` | 서버 동기화 wire 타입과 Zod 스키마 |
+| `syncMerge.ts` | 서버 동기화 세트의 결정적 합집합/충돌 병합 |
 | `roleAssignments.ts` | 에세이 역할(작성자/검토자 등) 배정 로직 |
 | `essayQuestionWorkflow.ts` | 자소서 문항 상태 관리 워크플로 |
 | `viewModels.ts` | UI로 노출되는 뷰모델 타입 |
@@ -110,6 +112,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `profileRouter.ts` | 사용자 프로파일 | 프로파일 저장/불러오기 |
 | `insightsRouter.ts` | 인사이트 | 인사이트 조회 및 생성 트리거 |
 | `openDartRouter.ts` | OpenDart | 공시 데이터 프록시 |
+| `syncHandlers.ts` | 서버 동기화 | 호스티드 백엔드 sync 호출, 로컬 문서/프로젝트 적용, 경험 문서 참조 변환 |
 
 ---
 
@@ -137,9 +140,13 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `pages/RunsPage.tsx` | Run 목록 및 실행 페이지 |
 | `pages/ProjectsPage.tsx` | 프로젝트 목록 페이지 |
 | `pages/ProvidersPage.tsx` | 프로바이더 설정 페이지 |
-| `pages/OverviewPage.tsx` | 대시보드 개요 페이지 |
+| `pages/OverviewPage.tsx` | "내 경험" 워크스페이스 경험 문서 관리 페이지 |
+| `pages/SettingsPage.tsx` | 러너 연결, 서버 연동, OpenDart, 평가 기준, 에이전트 역할 설정 페이지 |
+| `pages/SettingsPage.test.tsx` | 설정 페이지 서버 연동 섹션 렌더링 회귀 테스트 |
 | `components/AgentDefaultsSummary.tsx` | 에이전트 기본값 요약 컴포넌트 |
 | `components/AgentEffortSection.tsx` | 에이전트 노력 수준 섹션 |
+| `components/ConfirmDeleteModal.tsx` | 프로젝트 삭제와 설정 확인에 쓰는 재사용 확인 모달 |
+| `components/ConfirmDeleteModal.test.tsx` | 확인 모달의 단순 확인 모드 렌더링 회귀 테스트 |
 | `components/ProjectInsightModal.tsx` | 프로젝트 인사이트 모달 |
 | `components/ReviewerCard.tsx` | reviewer 응답을 구조화된 카드로 파싱·렌더링 |
 | `formatters.ts` | 날짜·수치 포매터 |
@@ -159,6 +166,7 @@ For architectural rationale, see `ARCHITECTURE.md`. For workflow rules, see `OPE
 | `providerOptions.test.ts` | providerOptions.ts |
 | `contextCompiler.test.ts` | contextCompiler.ts |
 | `storage.test.ts` | storage.ts |
+| `syncMerge.test.ts` | syncMerge.ts |
 | `runSessionManager.test.ts` | runSessionManager.ts |
 | `roleAssignments.test.ts` | roleAssignments.ts |
 | `sidebarStateStore.test.ts` | sidebarStateStore.ts |
@@ -183,6 +191,7 @@ Runner 테스트:
 | `packages/runner/src/test/sessionAuth.test.ts` | trusted origin allowlist, `/api/session`, cookie-backed API/WS auth |
 | `packages/runner/src/test/secretStore.test.ts` | machine-local key init, legacy secret migration, copied blob failure |
 | `packages/runner/src/test/runsRouter.test.ts` | addressed `runId` 409 regressions for intervention/abort |
+| `packages/runner/src/test/syncRefsTranslate.test.ts` | server sync 의 `experienceRefs.profileDocumentIds` 로컬 id ↔ sha256 변환 |
 
 ---
 

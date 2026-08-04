@@ -13,11 +13,13 @@ interface StateStoreOptions {
   extensionVersion?: string;
 }
 
+const defaultPreferences: SidebarState["preferences"] = { serverSyncEnabled: false };
+
 export class SidebarStateStore {
   private providers: ProviderRuntimeState[] = [];
   private profileDocuments = [] as SidebarState["profileDocuments"];
   private projects: ProjectViewModel[] = [];
-  private preferences: SidebarState["preferences"] = {};
+  private preferences: SidebarState["preferences"] = defaultPreferences;
   private agentDefaults: SidebarState["agentDefaults"] = {};
   private openDartConfigured = false;
   private openDartConnectionStatus: ProviderAuthStatus = "untested";
@@ -84,7 +86,7 @@ export class SidebarStateStore {
   }
 
   async refreshPreferences(): Promise<void> {
-    this.preferences = this.options.storage ? await this.options.storage.getPreferences() : {};
+    this.preferences = this.options.storage ? await this.options.storage.getPreferences() : defaultPreferences;
   }
 
   async refreshAgentDefaults(): Promise<void> {

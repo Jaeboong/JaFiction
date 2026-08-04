@@ -3,7 +3,8 @@ import type {
   ProjectRecord,
   ProviderId,
   ProviderRuntimeState,
-  SidebarState
+  SidebarState,
+  SyncNowResult
 } from "@jasojeon/shared";
 import { startTransition, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { RunnerClient, BackendClient, RunnerBootstrapError, type RunnerBootstrapErrorReason } from "./api/client";
@@ -52,7 +53,7 @@ interface TabIndicatorStyle {
 }
 
 const tabs: Array<{ id: AppTab; label: string }> = [
-  { id: "overview", label: "개요" },
+  { id: "overview", label: "내 경험" },
   { id: "providers", label: "프로바이더" },
   { id: "projects", label: "지원서" },
   { id: "runs", label: "실행" },
@@ -523,9 +524,11 @@ export function App() {
         <section className="app-view">
           {selectedTab === "overview" ? (
             <OverviewPage
-              hasHealthyProvider={state.providers.some((p) => p.authStatus === "healthy")}
-              hasProject={state.projects.length > 0}
-              onFinish={(target) => setSelectedTab(target === "providers" ? "providers" : "projects")}
+              client={client}
+              profileDocuments={state.profileDocuments}
+              onProfileDocumentsChanged={() => {
+                void refreshProviderState();
+              }}
             />
           ) : null}
 
@@ -536,11 +539,7 @@ export function App() {
               storageRoot={storageRoot}
               runnerBaseUrlDraft={runnerBaseUrlDraft}
               lastUpdatedAt={lastUpdatedAt}
-              client={client}
               onSelectSection={setSelectedSettingsSection}
-              onProfileDocumentsChanged={() => {
-                void refreshProviderState();
-              }}
               onRunnerBaseUrlDraftChange={setRunnerBaseUrlDraft}
               onApplyRunnerBaseUrl={() => setRunnerBaseUrl(runnerBaseUrlDraft)}
               onSaveAgentDefaults={async (agentDefaults) => {
@@ -549,6 +548,53 @@ export function App() {
                   success: { tone: "success", message: "에이전트 배정을 저장했습니다." },
                   failure: (error) => ({ tone: "error", message: "에이전트 배정 저장에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.saveAgentDefaults(agentDefaults).then(() => undefined));
+              }}
+              onSaveServerSyncEnabled={async (serverSyncEnabled) => {
+                const ok = await runAction({
+                  pending: { tone: "pending", message: "서버 연동 설정을 저장중입니다..." },
+                  success: { tone: "success", message: "서버 연동 설정을 저장했습니다." },
+                  failure: (error) => ({ tone: "error", message: "서버 연동 설정 저장에 실패했습니다.", detail: getErrorMessage(error) })
+                }, async () => {
+                  await client.saveAgentDefaults(state.agentDefaults, { serverSyncEnabled });
+                  await refreshProviderState();
+                  return true;
+                });
+                if (!ok) {
+                  throw new Error("서버 연동 설정 저장 실패");
+                }
+              }}
+              onSyncNow={async () => {
+                const result = await runAction<SyncNowResult>({
+                  pending: { tone: "pending", message: "서버 동기화 중입니다..." },
+                  success: (syncResult) => ({
+                    tone: "success",
+                    message: "서버 동기화를 완료했습니다.",
+                    detail: `${syncResult.syncedDocuments}개 문서 · ${syncResult.syncedProjects}개 지원서 동기화됨`
+                  }),
+                  failure: (error) => ({ tone: "error", message: "서버 동기화에 실패했습니다.", detail: getErrorMessage(error) })
+                }, async () => {
+                  const syncResult = await client.syncNow();
+                  await refreshProviderState();
+                  return syncResult;
+                });
+                if (!result) {
+                  throw new Error("서버 동기화 실패");
+                }
+                return result;
+              }}
+              onSyncDisable={async () => {
+                const ok = await runAction({
+                  pending: { tone: "pending", message: "서버 연동 해제 중입니다..." },
+                  success: { tone: "success", message: "서버 연동을 해제했습니다." },
+                  failure: (error) => ({ tone: "error", message: "서버 연동 해제에 실패했습니다.", detail: getErrorMessage(error) })
+                }, async () => {
+                  await client.syncDisable();
+                  await refreshProviderState();
+                  return true;
+                });
+                if (!ok) {
+                  throw new Error("서버 연동 해제 실패");
+                }
               }}
             />
           ) : null}
@@ -695,6 +741,7 @@ export function App() {
           {selectedTab === "projects" ? (
             <ProjectsPage
               projects={state.projects}
+              profileDocuments={state.profileDocuments}
               selectedProjectSlug={selectedProject?.record.slug}
               onSelectProject={setSelectedProjectSlug}
               onAnalyzePosting={async (payload) => client.analyzeProjectPosting(payload)}
@@ -760,6 +807,9 @@ export function App() {
                   success: { tone: "success", message: "문서를 삭제했습니다." },
                   failure: (error) => ({ tone: "error", message: "문서 삭제에 실패했습니다.", detail: getErrorMessage(error) })
                 }, () => client.deleteProjectDocument(projectSlug, documentId));
+              }}
+              onToggleProjectDocumentPinned={async (projectSlug, documentId, pinned) => {
+                await client.setProjectDocumentPinned(projectSlug, documentId, pinned);
               }}
               onUpdateProject={async (projectSlug, payload) => {
                 await runAction({

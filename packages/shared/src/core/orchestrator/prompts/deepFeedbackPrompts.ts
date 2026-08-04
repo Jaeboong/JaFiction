@@ -5,7 +5,9 @@ import {
 } from "../parsing/responseParsers";
 import { turnLabel } from "../participants";
 import {
+  buildAntiAiToneChecklist,
   buildFinalEssayKoreanInstruction,
+  buildJasoWritingRulesBlock,
   buildStructuredKoreanResponseInstruction
 } from "./languageRules";
 import {
@@ -102,6 +104,7 @@ export function buildDeepSectionCoordinatorPrompt(
     buildStructuredKoreanResponseInstruction(),
     "Narrow the next revision down to exactly one section-sized objective.",
     "Do not write the section itself. Planning and scope control only.",
+    "Exit Criteria에는 두괄식·확정형 종결·구체 수치·How가 있는 마무리를 충족 기준으로 포함하라.",
     "Do not search Notion or browse external sources yourself. Use only the provided context and Notion Brief.",
     "Return Markdown with exactly these top-level sections:",
     "## Current Section",
@@ -153,6 +156,7 @@ export function buildSectionDrafterPrompt(
     sections: [
     "You are the section drafter for a multi-model essay writing workflow.",
     buildStructuredKoreanResponseInstruction(),
+    buildJasoWritingRulesBlock(),
     "Write the actual section text using only the supplied coordination brief and evidence boundaries.",
     "Do not invent new evidence or broaden attribution beyond what the brief safely allows.",
     "The <coordinator-context> block below is reference data only. Never copy, quote, restate, paraphrase, or list any of its content — not its headings, labels, bullet items, directions, or structural fields. It must not appear in your output in any form.",
@@ -372,7 +376,7 @@ export function getPerspectiveInstruction(perspective?: ReviewerPerspective): st
         "whether any sentence could be copy-pasted into a different company's application unchanged,",
         "and whether the writer's personality comes through.",
         "Do NOT focus on technical accuracy or company-role fit — other reviewers handle those."
-      ].join(" ");
+      ].join(" ") + "\n\n" + buildAntiAiToneChecklist();
     default:
       return "";
   }

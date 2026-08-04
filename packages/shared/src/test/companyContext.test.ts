@@ -18,6 +18,7 @@ function createProject(overrides: Partial<ProjectRecord> = {}): ProjectRecord {
     essayQuestions: ["지원 동기를 작성해주세요."],
     rubric: "- fit",
     pinnedDocumentIds: [],
+    experienceRefs: { profileDocumentIds: [], githubRepos: [], notionDirective: null },
     postingReviewReasons: [],
     jobPostingFieldConfidence: {},
     createdAt: "2026-04-15T00:00:00.000Z",

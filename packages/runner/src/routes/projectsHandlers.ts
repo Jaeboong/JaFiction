@@ -17,6 +17,8 @@ import {
   DeleteProjectResult,
   SaveDocumentPayload,
   SaveDocumentResult,
+  SetDocumentPinnedPayload,
+  SetDocumentPinnedResult,
   SaveEssayDraftPayload,
   SaveEssayDraftResult,
   AnalyzePostingPayload,
@@ -62,12 +64,13 @@ export async function saveProject(
   await ctx.runBusy("프로젝트 정보를 업데이트하는 중...", async () => {
     const current = await ctx.storage().getProject(slug);
     await ctx.storage().updateProjectInfo(slug, normalizeProjectPatch(current.companyName, patch));
-    if (patch.postingReviewReasons !== undefined || patch.jobPostingFieldConfidence !== undefined) {
+    if (patch.postingReviewReasons !== undefined || patch.jobPostingFieldConfidence !== undefined || patch.experienceRefs !== undefined) {
       const refreshed = await ctx.storage().getProject(slug);
       await ctx.storage().updateProject({
         ...refreshed,
         postingReviewReasons: patch.postingReviewReasons ?? refreshed.postingReviewReasons,
-        jobPostingFieldConfidence: patch.jobPostingFieldConfidence ?? refreshed.jobPostingFieldConfidence
+        jobPostingFieldConfidence: patch.jobPostingFieldConfidence ?? refreshed.jobPostingFieldConfidence,
+        experienceRefs: patch.experienceRefs ?? refreshed.experienceRefs
       });
     }
     await ctx.stateStore.refreshProjects(slug);
@@ -102,6 +105,20 @@ export async function deleteDocument(
     await ctx.stateStore.refreshProjects(slug);
   });
   return { ok: true };
+}
+
+export async function setDocumentPinned(
+  ctx: RunnerContext,
+  payload: SetDocumentPinnedPayload
+): Promise<SetDocumentPinnedResult> {
+  const { slug, documentId, pinned } = payload;
+  await ctx.runBusy("실행 컨텍스트 포함 여부를 업데이트하는 중...", async () => {
+    await ctx.storage().setProjectDocumentPinned(slug, documentId, pinned);
+    await ctx.stateStore.refreshProjects(slug);
+  });
+  const document = await ctx.storage().getProjectDocument(slug, documentId);
+  await ctx.pushState();
+  return { document };
 }
 
 // ---------------------------------------------------------------------------

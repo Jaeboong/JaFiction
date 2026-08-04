@@ -1860,16 +1860,20 @@ test("realtime mode finalizes after the first PASS-only reviewer round", async (
   });
 
   const orchestrator = new ReviewOrchestrator(storage, compiler, gateway);
-  const result = await orchestrator.run({
-    projectSlug: project.slug,
-    question: "Why Kurly?",
-    draft: "사용자 문제를 해결하는 서비스가 좋아요.",
-    reviewMode: "realtime",
-    coordinatorProvider: "claude",
-    reviewerProviders: ["codex", "gemini"],
-    rounds: 1,
-    selectedDocumentIds: []
-  });
+  const result = await orchestrator.run(
+    {
+      projectSlug: project.slug,
+      question: "Why Kurly?",
+      draft: "사용자 문제를 해결하는 서비스가 좋아요.",
+      reviewMode: "realtime",
+      coordinatorProvider: "claude",
+      reviewerProviders: ["codex", "gemini"],
+      rounds: 1,
+      selectedDocumentIds: []
+    },
+    undefined,
+    async () => "/done"
+  );
 
   assert.equal(result.run.status, "completed");
   assert.equal(result.run.rounds, 1);
@@ -1885,6 +1889,115 @@ test("realtime mode finalizes after the first PASS-only reviewer round", async (
   const reviewerPrompt = gateway.calls.find((call) => call.providerId === "codex");
   assert.ok(reviewerPrompt);
   assert.match(reviewerPrompt.prompt, /Status: PASS/);
+});
+
+test("realtime clean-pass round parks in awaiting-user-input and continues in the same run", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const storage = await createStorage(workspaceRoot);
+  const project = await storage.createProject("Kakao");
+  await storage.saveProfileTextDocument("Career", "Built search and data platforms", true);
+
+  const compiler = new ContextCompiler(storage);
+  const gateway = new FakeGateway(healthyStates(), (providerId, prompt) => {
+    if (/closing a realtime multi-model essay review session/i.test(prompt)) {
+      return "카카오 최종 초안";
+    }
+    if (providerId === "claude") {
+      return buildRealtimeLedgerResponse({
+        currentFocus: "데이터 플랫폼 경험을 먼저 선명하게 정리합니다.",
+        targetSection: "도입 문단",
+        miniDraft: "검색 품질 개선 성과를 먼저 꺼내고 카카오의 데이터 중심 문화와 이어줍니다.",
+        acceptedDecisions: ["성과 수치를 초반에 배치한다"],
+        openChallenges: []
+      });
+    }
+    return [
+      "Mini Draft: 방향은 좋습니다.",
+      "Challenge: 남은 쟁점은 없습니다.",
+      "Cross-feedback: 첫 라운드라 교차 피드백은 없습니다.",
+      "Status: APPROVE"
+    ].join("\n");
+  });
+
+  const orchestrator = new ReviewOrchestrator(storage, compiler, gateway);
+  const observedStatuses: string[] = [];
+  let callCount = 0;
+  const result = await orchestrator.run(
+    {
+      projectSlug: project.slug,
+      question: "Why Kakao?",
+      draft: "데이터가 좋아서 지원합니다.",
+      reviewMode: "realtime",
+      coordinatorProvider: "claude",
+      reviewerProviders: ["codex", "gemini"],
+      rounds: 1,
+      selectedDocumentIds: []
+    },
+    undefined,
+    async ({ projectSlug, runId }) => {
+      callCount += 1;
+      observedStatuses.push((await storage.getRun(projectSlug, runId)).status);
+      return callCount === 1 ? "검색 플랫폼 관점을 더 강조해줘" : "/done";
+    }
+  );
+
+  assert.equal(observedStatuses[0], "awaiting-user-input");
+  assert.ok(gateway.calls.some((call) => /realtime-round-1-finalizer-final/.test(call.messageScope ?? "")));
+  assert.ok(callCount >= 2);
+  assert.equal(result.run.status, "completed");
+});
+
+test("realtime clean-pass round with /done on first awaiting prompt completes the run", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const storage = await createStorage(workspaceRoot);
+  const project = await storage.createProject("Naver");
+  await storage.saveProfileTextDocument("Career", "Built search infrastructure", true);
+
+  const compiler = new ContextCompiler(storage);
+  const gateway = new FakeGateway(healthyStates(), (providerId, prompt) => {
+    if (/closing a realtime multi-model essay review session/i.test(prompt)) {
+      return "네이버 최종 초안";
+    }
+    if (providerId === "claude") {
+      return buildRealtimeLedgerResponse({
+        currentFocus: "검색 인프라 경험을 먼저 선명하게 정리합니다.",
+        targetSection: "도입 문단",
+        miniDraft: "검색 인프라 구축 성과를 먼저 꺼내고 네이버와 이어줍니다.",
+        acceptedDecisions: ["성과 수치를 초반에 배치한다"],
+        openChallenges: []
+      });
+    }
+    return [
+      "Mini Draft: 방향은 좋습니다.",
+      "Challenge: 남은 쟁점은 없습니다.",
+      "Cross-feedback: 첫 라운드라 교차 피드백은 없습니다.",
+      "Status: APPROVE"
+    ].join("\n");
+  });
+
+  const orchestrator = new ReviewOrchestrator(storage, compiler, gateway);
+  const result = await orchestrator.run(
+    {
+      projectSlug: project.slug,
+      question: "Why Naver?",
+      draft: "검색이 좋아서 지원합니다.",
+      reviewMode: "realtime",
+      coordinatorProvider: "claude",
+      reviewerProviders: ["codex", "gemini"],
+      rounds: 1,
+      selectedDocumentIds: []
+    },
+    undefined,
+    async () => "/done"
+  );
+
+  assert.equal(result.run.status, "completed");
+  assert.equal(result.artifacts.revisedDraft, "네이버 최종 초안");
+  assert.equal(await storage.readOptionalRunArtifact(project.slug, result.run.id, "revised-draft.md"), "네이버 최종 초안");
 });
 
 test("realtime mode uses the finalizer role assignment and override settings for the closing draft", async (t) => {
@@ -3121,7 +3234,7 @@ test("realtime BLOCK runs coordinator synthesis and escalates to awaiting-user-i
     gateway.calls.filter((call) => call.participantId === "finalizer").length,
     0
   );
-  assert.equal(result.run.status, "awaiting-user-input");
+  assert.equal(result.run.status, "completed");
   assert.ok(events.some((event) => event.type === "awaiting-user-input" && /어느 축을 먼저 강조할지/.test(event.message ?? "")));
   assert.ok(observedStatuses.includes("awaiting-user-input"));
 });
@@ -3202,7 +3315,7 @@ test("realtime BLOCK falls back to reviewer blocking reasons when coordinator sy
     async () => "/done"
   );
 
-  assert.equal(result.run.status, "awaiting-user-input");
+  assert.equal(result.run.status, "completed");
   assert.equal(
     gateway.calls.filter((call) => call.participantId === "finalizer").length,
     0
@@ -3423,7 +3536,33 @@ test("realtime mode tracks duplicate reviewer slots separately", async (t) => {
   assert.match(storedTurnsRaw, /"participantId": "reviewer-2"/);
 });
 
-test("realtime mode pauses at the configured section round limit when blocking issues remain", async (t) => {
+test("run rejects a rounds value below 1 instead of silently coercing it to 1", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const storage = await createStorage(workspaceRoot);
+  const project = await storage.createProject("Baemin");
+  const compiler = new ContextCompiler(storage);
+  const gateway = new FakeGateway(healthyStates(), () => "unused");
+
+  const orchestrator = new ReviewOrchestrator(storage, compiler, gateway);
+  await assert.rejects(
+    orchestrator.run({
+      projectSlug: project.slug,
+      question: "Why Baemin?",
+      draft: "배달 서비스가 좋아서 지원합니다.",
+      reviewMode: "deepFeedback",
+      coordinatorProvider: "claude",
+      reviewerProviders: ["codex"],
+      rounds: 0,
+      selectedDocumentIds: []
+    }),
+    /rounds" must be an integer of at least 1, received 0/
+  );
+  assert.equal(gateway.calls.length, 0);
+});
+
+test("realtime mode escalates a blocking reviewer round to awaiting-user-input and honors /done", async (t) => {
   const workspaceRoot = await createTempWorkspace();
   t.after(async () => cleanupTempWorkspace(workspaceRoot));
 
@@ -3474,7 +3613,7 @@ test("realtime mode pauses at the configured section round limit when blocking i
     async () => "/done"
   );
 
-  assert.equal(result.run.status, "awaiting-user-input");
+  assert.equal(result.run.status, "completed");
   assert.equal(result.run.rounds, 1);
   assert.equal(await storage.readOptionalRunArtifact(project.slug, result.run.id, "summary.md"), undefined);
   assert.equal(await storage.readOptionalRunArtifact(project.slug, result.run.id, "improvement-plan.md"), undefined);

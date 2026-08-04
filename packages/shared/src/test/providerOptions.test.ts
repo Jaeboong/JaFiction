@@ -7,7 +7,8 @@ import {
   customModelOptionValue,
   getProviderCapabilities,
   isCustomModelSelection,
-  loadProviderCapabilities
+  loadProviderCapabilities,
+  parseCodexDiscoveredModelOptions
 } from "../core/providerOptions";
 import { cleanupTempWorkspace, createTempWorkspace } from "./helpers";
 
@@ -27,6 +28,13 @@ test("codex args include model and effort config", () => {
     "model_reasoning_effort=\"high\"",
     "Reply with OK."
   ]);
+});
+
+test("codex args use stdin when the prompt argument is empty", () => {
+  assert.deepEqual(
+    buildProviderArgs("codex", "", false, {}),
+    ["exec", "--skip-git-repo-check", "--json", "-"]
+  );
 });
 
 test("claude args include model and effort flags", () => {
@@ -103,40 +111,89 @@ test("claude model discovery prefers explicit versions and keeps alias options a
   assert.equal(isCustomModelSelection("claude", "claude-sonnet-4-6", capabilities), false);
 });
 
-test("gemini model discovery reads installed config values and filters internal-only models", async (t) => {
-  const workspaceRoot = await createTempWorkspace();
-  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+test("parseCodexDiscoveredModelOptions returns empty array for undefined source", () => {
+  assert.deepEqual(parseCodexDiscoveredModelOptions(undefined), []);
+});
 
-  const commandPath = path.join(workspaceRoot, "bin", "gemini");
-  const modelsPath = path.join(
-    workspaceRoot,
-    "node_modules",
-    "@google",
-    "gemini-cli-core",
-    "dist",
-    "src",
-    "config",
-    "models.js"
-  );
-  await fs.mkdir(path.dirname(commandPath), { recursive: true });
-  await fs.mkdir(path.dirname(modelsPath), { recursive: true });
-  await fs.writeFile(commandPath, "", "utf8");
-  await fs.writeFile(
-    modelsPath,
-    [
-      "export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';",
-      "export const PREVIEW_GEMINI_FLASH_MODEL = 'gemini-3-flash-preview';",
-      "export const PREVIEW_GEMINI_CUSTOM_MODEL = 'gemini-3.1-pro-preview-customtools';",
-      "export const GEMINI_MODEL_ALIAS_AUTO = 'auto';"
-    ].join("\n"),
-    "utf8"
-  );
+test("parseCodexDiscoveredModelOptions returns empty array for invalid JSON", () => {
+  assert.deepEqual(parseCodexDiscoveredModelOptions("not valid json"), []);
+});
 
-  const capabilities = await loadProviderCapabilities("gemini", commandPath);
+test("parseCodexDiscoveredModelOptions returns empty array when models field is missing", () => {
+  assert.deepEqual(parseCodexDiscoveredModelOptions(JSON.stringify({ fetched_at: "2026-01-01" })), []);
+});
+
+test("parseCodexDiscoveredModelOptions returns empty array when models is not an array", () => {
+  assert.deepEqual(parseCodexDiscoveredModelOptions(JSON.stringify({ models: "oops" })), []);
+});
+
+test("parseCodexDiscoveredModelOptions extracts only visibility:list entries", () => {
+  const source = JSON.stringify({
+    models: [
+      { slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list" },
+      { slug: "codex-auto-review", display_name: "Codex Auto Review", visibility: "hide" },
+      { slug: "gpt-5.4", display_name: "GPT-5.4", visibility: "list" }
+    ]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.deepEqual(
+    options.map((o) => o.value),
+    ["gpt-5.5", "gpt-5.4"]
+  );
+});
+
+test("parseCodexDiscoveredModelOptions uses slug as label, ignoring inconsistent display_name", () => {
+  const source = JSON.stringify({
+    models: [{ slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list" }]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.equal(options[0]?.label, "gpt-5.5");
+  assert.equal(options[0]?.value, "gpt-5.5");
+});
+
+test("parseCodexDiscoveredModelOptions falls back to slug when display_name is absent", () => {
+  const source = JSON.stringify({
+    models: [{ slug: "gpt-5.4", visibility: "list" }]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.equal(options[0]?.label, "gpt-5.4");
+});
+
+test("parseCodexDiscoveredModelOptions falls back to slug when display_name is empty string", () => {
+  const source = JSON.stringify({
+    models: [{ slug: "gpt-5.4", display_name: "", visibility: "list" }]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.equal(options[0]?.label, "gpt-5.4");
+});
+
+test("parseCodexDiscoveredModelOptions deduplicates entries with the same slug", () => {
+  const source = JSON.stringify({
+    models: [
+      { slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list" },
+      { slug: "gpt-5.5", display_name: "GPT-5.5 duplicate", visibility: "list" }
+    ]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.equal(options.length, 1);
+  assert.equal(options[0]?.value, "gpt-5.5");
+});
+
+test("parseCodexDiscoveredModelOptions skips non-object entries in models array", () => {
+  const source = JSON.stringify({
+    models: [null, "string-entry", 42, { slug: "gpt-5.4", visibility: "list" }]
+  });
+  const options = parseCodexDiscoveredModelOptions(source);
+  assert.deepEqual(
+    options.map((o) => o.value),
+    ["gpt-5.4"]
+  );
+});
+
+test("gemini exposes stable model aliases without dynamic discovery", () => {
+  const capabilities = getProviderCapabilities("gemini");
   const values = capabilities.modelOptions.map((option) => option.value);
 
-  assert.ok(values.includes("auto"));
-  assert.ok(values.includes("gemini-2.5-pro"));
-  assert.ok(values.includes("gemini-3-flash-preview"));
-  assert.equal(values.includes("gemini-3.1-pro-preview-customtools"), false);
+  assert.deepEqual(values, ["", "auto", "pro", "flash", "flash-lite", customModelOptionValue]);
+  assert.equal(values.includes("gemini-2.5-pro"), false);
 });

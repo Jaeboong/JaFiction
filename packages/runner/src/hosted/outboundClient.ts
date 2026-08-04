@@ -85,6 +85,12 @@ export interface OutboundClientOptions {
     intervalMs?: number;
     timeoutMs?: number;
   };
+  /**
+   * Called when the backend rejects auth with `invalid_or_revoked_token`.
+   * The controller should clear the stored token and re-pair.
+   * Other auth_err reasons go through the normal authFailureCount path.
+   */
+  onAuthFailure?: (reason: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -244,8 +250,18 @@ export function startHostedOutboundClient(options: OutboundClientOptions): Outbo
           log.info("[outboundClient] auth OK");
           startHeartbeat(socket);
         } else if (f["type"] === "auth_err") {
-          authFailureCount += 1;
           const reason = typeof f["reason"] === "string" ? f["reason"] : "unknown";
+          if (reason === "invalid_or_revoked_token") {
+            log.error("[outboundClient] device token invalid or revoked — escalating to controller", { reason });
+            closed = true;
+            connected = false;
+            clearHeartbeat();
+            socket.close();
+            resolveClose?.();
+            options.onAuthFailure?.(reason);
+            return;
+          }
+          authFailureCount += 1;
           log.error("[outboundClient] auth failed", { reason, authFailureCount, maxAuthFailures });
           socket.close();
           if (authFailureCount >= maxAuthFailures) {

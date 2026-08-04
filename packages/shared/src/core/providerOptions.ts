@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import * as fs from "node:fs/promises";
+import * as os from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
 import { ProviderCapabilities, ProviderId, ProviderSettingOption } from "./types";
@@ -13,14 +14,10 @@ const execFileAsync = promisify(execFile);
 
 const providerCapabilitiesMap: Record<ProviderId, ProviderCapabilities> = {
   codex: {
-    modelOptions: [
-      defaultModelOption,
-      { value: "codex-mini-latest", label: "codex-mini-latest" },
-      { value: "gpt-5.4", label: "gpt-5.4" },
-      { value: "gpt-5.4-mini", label: "gpt-5.4-mini" },
-      { value: "gpt-5.3-codex", label: "gpt-5.3-codex" },
-      customModelOption
-    ],
+    // 모델 목록은 ~/.codex/models_cache.json 동적 탐색으로 채운다(parseCodexDiscoveredModelOptions).
+    // 하드코딩 스냅샷은 캐시와 어긋나면 mergeModelOptions 합집합으로 새어나오므로 두지 않는다.
+    // 탐색 실패(캐시 없음) 시엔 기본값/직접 입력만 노출.
+    modelOptions: [defaultModelOption, customModelOption],
     effortOptions: [
       defaultEffortOption,
       { value: "low", label: "낮음" },
@@ -50,9 +47,9 @@ const providerCapabilitiesMap: Record<ProviderId, ProviderCapabilities> = {
     modelOptions: [
       defaultModelOption,
       { value: "auto", label: "Auto" },
-      { value: "gemini-2.5-flash", label: "gemini-2.5-flash" },
-      { value: "gemini-2.5-pro", label: "gemini-2.5-pro" },
-      { value: "gemini-3-flash-preview", label: "gemini-3-flash-preview" },
+      { value: "pro", label: "Pro" },
+      { value: "flash", label: "Flash" },
+      { value: "flash-lite", label: "Flash-Lite" },
       customModelOption
     ],
     effortOptions: [],
@@ -126,7 +123,7 @@ export function buildProviderArgs(
       if (effort) {
         args.push("-c", `model_reasoning_effort=${JSON.stringify(effort)}`);
       }
-      args.push(prompt);
+      args.push(prompt || "-");
       return args;
     }
     case "claude": {
@@ -160,10 +157,10 @@ export function buildProviderArgs(
 
 async function discoverProviderModelOptions(providerId: ProviderId, command: string): Promise<ProviderSettingOption[]> {
   switch (providerId) {
+    case "codex":
+      return parseCodexDiscoveredModelOptions(await readCodexModelsCache());
     case "claude":
       return parseClaudeDiscoveredModelOptions(await readCommandText(command));
-    case "gemini":
-      return parseGeminiDiscoveredModelOptions(await readGeminiModelsConfig(command));
     default:
       return [];
   }
@@ -184,26 +181,45 @@ export function parseClaudeDiscoveredModelOptions(source: string | undefined): P
     .map((value) => ({ value, label: formatClaudeModelLabel(value) }));
 }
 
-export function parseGeminiDiscoveredModelOptions(source: string | undefined): ProviderSettingOption[] {
+export function parseCodexDiscoveredModelOptions(source: string | undefined): ProviderSettingOption[] {
   if (!source) {
     return [];
   }
-
-  const discovered = new Set<string>();
-  for (const match of source.matchAll(/["']((?:auto-)?gemini-[a-z0-9.-]+)["']/gi)) {
-    const value = match[1];
-    if (/customtools/i.test(value)) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
+    return [];
+  }
+  const models = (parsed as Record<string, unknown>)?.["models"];
+  if (!Array.isArray(models)) {
+    return [];
+  }
+  const options: ProviderSettingOption[] = [];
+  const seen = new Set<string>();
+  for (const entry of models) {
+    if (typeof entry !== "object" || entry === null) {
       continue;
     }
-
-    discovered.add(value);
+    const record = entry as Record<string, unknown>;
+    const slug = record["slug"];
+    if (typeof slug !== "string" || !slug || seen.has(slug)) {
+      continue;
+    }
+    if (record["visibility"] !== "list") {
+      continue;
+    }
+    seen.add(slug);
+    // Label = slug (not display_name): codex's display_name is inconsistently cased
+    // ("GPT-5.5" vs "gpt-5.4"), so the slug gives uniform labels matching the -m value.
+    options.push({ value: slug, label: slug });
   }
+  return options;
+}
 
-  if (/["']auto["']/.test(source)) {
-    discovered.add("auto");
-  }
-
-  return [...discovered].map((value) => ({ value, label: value === "auto" ? "Auto" : value }));
+async function readCodexModelsCache(): Promise<string | undefined> {
+  const codexHome = process.env["CODEX_HOME"]?.trim() || path.join(os.homedir(), ".codex");
+  return readTextFileIfExists(path.join(codexHome, "models_cache.json"));
 }
 
 function mergeModelOptions(
@@ -246,37 +262,6 @@ async function readCommandText(command: string): Promise<string | undefined> {
       return extractPrintableText(buffer);
     } catch {
       continue;
-    }
-  }
-
-  return undefined;
-}
-
-async function readGeminiModelsConfig(command: string): Promise<string | undefined> {
-  const locations = await resolveCommandLocations(command);
-  const relativeCandidates = [
-    "../node_modules/@google/gemini-cli-core/dist/src/config/models.js",
-    "../node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/config/models.js",
-    "../lib/node_modules/@google/gemini-cli-core/dist/src/config/models.js",
-    "../lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/config/models.js"
-  ];
-
-  for (const location of locations) {
-    let currentDir = path.dirname(location);
-    for (let depth = 0; depth < 6; depth += 1) {
-      for (const relativeCandidate of relativeCandidates) {
-        const filePath = path.resolve(currentDir, relativeCandidate);
-        const text = await readTextFileIfExists(filePath);
-        if (text) {
-          return text;
-        }
-      }
-
-      const parentDir = path.dirname(currentDir);
-      if (parentDir === currentDir) {
-        break;
-      }
-      currentDir = parentDir;
     }
   }
 

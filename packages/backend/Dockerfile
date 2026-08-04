@@ -68,6 +68,7 @@ RUN node ./node_modules/typescript/lib/tsc.js -p ./packages/backend/tsconfig.jso
 # Skipped in dev (BUILD_RUNNER_BIN=false) — dev uses a host volume mount instead.
 FROM oven/bun:1 AS runner-bin
 ARG BUILD_RUNNER_BIN
+ARG JASOJEON_RUNNER_BACKEND_URL
 WORKDIR /app
 
 # All workspace node_modules (runner + shared transitive deps: zod, jszip, ws, etc.)
@@ -81,6 +82,7 @@ COPY packages/runner/src                            ./packages/runner/src
 COPY packages/runner/build.ts                       ./packages/runner/build.ts
 
 RUN if [ "$BUILD_RUNNER_BIN" = "true" ]; then \
+      if [ -n "$JASOJEON_RUNNER_BACKEND_URL" ]; then export JASOJEON_RUNNER_BACKEND_URL; fi; \
       bun run packages/runner/build.ts; \
     else \
       mkdir -p packages/runner/dist-bin; \
@@ -94,13 +96,20 @@ ENV NODE_ENV=production
 # Minimal runtime toolchain. `tini` gives proper PID 1 signal handling.
 RUN apk add --no-cache tini
 
-# Copy only the artefacts needed at runtime.
-COPY --from=build /app/package.json                    ./package.json
-COPY --from=build /app/package-lock.json               ./package-lock.json
-COPY --from=build /app/node_modules                    ./node_modules
-COPY --from=build /app/packages/shared/package.json    ./packages/shared/package.json
+# Production-only deps + drizzle-kit (entrypoint runs `drizzle-kit migrate`).
+# Reinstalling with --omit=dev drops vite/typescript/esbuild/tsx that were only
+# needed in the build stage, shrinking the runtime image and CVE surface.
+COPY package.json package-lock.json tsconfig.base.json tsconfig.json ./
+COPY packages/shared/package.json   packages/shared/package.json
+COPY packages/runner/package.json   packages/runner/package.json
+COPY packages/web/package.json      packages/web/package.json
+COPY packages/backend/package.json  packages/backend/package.json
+RUN npm ci --workspaces --include-workspace-root --omit=dev \
+ && npm install --no-save --no-audit --no-fund drizzle-kit \
+ && npm cache clean --force
+
+# Compiled artefacts from the build stage.
 COPY --from=build /app/packages/shared/dist            ./packages/shared/dist
-COPY --from=build /app/packages/backend/package.json   ./packages/backend/package.json
 COPY --from=build /app/packages/backend/dist           ./packages/backend/dist
 # Migrations live under src/db/migrations — drizzle-kit migrate reads them at runtime.
 COPY --from=build /app/packages/backend/drizzle.config.ts ./packages/backend/drizzle.config.ts

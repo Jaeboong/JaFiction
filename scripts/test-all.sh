@@ -3,6 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+echo "[jasojeon] Running harness script tests..."
+(
+  cd "${ROOT_DIR}"
+  "${ROOT_DIR}/scripts/with-node.sh" --import tsx --test scripts/*.test.ts
+)
+
 echo "[jasojeon] Running shared tests..."
 (
   cd "${ROOT_DIR}/packages/shared"

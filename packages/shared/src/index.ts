@@ -40,6 +40,8 @@ export * from "./core/schemas";
 export * from "./core/storage";
 export * from "./core/storageInterfaces";
 export * from "./core/storagePaths";
+export * from "./core/syncMerge";
+export * from "./core/syncTypes";
 export * from "./core/types";
 export * from "./core/utils";
 export * from "./core/webviewProtocol";

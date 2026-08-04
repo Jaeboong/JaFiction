@@ -1,6 +1,13 @@
 import * as assert from "node:assert/strict";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import test from "node:test";
-import { parseCodexNotionStatus, buildCodexNotionConnectPlan } from "../core/notionMcpCodex";
+import {
+  parseCodexNotionStatus,
+  buildCodexNotionConnectPlan,
+  repairCodexNotionConfigFile,
+  repairCodexNotionConfigText
+} from "../core/notionMcpCodex";
 import {
   parseClaudeNotionStatus,
   buildClaudeNotionConnectPlan,
@@ -10,6 +17,7 @@ import {
   parseGeminiNotionStatus,
   buildGeminiNotionConnectPlan
 } from "../core/notionMcpGemini";
+import { cleanupTempWorkspace, createTempWorkspace } from "./helpers";
 
 test("codex notion parser recognizes official notion server from JSON output", () => {
   const result = parseCodexNotionStatus(
@@ -81,6 +89,83 @@ test("codex connect plan adds and logs in when notion is not configured", () => 
   assert.ok(plan.commandLine);
   assert.match(plan.commandLine!, /'mcp' 'add'/);
   assert.match(plan.commandLine!, /'mcp' 'login'/);
+});
+
+test("codex notion config repair replaces mixed stdio and HTTP settings", () => {
+  const input = [
+    'model = "gpt-5.4"',
+    "",
+    "[mcp_servers.notion]",
+    'command = "npx"',
+    'args = ["-y", "@notionhq/notion-mcp-server"]',
+    'url = "https://mcp.notion.com/mcp"',
+    "",
+    "[mcp_servers.notion.env]",
+    'OPENAPI_MCP_HEADERS = "{\\"Authorization\\": \\"Bearer secret\\"}"',
+    "",
+    "[mcp_servers.github]",
+    'url = "https://example.com/mcp"',
+    ""
+  ].join("\n");
+
+  const result = repairCodexNotionConfigText(input);
+
+  assert.equal(result.repaired, true);
+  assert.match(result.text, /\[mcp_servers\.notion\]\nurl = "https:\/\/mcp\.notion\.com\/mcp"/);
+  assert.doesNotMatch(result.text, /@notionhq\/notion-mcp-server/);
+  assert.doesNotMatch(result.text, /OPENAPI_MCP_HEADERS/);
+  assert.match(result.text, /\[mcp_servers\.github\]\nurl = "https:\/\/example\.com\/mcp"/);
+  assert.match(result.text, /model = "gpt-5\.4"/);
+});
+
+test("codex notion config repair leaves valid HTTP settings unchanged", () => {
+  const input = [
+    "[mcp_servers.notion]",
+    'url = "https://mcp.notion.com/mcp"',
+    "enabled = true",
+    ""
+  ].join("\n");
+
+  assert.deepEqual(repairCodexNotionConfigText(input), {
+    repaired: false,
+    text: input
+  });
+});
+
+test("codex notion config repair ignores unrelated custom notion servers", () => {
+  const input = [
+    "[mcp_servers.notion]",
+    'command = "custom-notion-proxy"',
+    'args = ["--stdio"]',
+    ""
+  ].join("\n");
+
+  assert.deepEqual(repairCodexNotionConfigText(input), {
+    repaired: false,
+    text: input
+  });
+});
+
+test("codex notion config file repair writes a backup before replacement", async (t) => {
+  const workspaceRoot = await createTempWorkspace();
+  t.after(async () => cleanupTempWorkspace(workspaceRoot));
+
+  const configPath = path.join(workspaceRoot, "config.toml");
+  const source = [
+    "[mcp_servers.notion]",
+    'command = "npx"',
+    'args = ["-y", "@notionhq/notion-mcp-server"]',
+    'url = "https://mcp.notion.com/mcp"',
+    ""
+  ].join("\n");
+  await fs.writeFile(configPath, source, "utf8");
+
+  assert.equal(await repairCodexNotionConfigFile(configPath), true);
+  assert.equal(await fs.readFile(`${configPath}.jasojeon-backup`, "utf8"), source);
+  assert.equal(
+    await fs.readFile(configPath, "utf8"),
+    '[mcp_servers.notion]\nurl = "https://mcp.notion.com/mcp"'
+  );
 });
 
 test("gemini reconnect plan refreshes a disconnected notion configuration", () => {

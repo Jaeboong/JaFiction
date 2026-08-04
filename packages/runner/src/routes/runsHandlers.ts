@@ -20,6 +20,7 @@ import {
   RunRequest,
   RunEvent,
   RunLedgerEntry,
+  RunContinuationContext,
   resolveRoleAssignments,
   deriveLegacyParticipantsFromRoles,
   isRunAbortedError
@@ -256,20 +257,15 @@ export async function submitIntervention(
           { code: "internal" }
         );
       }
+      const continuation = await ctx.storage().loadRunContinuationContext(runState.projectSlug, runId);
+      const continuationRequest = buildContinuationRunRequest(
+        runState.projectSlug,
+        runId,
+        continuation,
+        text
+      );
       ctx.runSessions.finishAddressedRun(runId);
-      nextRunId = await startRunInternal(ctx, {
-        projectSlug: runState.projectSlug,
-        question: "",
-        draft: "",
-        reviewMode: "realtime",
-        continuationFromRunId: runId,
-        continuationNote: text,
-        roleAssignments: [],
-        coordinatorProvider: "claude",
-        reviewerProviders: [],
-        rounds: 1,
-        selectedDocumentIds: []
-      });
+      nextRunId = await startRunInternal(ctx, continuationRequest);
     }
     ctx.stateStore.setRunState(ctx.runSessions.snapshot());
     await ctx.pushState();
@@ -302,6 +298,40 @@ export async function deleteRun(
     await ctx.pushState();
   });
   return { ok: true };
+}
+
+export function buildContinuationRunRequest(
+  projectSlug: string,
+  runId: string,
+  continuation: RunContinuationContext,
+  message: string
+): RunRequest {
+  const resolvedRoles = resolveRoleAssignments(
+    continuation.record.roleAssignments,
+    continuation.record.coordinatorProvider,
+    continuation.record.reviewerProviders
+  );
+  const legacyParticipants = deriveLegacyParticipantsFromRoles(
+    resolvedRoles.all,
+    continuation.record.coordinatorProvider,
+    continuation.record.reviewerProviders
+  );
+
+  return {
+    projectSlug,
+    projectQuestionIndex: continuation.record.projectQuestionIndex,
+    question: continuation.record.question,
+    draft: continuation.revisedDraft?.trim() || continuation.record.draft,
+    reviewMode: continuation.record.reviewMode,
+    continuationFromRunId: runId,
+    continuationNote: message,
+    roleAssignments: resolvedRoles.all,
+    coordinatorProvider: legacyParticipants.coordinatorProvider,
+    reviewerProviders: legacyParticipants.reviewerProviders,
+    rounds: 1,
+    maxRoundsPerSection: continuation.record.maxRoundsPerSection ?? 1,
+    selectedDocumentIds: continuation.record.selectedDocumentIds
+  };
 }
 
 // ---------------------------------------------------------------------------

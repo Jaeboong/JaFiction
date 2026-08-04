@@ -684,15 +684,6 @@
   stroke-linejoin: round;
 }
 
-.runs-rounds-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 400;
-  color: #64748b;
-  white-space: nowrap;
-}
-
 .runs-inline-link {
   border: 0;
   padding: 0;
@@ -759,41 +750,6 @@
 .runs-page input::placeholder,
 .runs-page textarea::placeholder {
   color: #94a3b8;
-}
-
-/* ── runs-rounds 드롭다운 size override ─────────────────── */
-.runs-rounds-custom-select {
-  width: 52px;
-  flex: 0 0 52px;
-}
-
-.runs-rounds-custom-select .custom-select-trigger {
-  min-height: 28px;
-  padding: 0 22px 0 8px;
-  font-size: 12px;
-}
-
-.runs-rounds-custom-select .custom-select-value {
-  text-align: center;
-}
-
-.runs-rounds-custom-select .custom-select-arrow {
-  right: 6px;
-  width: 14px;
-  height: 14px;
-}
-
-.runs-rounds-custom-select .custom-select-dropdown {
-  min-width: 52px;
-}
-
-.runs-rounds-custom-select .custom-select-option {
-  padding: 7px 8px;
-  text-align: center;
-}
-
-.runs-rounds-custom-select .custom-select-option.is-selected::before {
-  display: none;
 }
 
 /* 실행 구성 패널: 긴 선택 텍스트가 에이전트 대화섹션을 침범하지 않도록 세로로 공간 확보 */

@@ -21,6 +21,7 @@ import type {
   ProfileListDocumentsResult,
   ProfileSaveTextDocumentResult,
   ProfileSetDocumentPinnedResult,
+  SetDocumentPinnedResult,
   ProjectInsightWorkspaceState,
   ProjectRecord,
   ProviderId,
@@ -31,7 +32,9 @@ import type {
   SaveProjectResult,
   SidebarState,
   StartRunResult,
-  SubmitInterventionResult
+  SubmitInterventionResult,
+  SyncDisableResult,
+  SyncNowResult
 } from "@jasojeon/shared";
 
 export interface SessionPayload {
@@ -139,13 +142,27 @@ export class RunnerClient {
     return this.rpcCall<SidebarState>("get_state", {});
   }
 
+  async syncNow(): Promise<SyncNowResult> {
+    return this.rpcCall<SyncNowResult>("sync_now", {});
+  }
+
+  async syncDisable(): Promise<SyncDisableResult> {
+    return this.rpcCall<SyncDisableResult>("sync_disable", {});
+  }
+
   async getAgentDefaults(): Promise<AgentDefaults> {
     const result = await this.rpcCall<GetAgentDefaultsResult>("get_agent_defaults", {});
     return result.agentDefaults;
   }
 
-  async saveAgentDefaults(agentDefaults: AgentDefaults): Promise<void> {
-    await this.rpcCall("save_agent_defaults", { agentDefaults });
+  async saveAgentDefaults(
+    agentDefaults: AgentDefaults,
+    preferences?: { readonly serverSyncEnabled: boolean }
+  ): Promise<void> {
+    await this.rpcCall("save_agent_defaults", {
+      agentDefaults,
+      ...(preferences ? { serverSyncEnabled: preferences.serverSyncEnabled } : {})
+    });
   }
 
   async listProjects(): Promise<ListProjectsResult> {
@@ -210,6 +227,15 @@ export class RunnerClient {
 
   async setProfileDocumentPinned(documentId: string, pinned: boolean): Promise<ContextDocument> {
     const result = await this.rpcCall<ProfileSetDocumentPinnedResult>("profile_set_document_pinned", {
+      documentId,
+      pinned
+    });
+    return result.document;
+  }
+
+  async setProjectDocumentPinned(slug: string, documentId: string, pinned: boolean): Promise<ContextDocument> {
+    const result = await this.rpcCall<SetDocumentPinnedResult>("set_document_pinned", {
+      slug,
       documentId,
       pinned
     });

@@ -15,6 +15,7 @@ The product plane is the software users actually run.
 - `packages/shared/**` contains orchestration, storage, schemas, and shared view models
 - `packages/runner/**` contains the hosted-mode outbound runner (connects to the backend via an outbound WebSocket and dispatches RPC; no inbound HTTP server)
 - `packages/web/**` contains the React + Vite browser UI
+- `services/filings-retrieval/**` contains the DART filing retrieval pipeline; its `eval/**` subtree is service-local harness code
 
 Changes in this plane affect runtime behavior and need stronger review plus local smoke validation.
 

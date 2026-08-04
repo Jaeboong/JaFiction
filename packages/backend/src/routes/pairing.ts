@@ -185,6 +185,7 @@ interface ClaimEntry {
   readonly ip: string;
   readonly pollToken: string;
   readonly registeredAt: number; // epoch ms
+  readonly runnerInstanceId?: string;
   status: "pending" | "approved" | "authorized" | "rejected";
   token?: string;
   deviceId?: string;
@@ -201,6 +202,7 @@ const RegisterClaimBodySchema = z.object({
   runnerVersion: z.string().min(1).max(100),
   workspaceRoot: z.string().max(500).optional(),
   deviceId: z.string().uuid().optional(),
+  runnerInstanceId: z.string().optional(),
 });
 
 const ApproveClaimBodySchema = z.object({
@@ -279,12 +281,30 @@ export async function registerPairing(
     const pollToken = crypto.randomBytes(24).toString("hex");
     const expiresAt = new Date(Date.now() + CLAIM_TTL_SECONDS * 1000).toISOString();
 
+    // Fix-2: supersede any existing pending claim from the same runner instance.
+    // Only applies when runnerInstanceId is provided (optional for backward compat).
+    if (parsed.data.runnerInstanceId !== undefined) {
+      const existingKeys = await scanClaimKeys(deps.redis);
+      for (const key of existingKeys) {
+        const raw = await deps.redis.get(key);
+        if (!raw) continue;
+        const existing = JSON.parse(raw) as ClaimEntry;
+        if (
+          existing.status === "pending" &&
+          existing.runnerInstanceId === parsed.data.runnerInstanceId
+        ) {
+          await deps.redis.del(key);
+        }
+      }
+    }
+
     const entry: ClaimEntry = {
       hostname: parsed.data.hostname,
       os: parsed.data.os,
       runnerVersion: parsed.data.runnerVersion,
       workspaceRoot: parsed.data.workspaceRoot,
       deviceId: parsed.data.deviceId,
+      runnerInstanceId: parsed.data.runnerInstanceId,
       ip,
       pollToken,
       registeredAt: Date.now(),
@@ -371,8 +391,6 @@ export async function registerPairing(
       }
 
       const ip = request.ip ?? request.socket.remoteAddress ?? "unknown";
-      const now = Date.now();
-      const twoMinutesAgo = now - 2 * 60 * 1000;
 
       // If explicit claimId provided, look it up directly.
       if (parsed.data.claimId) {
@@ -387,7 +405,8 @@ export async function registerPairing(
         return approveEntry(parsed.data.claimId, entry, user.id);
       }
 
-      // Scan Redis for pending claims matching request.ip within the last 2 minutes.
+      // Scan Redis for pending claims matching request.ip.
+      // Redis TTL (CLAIM_TTL_SECONDS = 600) already governs expiry — no additional time window.
       // We scan using a pattern. This works at test/dev scale; for prod scale
       // a secondary index would be better, but the claim volume is tiny.
       const keys = await scanClaimKeys(deps.redis);
@@ -397,11 +416,7 @@ export async function registerPairing(
         const raw = await deps.redis.get(key);
         if (!raw) continue;
         const entry = JSON.parse(raw) as ClaimEntry;
-        if (
-          entry.status === "pending" &&
-          entry.ip === ip &&
-          entry.registeredAt >= twoMinutesAgo
-        ) {
+        if (entry.status === "pending" && entry.ip === ip) {
           const claimId = key.slice("claim:".length);
           matching.push({ claimId, entry });
         }

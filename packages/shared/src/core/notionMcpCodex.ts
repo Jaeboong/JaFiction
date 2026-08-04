@@ -1,3 +1,7 @@
+import { constants as fsConstants } from "node:fs";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
 import {
   NotionConnectPlan,
   NotionMcpCheckResult,
@@ -6,6 +10,108 @@ import {
   notionConfigName,
   notionMcpUrl
 } from "./notionMcp";
+
+export interface CodexNotionConfigRepairResult {
+  repaired: boolean;
+  text: string;
+}
+
+export function repairCodexNotionConfigText(text: string): CodexNotionConfigRepairResult {
+  const newline = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.split(/\r?\n/);
+  const notionLineIndexes = new Set<number>();
+  let currentSection = "";
+  let firstNotionLine = -1;
+  let hasOfficialUrl = false;
+  let hasStdioConflict = false;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const sectionMatch = line.match(/^\s*\[([^\]]+)\]\s*(?:#.*)?$/);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1].trim();
+    }
+
+    const isNotionSection = currentSection === "mcp_servers.notion"
+      || currentSection.startsWith("mcp_servers.notion.");
+    if (!isNotionSection) {
+      continue;
+    }
+
+    notionLineIndexes.add(index);
+    if (firstNotionLine < 0) {
+      firstNotionLine = index;
+    }
+    if (line.includes(notionMcpUrl)) {
+      hasOfficialUrl = true;
+    }
+    if (
+      currentSection !== "mcp_servers.notion"
+      || /^\s*(?:command|args|cwd)\s*=/i.test(line)
+      || /^\s*transport\s*=\s*["']?stdio/i.test(line)
+    ) {
+      hasStdioConflict = true;
+    }
+  }
+
+  if (!hasOfficialUrl || !hasStdioConflict || firstNotionLine < 0) {
+    return { repaired: false, text };
+  }
+
+  const repairedLines: string[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (index === firstNotionLine) {
+      repairedLines.push("[mcp_servers.notion]", `url = "${notionMcpUrl}"`);
+    }
+    if (!notionLineIndexes.has(index)) {
+      repairedLines.push(lines[index]);
+    }
+  }
+
+  return {
+    repaired: true,
+    text: repairedLines.join(newline)
+  };
+}
+
+export async function repairCodexNotionConfigFile(
+  configPath = path.join(os.homedir(), ".codex", "config.toml")
+): Promise<boolean> {
+  let source: string;
+  try {
+    source = await fs.readFile(configPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+
+  const result = repairCodexNotionConfigText(source);
+  if (!result.repaired) {
+    return false;
+  }
+
+  const backupPath = `${configPath}.jasojeon-backup`;
+  try {
+    await fs.copyFile(configPath, backupPath, fsConstants.COPYFILE_EXCL);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+      throw error;
+    }
+  }
+
+  const temporaryPath = `${configPath}.jasojeon-${process.pid}-${Date.now()}.tmp`;
+  try {
+    const stats = await fs.stat(configPath);
+    await fs.writeFile(temporaryPath, result.text, { encoding: "utf8", mode: stats.mode });
+    await fs.rename(temporaryPath, configPath);
+  } catch (error) {
+    await fs.rm(temporaryPath, { force: true });
+    throw error;
+  }
+  return true;
+}
 
 export function parseCodexNotionStatus(stdout: string): NotionMcpCheckResult {
   try {

@@ -1,20 +1,22 @@
-# Jasojeon dev infrastructure compose (Stage 11.6)
-#
-# Brings up Postgres + Redis + backend. Web and runner stay on the host.
-# Backend is containerized to sidestep Windows bash/drizzle-kit issues.
+# Jasojeon dev/staging stack — prod 와 동일 빌드 방식.
+# 자소전.shop, develop 브랜치, ~/project/Jasojeon 디렉터리.
+# CI: deploy-dev.yml 이 docker compose -f docker-compose.dev.yml --env-file .env.dev up -d --build 호출.
+# 외부 노출: 없음. prod nginx 가 host:4125 로 forward.
+
+name: jasojeon-dev
 
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: jasojeon
-      POSTGRES_USER: jasojeon
-      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
-      - jasojeon_dev_pg:/var/lib/postgresql/data
+      - jasojeon_dev_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -24,13 +26,13 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"
     volumes:
-      - jasojeon_dev_redis:/data
+      - jasojeon_dev_redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -39,32 +41,60 @@ services:
     build:
       context: .
       dockerfile: packages/backend/Dockerfile
+      # BUILD_RUNNER_BIN 명시 X → Dockerfile 기본값 'true' 사용 (runner-bin stage 활성)
       args:
-        BUILD_RUNNER_BIN: "false"
+        # dev 러너 바이너리에 .shop URL 을 박는다. 미지정 시 build.ts 폴백(.com,prod)이 박혀
+        # 자소전.shop 에서 받은 러너가 prod 로 붙는 버그가 됨 (regression: 6ef46f5).
+        JASOJEON_RUNNER_BACKEND_URL: ${PUBLIC_BASE_URL}
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    env_file:
-      - packages/backend/.env.dev
     environment:
-      # 주의: docker-compose 는 `environment` > `env_file` 우선.
-      # 아래 키들은 container-internal 이라 env_file 과 값이 같거나 override 용.
-      # PUBLIC_BASE_URL / WEB_BASE_URL / GOOGLE_CLIENT_* 은 env_file 에 맡긴다
-      # (로컬: localhost, 서버: xn--9l4b13i8j.shop).
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: "4000"
-      DATABASE_URL: postgres://jasojeon:devpass@postgres:5432/jasojeon
-      REDIS_URL: redis://redis:6379
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      REDIS_URL: "redis://default:${REDIS_PASSWORD}@redis:6379"
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      DART_API_KEY: ${DART_API_KEY}
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4001:4000"
+    expose:
+      - "4000"
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      args:
+        HOSTED_API_BASE: ${PUBLIC_BASE_URL}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:4125:80"
     volumes:
-      - ./packages/runner/dist-bin:/app/packages/runner/dist-bin:ro
+      - ./nginx/conf.d/dev.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      # edge(prod) nginx 가 컨테이너명(dev-nginx)으로 직접 프록시할 수 있도록
+      # 공유 외부 네트워크에 합류. 호스트 hairpin(4125) 경로는 크로스 브리지라 불가.
+      default: {}
+      edge:
+        aliases:
+          - dev-nginx
+
+networks:
+  edge:
+    external: true
+    name: jasojeon-edge
 
 volumes:
-  jasojeon_dev_pg:
-    name: jasojeon_dev_pg
-  jasojeon_dev_redis:
-    name: jasojeon_dev_redis
+  jasojeon_dev_pg_data:
+    name: jasojeon_dev_pg_data
+  jasojeon_dev_redis_data:
+    name: jasojeon_dev_redis_data

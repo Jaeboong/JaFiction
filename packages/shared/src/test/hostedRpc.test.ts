@@ -109,7 +109,7 @@ const MINIMAL_SIDEBAR_STATE = {
   providers: [],
   profileDocuments: [],
   projects: [],
-  preferences: {},
+  preferences: { serverSyncEnabled: false },
   agentDefaults: {},
   runState: { status: "idle" },
   defaultRubric: "- fit"
@@ -262,7 +262,11 @@ test("save_project: patch extra field rejected", () => {
 test("save_project: patch accepts postingReviewReasons and jobPostingFieldConfidence", () => {
   const emptyFields = SaveProjectPayloadSchema.safeParse({
     slug: "alpha",
-    patch: { postingReviewReasons: [], jobPostingFieldConfidence: {} }
+    patch: {
+      postingReviewReasons: [],
+      jobPostingFieldConfidence: {},
+      experienceRefs: { profileDocumentIds: [], githubRepos: [], notionDirective: null }
+    }
   });
   assert.equal(emptyFields.success, true);
 
@@ -270,7 +274,12 @@ test("save_project: patch accepts postingReviewReasons and jobPostingFieldConfid
     slug: "alpha",
     patch: {
       postingReviewReasons: ["lowConfidenceExtraction"],
-      jobPostingFieldConfidence: { companyName: "factual" }
+      jobPostingFieldConfidence: { companyName: "factual" },
+      experienceRefs: {
+        profileDocumentIds: ["profile-1"],
+        githubRepos: [],
+        notionDirective: null
+      }
     }
   });
   assert.equal(withValues.success, true);
@@ -767,7 +776,7 @@ test("opendart_delete_key: empty payload accepted; extra field rejected", () => 
 test("save_agent_defaults: requires agentDefaults object; result is {ok:true}", () => {
   const ok = RpcRequestSchema.safeParse({
     v: 1, id: "r-save-defaults", op: "save_agent_defaults",
-    payload: { agentDefaults: {} }
+    payload: { agentDefaults: {}, serverSyncEnabled: true }
   });
   assert.equal(ok.success, true);
   const missing = SaveAgentDefaultsPayloadSchema.safeParse({});
@@ -947,6 +956,34 @@ test("profile_get_document_preview: requires documentId, preview result shape", 
   assert.equal(badPreviewSource.success, false);
 });
 
+test("sync_now: empty payload accepted and result shape parses", () => {
+  const { SyncNowPayloadSchema, SyncNowResultSchema } = require("../core/hostedRpc");
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-sync-now", op: "sync_now", payload: {}
+  });
+  assert.equal(ok.success, true);
+  const extra = SyncNowPayloadSchema.safeParse({ extra: true });
+  assert.equal(extra.success, false);
+  const result = SyncNowResultSchema.parse({
+    syncedDocuments: 2,
+    syncedProjects: 1,
+    lastSyncedAt: "2026-05-27T00:00:00.000Z"
+  });
+  assert.equal(result.syncedDocuments, 2);
+});
+
+test("sync_disable: empty payload accepted and ok result parses", () => {
+  const { SyncDisablePayloadSchema, SyncDisableResultSchema } = require("../core/hostedRpc");
+  const ok = RpcRequestSchema.safeParse({
+    v: 1, id: "r-sync-disable", op: "sync_disable", payload: {}
+  });
+  assert.equal(ok.success, true);
+  const extra = SyncDisablePayloadSchema.safeParse({ extra: true });
+  assert.equal(extra.success, false);
+  const result = SyncDisableResultSchema.parse({ ok: true });
+  assert.equal(result.ok, true);
+});
+
 // ---------------------------------------------------------------------------
 // Event envelope round-trips
 // ---------------------------------------------------------------------------
@@ -1075,6 +1112,7 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "create_project": return acc + 1;
       case "delete_project": return acc + 1;
       case "save_document": return acc + 1;
+      case "set_document_pinned": return acc + 1;
       case "save_essay_draft": return acc + 1;
       case "analyze_posting": return acc + 1;
       case "get_project_insights": return acc + 1;
@@ -1091,6 +1129,8 @@ test("OP_NAMES exhaustiveness via switch", () => {
       case "profile_upload_document_chunk": return acc + 1;
       case "profile_set_document_pinned": return acc + 1;
       case "profile_get_document_preview": return acc + 1;
+      case "sync_now": return acc + 1;
+      case "sync_disable": return acc + 1;
       case "check_provider_cli_status": return acc + 1;
       case "start_provider_cli_auth": return acc + 1;
       case "submit_provider_cli_code": return acc + 1;
@@ -1099,8 +1139,8 @@ test("OP_NAMES exhaustiveness via switch", () => {
     }
   }, 0);
 
-  assert.equal(count, 47);
-  assert.equal(OP_NAMES.length, 47);
+  assert.equal(count, 50);
+  assert.equal(OP_NAMES.length, 50);
 });
 
 test("EVENT_NAMES exhaustiveness via switch", () => {

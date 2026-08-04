@@ -10,7 +10,8 @@ import {
   RunRecordSchema,
   RunChatMessageSchema,
   RunLedgerEntrySchema,
-  AgentDefaultsSchema
+  AgentDefaultsSchema,
+  ExperienceRefsSchema
 } from "./schemas";
 import { SidebarStateSchema } from "./viewModels";
 import { SourceTierSchema } from "./sourceTier";
@@ -69,6 +70,7 @@ const ProjectDetailSchema = z.object({
   openDartSkipRequested: z.boolean().optional(),
   rubric: z.string(),
   pinnedDocumentIds: z.array(z.string()),
+  experienceRefs: ExperienceRefsSchema.default({ profileDocumentIds: [], githubRepos: [], notionDirective: null }),
   charLimit: z.number().int().min(1).optional(),
   notionPageIds: z.array(z.string()).optional(),
   createdAt: z.string(),
@@ -90,7 +92,7 @@ const WorkspaceFileEntrySchema = z.object({
 }).strict();
 
 // ProjectPatch: partial update for save_project.
-// Only fields that updateProjectInfo() already persists are accepted here.
+// Fields accepted here either flow through updateProjectInfo() or the direct ProjectRecord update branch.
 // rubric, pinnedDocumentIds, charLimit, notionPageIds are intentionally excluded —
 // TODO: add dedicated ops (save_project_rubric, save_project_char_limit, etc.) in a
 // later phase when the web UI needs them. Using .strict() so callers receive a clear
@@ -115,7 +117,8 @@ const ProjectPatchSchema = z.object({
   openDartCandidates: z.array(OpenDartCandidateSchema).nullable().optional(),
   openDartSkipRequested: z.boolean().optional(),
   postingReviewReasons: z.array(_rpcReviewNeededReasonSchema).optional(),
-  jobPostingFieldConfidence: z.record(_rpcJobPostingFieldKeySchema, SourceTierSchema).optional()
+  jobPostingFieldConfidence: z.record(_rpcJobPostingFieldKeySchema, SourceTierSchema).optional(),
+  experienceRefs: ExperienceRefsSchema.optional()
 }).strict();
 
 // ProviderConfig for save_provider_config
@@ -453,6 +456,21 @@ export const SaveDocumentResultSchema = z.object({
 export type SaveDocumentPayload = z.infer<typeof SaveDocumentPayloadSchema>;
 export type SaveDocumentResult = z.infer<typeof SaveDocumentResultSchema>;
 
+// set_document_pinned — project-scoped document pin toggle.
+// Mirrors profile_set_document_pinned but targets a project's context manifest.
+// 핀된 문서만 run 의 selectedDocumentIds 에 포함되므로, 업로드 문서를 실행 컨텍스트에
+// 넣으려면 이 op 로 pinnedByDefault 를 켜야 한다.
+export const SetDocumentPinnedPayloadSchema = z.object({
+  slug: z.string(),
+  documentId: z.string().min(1),
+  pinned: z.boolean()
+}).strict();
+export const SetDocumentPinnedResultSchema = z.object({
+  document: ContextDocumentSchema
+}).strict();
+export type SetDocumentPinnedPayload = z.infer<typeof SetDocumentPinnedPayloadSchema>;
+export type SetDocumentPinnedResult = z.infer<typeof SetDocumentPinnedResultSchema>;
+
 // save_essay_draft — mirrors PUT /:projectSlug/essay-draft/:questionIndex
 export const SaveEssayDraftPayloadSchema = z.object({
   slug: z.string(),
@@ -631,7 +649,8 @@ export type OpendartDeleteKeyResult = z.infer<typeof OpendartDeleteKeyResultSche
 // save_agent_defaults — mirrors configRouter PUT /agent-defaults
 // Deferred from Stage 11.1 — lives here because 11.3 owns the Settings plane.
 export const SaveAgentDefaultsPayloadSchema = z.object({
-  agentDefaults: AgentDefaultsSchema
+  agentDefaults: AgentDefaultsSchema,
+  serverSyncEnabled: z.boolean().optional()
 }).strict();
 export const SaveAgentDefaultsResultSchema = z.object({
   ok: z.literal(true)
@@ -757,6 +776,24 @@ export const ProfileGetDocumentPreviewResultSchema = z.object({
 export type ProfileGetDocumentPreviewPayload = z.infer<typeof ProfileGetDocumentPreviewPayloadSchema>;
 export type ProfileGetDocumentPreviewResult = z.infer<typeof ProfileGetDocumentPreviewResultSchema>;
 
+// sync_now
+export const SyncNowPayloadSchema = z.object({}).strict();
+export const SyncNowResultSchema = z.object({
+  syncedDocuments: z.number(),
+  syncedProjects: z.number(),
+  lastSyncedAt: z.string()
+}).strict();
+export type SyncNowPayload = z.infer<typeof SyncNowPayloadSchema>;
+export type SyncNowResult = z.infer<typeof SyncNowResultSchema>;
+
+// sync_disable
+export const SyncDisablePayloadSchema = z.object({}).strict();
+export const SyncDisableResultSchema = z.object({
+  ok: z.literal(true)
+}).strict();
+export type SyncDisablePayload = z.infer<typeof SyncDisablePayloadSchema>;
+export type SyncDisableResult = z.infer<typeof SyncDisableResultSchema>;
+
 // ---------------------------------------------------------------------------
 // Provider CLI auth — 설치/인증 상태 확인 및 인증 플로우
 // ---------------------------------------------------------------------------
@@ -819,6 +856,7 @@ export const OP_NAMES = [
   "create_project",
   "delete_project",
   "save_document",
+  "set_document_pinned",
   "save_essay_draft",
   "analyze_posting",
   "get_project_insights",
@@ -835,6 +873,8 @@ export const OP_NAMES = [
   "profile_upload_document_chunk",
   "profile_set_document_pinned",
   "profile_get_document_preview",
+  "sync_now",
+  "sync_disable",
   "check_provider_cli_status",
   "start_provider_cli_auth",
   "submit_provider_cli_code",
@@ -884,6 +924,7 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("create_project"), payload: CreateProjectPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("delete_project"), payload: DeleteProjectPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("save_document"), payload: SaveDocumentPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("set_document_pinned"), payload: SetDocumentPinnedPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("save_essay_draft"), payload: SaveEssayDraftPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("analyze_posting"), payload: AnalyzePostingPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("get_project_insights"), payload: GetProjectInsightsPayloadSchema }).strict(),
@@ -900,6 +941,8 @@ export const RpcRequestSchema = z.discriminatedUnion("op", [
   RpcRequestBaseSchema.extend({ op: z.literal("profile_upload_document_chunk"), payload: ProfileUploadDocumentChunkPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("profile_set_document_pinned"), payload: ProfileSetDocumentPinnedPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("profile_get_document_preview"), payload: ProfileGetDocumentPreviewPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("sync_now"), payload: SyncNowPayloadSchema }).strict(),
+  RpcRequestBaseSchema.extend({ op: z.literal("sync_disable"), payload: SyncDisablePayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("check_provider_cli_status"), payload: CheckProviderCliStatusPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("start_provider_cli_auth"), payload: StartProviderCliAuthPayloadSchema }).strict(),
   RpcRequestBaseSchema.extend({ op: z.literal("submit_provider_cli_code"), payload: SubmitProviderCliCodePayloadSchema }).strict(),

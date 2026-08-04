@@ -199,6 +199,14 @@ export function ProjectInsightModal({
                       <div className="insight-content-meta-item">
                         {formatRelative(workspace.insightLastGeneratedAt)}
                       </div>
+                      {workspace.openDartCorpName ? (
+                        <>
+                          <div className="insight-content-meta-dot" aria-hidden="true" />
+                          <div className="insight-content-meta-item">
+                            OpenDART {workspace.openDartCorpName}{workspace.openDartStockCode ? ` (${workspace.openDartStockCode})` : ""}
+                          </div>
+                        </>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

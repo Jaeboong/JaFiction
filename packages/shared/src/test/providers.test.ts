@@ -6,7 +6,7 @@ import { NotionMcpCheckResult } from "../core/notionMcp";
 import { resolveNodeRuntime, resetNodeRuntimeCacheForTests } from "../core/nodeRuntimeResolver";
 import { getProviderCapabilities } from "../core/providerOptions";
 import { resolveProviderCommand, withCommandDirectoryInPath } from "../core/providerCommandResolver";
-import { ProviderRegistry } from "../core/providers";
+import { buildEnvironment, ProviderRegistry } from "../core/providers";
 import { ProviderId, ProviderRuntimeState, RunAbortedError } from "../core/types";
 import { cleanupTempWorkspace, createTempWorkspace } from "./helpers";
 import { IS_WIN } from "./_helpers/env";
@@ -206,4 +206,22 @@ test("gemini notion connect runs OAuth after MCP plan refresh", { skip: IS_WIN ?
 
   await registry.connectNotionMcp("gemini");
   assert.deepEqual(registry.oauthCalls, ["notion"]);
+});
+
+test("buildEnvironment injects GEMINI_CLI_TRUST_WORKSPACE for gemini CLI mode", () => {
+  const env = buildEnvironment("gemini", "cli", undefined, "gemini");
+  assert.equal(env.GEMINI_CLI_TRUST_WORKSPACE, "true");
+});
+
+test("buildEnvironment does not inject GEMINI_CLI_TRUST_WORKSPACE for claude or codex", () => {
+  const claudeEnv = buildEnvironment("claude", "cli", undefined, "claude");
+  assert.equal(claudeEnv.GEMINI_CLI_TRUST_WORKSPACE, undefined);
+
+  const codexEnv = buildEnvironment("codex", "cli", undefined, "codex");
+  assert.equal(codexEnv.GEMINI_CLI_TRUST_WORKSPACE, undefined);
+});
+
+test("buildEnvironment injects GEMINI_CLI_TRUST_WORKSPACE for gemini apiKey mode (before early return)", () => {
+  const env = buildEnvironment("gemini", "apiKey", "fake-api-key", "gemini");
+  assert.equal(env.GEMINI_CLI_TRUST_WORKSPACE, "true");
 });

@@ -16,6 +16,7 @@ import {
   createProject,
   deleteProject,
   saveDocument,
+  setDocumentPinned,
   saveEssayDraft,
   analyzePosting,
   getProjectInsights,
@@ -48,6 +49,7 @@ import {
   submitProviderCliCode,
   callProviderLogout
 } from "../routes/providerCliHandlers";
+import { syncDisable, syncNow } from "../routes/syncHandlers";
 
 // ---------------------------------------------------------------------------
 // Logger interface — narrow surface so callers can provide console or pino
@@ -274,6 +276,9 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
     case "save_document":
       return saveDocument(ctx, req.payload);
 
+    case "set_document_pinned":
+      return setDocumentPinned(ctx, req.payload);
+
     case "save_essay_draft":
       return saveEssayDraft(ctx, req.payload);
 
@@ -321,6 +326,12 @@ async function route(ctx: RunnerContext, req: RpcRequest): Promise<unknown> {
 
     case "profile_get_document_preview":
       return profileGetDocumentPreview(ctx, req.payload);
+
+    case "sync_now":
+      return syncNow(ctx, req.payload);
+
+    case "sync_disable":
+      return syncDisable(ctx, req.payload);
 
     case "check_provider_cli_status":
       return checkProviderCliStatus(ctx, req.payload);

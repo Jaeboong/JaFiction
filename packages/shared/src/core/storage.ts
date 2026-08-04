@@ -198,6 +198,7 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
       jobPostingManualFallback: false,
       rubric: defaultRubric(),
       pinnedDocumentIds: [],
+      experienceRefs: { profileDocumentIds: [], githubRepos: [], notionDirective: null },
       insightStatus: "idle",
       postingReviewReasons: [],
       jobPostingFieldConfidence: {},
@@ -608,6 +609,15 @@ export class ForJobStorage implements ProviderStore, DocumentContentReader, Stat
   async setLastReviewMode(reviewMode: AppPreferences["lastReviewMode"]): Promise<void> {
     const preferences = await this.getPreferences();
     await writeJsonFile(this.paths.preferencesPath(), { ...preferences, lastReviewMode: reviewMode });
+  }
+
+  async setServerSyncState(input: { enabled: boolean; lastSyncedAt?: string }): Promise<void> {
+    const preferences = await this.getPreferences();
+    await writeJsonFile(this.paths.preferencesPath(), {
+      ...preferences,
+      serverSyncEnabled: input.enabled,
+      lastSyncedAt: input.lastSyncedAt ?? preferences.lastSyncedAt
+    });
   }
 
   async createRun(record: RunRecord): Promise<string> { return this.runs.createRun(record); }

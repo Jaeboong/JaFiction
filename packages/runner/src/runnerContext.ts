@@ -84,6 +84,8 @@ export async function createWebSearchProviderFromEnv(config: RunnerConfig): Prom
 export interface RunnerContext {
   readonly workspaceRoot: string;
   readonly storageRoot: string;
+  readonly backendUrl?: string;
+  readonly deviceToken?: string;
   readonly stateStore: SidebarStateStore;
   readonly runSessions: RunSessionManager;
   /** Exposed for hosted event forwarding — subscribe with onSnapshot/onEvent. */

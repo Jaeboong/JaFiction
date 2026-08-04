@@ -217,6 +217,11 @@ export interface ProjectRecord {
   essayAnswerStates?: ProjectEssayAnswerState[];
   rubric: string;
   pinnedDocumentIds: string[];
+  experienceRefs: {
+    profileDocumentIds: string[];
+    githubRepos: string[];
+    notionDirective: string | null;
+  };
   charLimit?: number;
   notionPageIds?: string[];
   createdAt: string;
@@ -228,6 +233,8 @@ export interface ProjectRecord {
 export interface AppPreferences {
   lastCoordinatorProvider?: ProviderId;
   lastReviewMode?: ReviewMode;
+  serverSyncEnabled: boolean;
+  lastSyncedAt?: string;
 }
 
 export interface RunRecord {

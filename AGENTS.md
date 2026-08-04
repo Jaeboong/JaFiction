@@ -33,8 +33,8 @@ For a detailed file-level map (task → entry point, route table, test locations
 
 ## Product Plane vs Harness Plane
 
-- Product plane: `packages/shared/**`, `packages/runner/**`, `packages/web/**`
-- Harness plane: `scripts/**`, `tools/**`, `docs/development/**`, `docs/plans/**`, `.github/**`, root workflow docs
+- Product plane: `packages/shared/**`, `packages/runner/**`, `packages/web/**`, `services/**`
+- Harness plane: `scripts/**`, `tools/**`, `docs/development/**`, `docs/plans/**`, `.github/**`, root workflow docs; `services/*/eval/**` is service-local harness code
 
 Keep changes in the intended plane. Do not hide workflow fixes inside product runtime code when a harness fix is the right answer.
 
@@ -155,6 +155,15 @@ test(scope): description
 - Broad codebase searches → use an Explore subagent, not repeated Grep/Glob cycles
 - Planning/architecture → use a Plan subagent
 - Parallel independent concerns → run parallel agents
+
+### Workflow model/effort routing
+
+When launching multi-agent workflows, set each `agent()`'s `model`/`effort` explicitly per stage — do not blanket-inherit session settings:
+
+- Mechanical scan/collection/bulk drafting → sonnet (haiku for trivial), effort low~medium
+- Standard implementation against a fixed spec → sonnet ~ session model, effort medium~high
+- Gate judgment, adversarial verification, judge scoring, design decisions → top session model (inherit), effort high~xhigh
+- When in doubt, pick the higher tier. Never downgrade Verify/judge stages.
 
 ## Codex Delegation
 

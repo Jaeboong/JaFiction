@@ -333,6 +333,87 @@ test("outboundClient: heartbeat timeout closes the socket", async (t) => {
 });
 
 // ---------------------------------------------------------------------------
+// 8. invalid_or_revoked_token: onAuthFailure called, no reconnect.
+// ---------------------------------------------------------------------------
+test("outboundClient: invalid_or_revoked_token triggers onAuthFailure and stops reconnect", async (t) => {
+  const { wss, url } = await startFakeBackend();
+  t.after(async () => { wss.close(); });
+
+  let connCount = 0;
+  wss.on("connection", () => { connCount++; });
+
+  let callbackReason: string | undefined;
+  let callbackCount = 0;
+
+  const client = startHostedOutboundClient({
+    backendUrl: url,
+    deviceToken: "tok-revoked",
+    runnerContext: stubCtx,
+    reconnect: fastReconnect,
+    onAuthFailure: (reason) => {
+      callbackReason = reason;
+      callbackCount++;
+    }
+  });
+
+  t.after(() => client.close());
+
+  // Wait for first connection and send invalid_or_revoked_token.
+  const { ws: serverWs, firstFrame: authFramePromise } = await nextConnectionWithFirstFrame(wss);
+  await authFramePromise;
+  serverWs.send(JSON.stringify({ type: "auth_err", reason: "invalid_or_revoked_token" }));
+
+  // onAuthFailure should be called exactly once.
+  await waitFor(() => callbackCount === 1, 1_000);
+  assert.equal(callbackCount, 1);
+  assert.equal(callbackReason, "invalid_or_revoked_token");
+
+  // Client must not reconnect — wait a bit and check connection count stays at 1.
+  await sleep(150);
+  assert.equal(connCount, 1, "client must not attempt to reconnect after invalid_or_revoked_token");
+
+  // close() must resolve without hanging.
+  await client.close();
+  assert.ok(!client.isConnected());
+});
+
+// ---------------------------------------------------------------------------
+// 9. Other auth_err reasons: onAuthFailure NOT called, authFailureCount path active.
+// ---------------------------------------------------------------------------
+test("outboundClient: other auth_err reasons keep existing authFailureCount path", async (t) => {
+  const { wss, url } = await startFakeBackend();
+  t.after(async () => { wss.close(); });
+
+  let callbackCount = 0;
+  let connCount = 0;
+  wss.on("connection", () => { connCount++; });
+
+  const client = startHostedOutboundClient({
+    backendUrl: url,
+    deviceToken: "tok-invalid-json",
+    runnerContext: stubCtx,
+    reconnect: fastReconnect,
+    onAuthFailure: () => { callbackCount++; }
+  });
+
+  t.after(() => client.close());
+
+  // First connection — send non-revoke auth_err.
+  const { ws: serverWs1, firstFrame: authFrame1 } = await nextConnectionWithFirstFrame(wss);
+  await authFrame1;
+  serverWs1.send(JSON.stringify({ type: "auth_err", reason: "invalid_json" }));
+
+  // Client should reconnect (authFailureCount path); wait for second connection.
+  await waitFor(() => connCount >= 2, 1_000);
+  assert.ok(connCount >= 2, "client must reconnect after a non-revoke auth_err");
+
+  // onAuthFailure must never have been called.
+  assert.equal(callbackCount, 0, "onAuthFailure must not be called for non-revoke auth_err reasons");
+
+  await client.close();
+});
+
+// ---------------------------------------------------------------------------
 // Utility
 // ---------------------------------------------------------------------------
 

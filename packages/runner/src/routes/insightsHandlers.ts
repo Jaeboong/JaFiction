@@ -252,11 +252,11 @@ export async function generateProjectInsightsService(
       companyContext
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[generateProjectInsights] 기업 분석 단계 실패 (${input.projectSlug})`, error);
     await storage.updateProject({
       ...project,
       insightStatus: "error",
-      insightLastError: `기업 분석 실패: ${message}`
+      insightLastError: `기업 분석 실패: ${classifyInsightFailure(error)}`
     });
     return;
   }
@@ -282,11 +282,11 @@ export async function generateProjectInsightsService(
     await storage.saveOrUpdateProjectGeneratedDocument(input.projectSlug, "application-strategy.md", supportingArtifacts["application-strategy.md"], generatedNote);
     await storage.saveOrUpdateProjectGeneratedDocument(input.projectSlug, "question-analysis.md", supportingArtifacts["question-analysis.md"], generatedNote);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[generateProjectInsights] 직무/전략 분석 단계 실패 (${input.projectSlug})`, error);
     await storage.updateProject({
       ...project,
       insightStatus: "error",
-      insightLastError: `직무/전략 분석 실패 (기업 분석은 저장됨): ${message}`
+      insightLastError: `직무/전략 분석 실패 (기업 분석은 저장됨): ${classifyInsightFailure(error)}`
     });
     return;
   }
@@ -431,9 +431,31 @@ function buildProjectInput(body: Record<string, unknown>): ProjectInsightInput {
 
 function buildJobPostingFallbackMessage(error: unknown): string {
   if (isJobPostingFetchError(error)) {
+    // JobPostingFetchError 는 이미 사용자용 도메인 메시지를 담고 있어 그대로 노출한다.
     return error.message;
   }
-  return error instanceof Error ? error.message : String(error);
+  // 그 외 예외는 raw stack/stderr 가 새어나가지 않도록 분류 메시지로 치환한다.
+  return classifyInsightFailure(error);
+}
+
+// 프로바이더 CLI(codex/claude 등) 가 토해내는 raw stdout/stderr(예: 401 토큰 무효화
+// 덤프)를 그대로 웹 UI(insightLastError)에 노출하지 않도록 사용자용 한국어 메시지로
+// 분류한다. 진단용 원본은 호출부에서 console.error 로 서버 로그에만 남긴다.
+function classifyInsightFailure(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  if (/401|unauthorized|token_invalidated|refresh_token|authentication token|sign(ing)?\s*in\b|invalidated/i.test(raw)) {
+    return "AI 제공자 로그인이 만료되었습니다. 러너에서 해당 CLI(codex/claude 등)에 다시 로그인한 뒤 재시도해주세요.";
+  }
+  if (/rate.?limit|too many requests|\b429\b|quota|insufficient_quota/i.test(raw)) {
+    return "AI 제공자 사용 한도에 도달했습니다. 잠시 후 다시 시도해주세요.";
+  }
+  if (/etimedout|esockettimedout|timed?\s*out|timeout/i.test(raw)) {
+    return "AI 분석 요청이 시간 초과되었습니다. 잠시 후 다시 시도해주세요.";
+  }
+  if (/enoent|command not found|not recognized|module_not_found|cannot find module/i.test(raw)) {
+    return "AI 제공자 CLI를 실행할 수 없습니다. 러너에서 CLI 설치 상태를 확인해주세요.";
+  }
+  return "AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

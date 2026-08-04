@@ -29,6 +29,10 @@ export async function saveAgentDefaults(
 ): Promise<SaveAgentDefaultsResult> {
   await ctx.runBusy("에이전트 배정을 저장하는 중...", async () => {
     await ctx.config().setAgentDefaults(payload.agentDefaults);
+    if (payload.serverSyncEnabled !== undefined) {
+      await ctx.storage().setServerSyncState({ enabled: payload.serverSyncEnabled });
+      await ctx.stateStore.refreshPreferences();
+    }
     await ctx.stateStore.refreshAgentDefaults();
   });
   return { ok: true };

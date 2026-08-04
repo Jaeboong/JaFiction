@@ -58,7 +58,7 @@ setsid bash -lc '
     --label runner \
     --pidfile "$4" \
     --logfile "$5" \
-    -- "$6" "$7" "$8"
+    -- "$6" "$7" "$8" "$9"
 ' _ \
   "${backend_urls}" \
   "${ROOT_DIR}/scripts/with-node.sh" \

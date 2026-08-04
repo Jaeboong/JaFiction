@@ -16,8 +16,10 @@ import { truncateContinuationText } from "../continuation";
 import { NotionRequestDescriptor } from "../notionRequest";
 import { getPerspectiveInstruction } from "./deepFeedbackPrompts";
 import {
+  buildAntiAiToneChecklist,
   buildFinalEssayKoreanInstruction,
   buildFormalToneRuleBlock,
+  buildJasoWritingRulesBlock,
   buildNotionPrePassKoreanInstruction,
   buildRealtimeKoreanResponseInstruction,
   buildStructuredKoreanResponseInstruction
@@ -112,6 +114,7 @@ export function buildRealtimeCoordinatorDiscussionPrompt(
     "Use Challenge Decisions to mark ticket transitions with lines like '- [ticketId] close' or '- [new] add | sectionKey=... | sectionLabel=... | severity=advisory | text=...'.",
     "If Open Challenges are empty but Deferred Challenges remain, hand off Target Section to the next deferred issue instead of reopening the completed section.",
     "Current Focus, Rewrite Direction, Must Keep, and Must Resolve must be derived fresh from the current reviewer feedback and available evidence. Do not copy or lightly rephrase these fields from the previous ledger — the previous values are intentionally omitted to force a new reading.",
+    "Exit Criteria에는 두괄식·확정형 종결·구체 수치·How가 있는 마무리를 충족 기준으로 포함하라.",
     hasReviewerHistory
       ? "Use the latest reviewer feedback and the previous ledger to move one unresolved issue closer to convergence."
       : "Open the discussion by naming the single highest-leverage issue and proposing the first Mini Draft.",
@@ -719,6 +722,7 @@ export function buildRealtimeSectionDrafterPrompt(
       "You are the section drafter in a realtime multi-model essay workflow.",
       buildStructuredKoreanResponseInstruction(),
       toneRuleBlock,
+      buildJasoWritingRulesBlock(),
       `Round: ${round}`,
       "Use the coordinator's ledger to write the actual section prose for the current target section.",
       "Do not invent new evidence or claims outside the provided context, Notion Brief, and ledger.",
