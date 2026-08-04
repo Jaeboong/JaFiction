@@ -17,10 +17,14 @@ import { z } from "zod";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = dirname(SCRIPT_DIR);
 const ANCHOR_FILE = join(REPO_ROOT, "docs/plans/2026-07-31-rubric-anchors-draft.md");
+const GROUNDEDNESS_ANCHOR_FILE = join(
+  REPO_ROOT,
+  "docs/plans/2026-08-04-groundedness-anchor-draft.md",
+);
 const DEFAULT_OUTPUT_DIR = join(REPO_ROOT, ".harness/eval-rubric");
 const RESULTS_FILE_NAME = "results.json";
 
-const OUTPUT_SCHEMA_PROMPT = `{
+const OUTPUT_SCHEMA_PROMPT_WITHOUT_CONTEXT = `{
   "dimension": "specificity/evidence",
   "claims": [
     { "text": "<원문 인용>", "kind": "self" | "link",
@@ -32,6 +36,22 @@ const OUTPUT_SCHEMA_PROMPT = `{
   "scoreRationale": "<적용한 앵커 규칙>"
 }`;
 
+const OUTPUT_SCHEMA_PROMPT_WITH_CONTEXT = `{
+  "dimension": "specificity/evidence",
+  "claims": [
+    { "text": "<답안 원문 인용>", "kind": "self" | "link",
+      "elements": { "context": bool, "role": bool, "result": bool },
+      "hasEvidence": bool, "note": "<specificity/evidence 판정 근거 한 줄>",
+      "groundable": bool,
+      "grounded": { "verdict": "supported" | "unsupported" | "contradicted",
+        "quote": "<사용자 제공 자료의 원문 인용>" } }
+  ],
+  "excluded": [ { "text": "<답안 원문 인용>", "reason": "aspiration" | "company_info" | "transition" } ],
+  "score": 1..5,
+  "scoreRationale": "<specificity/evidence에 적용한 앵커 규칙>",
+  "groundedness": { "score": 1..5, "scoreRationale": "<groundedness에 적용한 앵커 규칙>" }
+}`;
+
 // ─── 스키마 ─────────────────────────────────────────────────────────────────
 
 const EvidenceElementsSchema = z.object({
@@ -40,17 +60,31 @@ const EvidenceElementsSchema = z.object({
   result: z.boolean(),
 }).strict();
 
+const GroundedVerdictSchema = z.enum(["supported", "unsupported", "contradicted"]);
+
+const GroundedSchema = z.object({
+  verdict: GroundedVerdictSchema,
+  quote: z.string(),
+}).strict();
+
 const ClaimSchema = z.object({
   text: z.string().min(1),
   kind: z.enum(["self", "link"]),
   elements: EvidenceElementsSchema,
   hasEvidence: z.boolean(),
   note: z.string().min(1),
+  groundable: z.boolean().optional(),
+  grounded: GroundedSchema.optional(),
 }).strict();
 
 const ExcludedSchema = z.object({
   text: z.string().min(1),
   reason: z.enum(["aspiration", "company_info", "transition"]),
+}).strict();
+
+const GroundednessSchema = z.object({
+  score: z.number().int().min(1).max(5),
+  scoreRationale: z.string().min(1),
 }).strict();
 
 export const JudgeResultSchema = z.object({
@@ -59,15 +93,40 @@ export const JudgeResultSchema = z.object({
   excluded: z.array(ExcludedSchema),
   score: z.number().int().min(1).max(5),
   scoreRationale: z.string().min(1),
-}).strict();
+  groundedness: GroundednessSchema.optional(),
+}).strict().superRefine((result, context) => {
+  if (result.groundedness === undefined) return;
+
+  result.claims.forEach((claim, index) => {
+    if (claim.groundable === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["claims", index, "groundable"],
+        message: "groundedness 채점 시 groundable 판정이 필요합니다.",
+      });
+      return;
+    }
+    if (claim.groundable && claim.grounded === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["claims", index, "grounded"],
+        message: "groundable claim에는 grounded 판정이 필요합니다.",
+      });
+    }
+  });
+});
 
 export type EvidenceElements = z.infer<typeof EvidenceElementsSchema>;
+export type GroundedVerdict = z.infer<typeof GroundedVerdictSchema>;
 export type JudgeResult = z.infer<typeof JudgeResultSchema>;
 
 interface ClaimCheck extends Omit<JudgeResult["claims"][number], "hasEvidence"> {
   reportedHasEvidence: boolean;
   recalculatedHasEvidence: boolean;
   evidenceMismatch: boolean;
+  reportedVerdict: GroundedVerdict | null;
+  recalculatedVerdict: GroundedVerdict | null;
+  verdictMismatch: boolean;
 }
 
 export interface RecalculatedResult {
@@ -84,6 +143,16 @@ export interface RecalculatedResult {
   hasEvidenceMismatchCount: number;
   judgeScoreRationale: string;
   recalculationRationale: string;
+  groundableCount: number;
+  supportedCount: number;
+  unsupportedCount: number;
+  contradictedCount: number;
+  groundedRatio: number | null;
+  groundednessJudgeScore: number | null;
+  groundednessScore: number | null;
+  groundednessScoreMismatch: boolean;
+  verdictDemotionCount: number;
+  groundednessRationale: string;
 }
 
 interface StoredResult extends RecalculatedResult {
@@ -183,6 +252,38 @@ export function calculateScore(claimCount: number, evidenceCount: number): numbe
   return 2;
 }
 
+export function calculateGroundednessScore(
+  groundableCount: number,
+  supportedCount: number,
+  contradictedCount: number,
+): number | null {
+  if (
+    !Number.isInteger(groundableCount)
+    || !Number.isInteger(supportedCount)
+    || !Number.isInteger(contradictedCount)
+  ) {
+    throw new Error("groundable, supported, contradicted claim 수는 정수여야 합니다.");
+  }
+  if (
+    groundableCount < 0
+    || supportedCount < 0
+    || contradictedCount < 0
+    || supportedCount > groundableCount
+    || contradictedCount > groundableCount
+  ) {
+    throw new Error("groundedness claim 수의 범위가 올바르지 않습니다.");
+  }
+
+  if (groundableCount === 0) return null;
+  if (contradictedCount >= 2) return 1;
+  if (supportedCount * 2 < groundableCount) return 1;
+  if (contradictedCount === 1) return 2;
+  if (supportedCount === groundableCount) return 5;
+  if (supportedCount * 10 >= groundableCount * 9) return 4;
+  if (supportedCount * 4 >= groundableCount * 3) return 3;
+  return 2;
+}
+
 function buildRecalculationRationale(
   claimCount: number,
   evidenceCount: number,
@@ -200,21 +301,50 @@ function buildRecalculationRationale(
 }
 
 export function recalculateJudgeResult(result: JudgeResult): RecalculatedResult {
+  const hasGroundednessContext = result.groundedness !== undefined;
   const claims = result.claims.map((claim) => {
     const recalculatedHasEvidence = hasEvidenceFromElements(claim.elements);
+    const reportedVerdict = claim.grounded?.verdict ?? null;
+    const recalculatedVerdict = !hasGroundednessContext || claim.groundable !== true
+      ? null
+      : reportedVerdict === "supported" && claim.grounded?.quote.trim().length === 0
+        ? "unsupported"
+        : reportedVerdict ?? "unsupported";
     return {
       text: claim.text,
       kind: claim.kind,
       elements: claim.elements,
       note: claim.note,
+      groundable: claim.groundable,
+      grounded: claim.grounded,
       reportedHasEvidence: claim.hasEvidence,
       recalculatedHasEvidence,
       evidenceMismatch: claim.hasEvidence !== recalculatedHasEvidence,
+      reportedVerdict,
+      recalculatedVerdict,
+      verdictMismatch: reportedVerdict !== recalculatedVerdict,
     };
   });
   const claimCount = claims.length;
   const evidenceCount = claims.filter((claim) => claim.recalculatedHasEvidence).length;
   const recalculatedScore = calculateScore(claimCount, evidenceCount);
+  const groundableClaims = hasGroundednessContext
+    ? claims.filter((claim) => claim.groundable === true)
+    : [];
+  const groundableCount = groundableClaims.length;
+  const supportedCount = groundableClaims.filter(
+    (claim) => claim.recalculatedVerdict === "supported",
+  ).length;
+  const unsupportedCount = groundableClaims.filter(
+    (claim) => claim.recalculatedVerdict === "unsupported",
+  ).length;
+  const contradictedCount = groundableClaims.filter(
+    (claim) => claim.recalculatedVerdict === "contradicted",
+  ).length;
+  const groundednessScore = hasGroundednessContext
+    ? calculateGroundednessScore(groundableCount, supportedCount, contradictedCount)
+    : null;
+  const groundednessJudgeScore = result.groundedness?.score ?? null;
 
   return {
     dimension: result.dimension,
@@ -234,12 +364,27 @@ export function recalculateJudgeResult(result: JudgeResult): RecalculatedResult 
       evidenceCount,
       recalculatedScore,
     ),
+    groundableCount,
+    supportedCount,
+    unsupportedCount,
+    contradictedCount,
+    groundedRatio: groundableCount === 0 ? null : supportedCount / groundableCount,
+    groundednessJudgeScore,
+    groundednessScore,
+    groundednessScoreMismatch: groundednessJudgeScore !== groundednessScore,
+    verdictDemotionCount: groundableClaims.filter(
+      (claim) => claim.reportedVerdict === "supported"
+        && claim.recalculatedVerdict === "unsupported"
+        && claim.grounded?.quote.trim().length === 0,
+    ).length,
+    groundednessRationale: result.groundedness?.scoreRationale
+      ?? "컨텍스트 미제공으로 groundedness 측정 불가",
   };
 }
 
 // ─── 프롬프트 생성 ───────────────────────────────────────────────────────────
 
-function loadAnchorRules(): string {
+export function loadAnchorRules(): string {
   const content = readFileSync(ANCHOR_FILE, "utf-8");
   const unitsStart = content.indexOf("### 1.1 주장(claim)");
   const anchorsStart = content.indexOf("## 2. 앵커 — specificity/evidence");
@@ -254,16 +399,50 @@ function loadAnchorRules(): string {
   ].join("\n\n");
 }
 
-function buildJudgePrompt(
+export function loadGroundednessAnchorRules(): string {
+  const content = readFileSync(GROUNDEDNESS_ANCHOR_FILE, "utf-8");
+  const rulesStart = content.indexOf("## 3. 판정 대상");
+  const reviewStart = content.indexOf("## 6. 사용자 확인 필요");
+  if (rulesStart < 0 || reviewStart < 0 || reviewStart <= rulesStart) {
+    throw new Error(`groundedness 앵커 규약 섹션을 찾을 수 없습니다: ${GROUNDEDNESS_ANCHOR_FILE}`);
+  }
+
+  return `# groundedness\n\n${content.slice(rulesStart, reviewStart).trim()}`;
+}
+
+export function buildJudgePrompt(
   question: ParsedQuestion,
   anchorRules: string,
   posting: string | undefined,
+  groundednessAnchorRules: string | undefined,
+  context: string | undefined,
 ): string {
-  return `# specificity/evidence 평가 요청
+  const hasGroundednessContext = groundednessAnchorRules !== undefined && context !== undefined;
+  const groundednessRequest = groundednessAnchorRules === undefined || context === undefined
+    ? ""
+    : `
+
+## groundedness 규약
+
+${groundednessAnchorRules}
+
+## 사용자 제공 자료 원문
+
+${context.trim()}`;
+  const outputSchemaPrompt = hasGroundednessContext
+    ? OUTPUT_SCHEMA_PROMPT_WITH_CONTEXT
+    : OUTPUT_SCHEMA_PROMPT_WITHOUT_CONTEXT;
+  const groundednessInstructions = hasGroundednessContext
+    ? `- \`claims[]\`는 두 차원이 공유합니다. 각 claim에 \`groundable\`을 판정하고, \`groundable: true\`이면 \`grounded\`를 포함하세요.
+- \`supported\`이면 \`grounded.quote\`에 사용자 제공 자료 원문을 공백이 아닌 문자열로 인용하세요. \`groundable: false\`이면 \`grounded\`를 생략하세요.
+`
+    : "";
+
+  return `# specificity/evidence${hasGroundednessContext ? " + groundedness" : ""} 평가 요청
 
 아래 규약을 그대로 적용해 자소서 답안을 채점하세요. 규약을 완화하거나 다른 평가 차원을 섞지 마세요.
 
-${anchorRules}
+${anchorRules}${groundednessRequest}
 
 ## 평가 대상 문항
 
@@ -282,13 +461,13 @@ ${posting?.trim() || "제공되지 않음"}
 아래 스키마와 정확히 같은 필드만 사용하세요.
 
 \`\`\`json
-${OUTPUT_SCHEMA_PROMPT}
+${outputSchemaPrompt}
 \`\`\`
 
 - \`kind\`는 자기 주장이면 \`self\`, 연결 주장이면 \`link\`입니다.
 - \`elements\`의 각 값과 \`hasEvidence\`를 독립적으로 빠짐없이 판정하세요.
 - \`claims[].text\`와 \`excluded[].text\`는 반드시 답안 원문을 그대로 인용하세요.
-- 설명, 마크다운 코드 펜스, 머리말을 붙이지 말고 유효한 JSON 객체만 반환하세요.
+${groundednessInstructions}- 설명, 마크다운 코드 펜스, 머리말을 붙이지 말고 유효한 JSON 객체만 반환하세요.
 `;
 }
 
@@ -297,6 +476,7 @@ function emitPrompts(
   outDir: string,
   questionIndex: number | undefined,
   postingPath: string | undefined,
+  contextPath: string | undefined,
 ): void {
   const questions = parseEssayMarkdown(readFileSync(essayPath, "utf-8"));
   const selected = questionIndex === undefined
@@ -312,12 +492,18 @@ function emitPrompts(
 
   const anchorRules = loadAnchorRules();
   const posting = postingPath ? readFileSync(postingPath, "utf-8") : undefined;
+  const groundednessAnchorRules = contextPath ? loadGroundednessAnchorRules() : undefined;
+  const context = contextPath ? readFileSync(contextPath, "utf-8") : undefined;
   mkdirSync(outDir, { recursive: true });
 
   console.log(`=== judge 프롬프트 생성 (${selected.length}개) ===`);
   for (const question of selected) {
     const outputPath = join(outDir, `question-${question.index}.prompt.md`);
-    writeFileSync(outputPath, buildJudgePrompt(question, anchorRules, posting), "utf-8");
+    writeFileSync(
+      outputPath,
+      buildJudgePrompt(question, anchorRules, posting, groundednessAnchorRules, context),
+      "utf-8",
+    );
     console.log(`[문항 ${question.index}] ${outputPath}`);
   }
 }
@@ -362,8 +548,16 @@ function ingestFiles(path: string): StoredResult[] {
   }));
 }
 
-function formatRatio(value: number): string {
-  return value.toFixed(2);
+function formatRatio(value: number | null | undefined): string {
+  return value === null || value === undefined ? "측정 불가" : value.toFixed(2);
+}
+
+function formatNullableScore(value: number | null | undefined): string {
+  return value === null || value === undefined ? "측정 불가" : String(value);
+}
+
+function formatGroundednessCount(result: StoredResult, value: number): string {
+  return result.groundednessJudgeScore === null ? "측정 불가" : String(value);
 }
 
 function printIngestTable(results: StoredResult[]): void {
@@ -386,6 +580,30 @@ function printIngestTable(results: StoredResult[]): void {
     for (const { sourceFile, claim } of evidenceMismatches) {
       console.log(
         `- ${sourceFile}: "${claim.text}" judge=${claim.reportedHasEvidence}, 재계산=${claim.recalculatedHasEvidence}`,
+      );
+    }
+  }
+
+  console.log("\n=== groundedness 채점 결과 ===");
+  console.log("| 파일 | groundable | supported | unsupported | contradicted | 비율 | judge | 재계산/채택 | 점수 불일치 | verdict 강등 | claim 판정 불일치 |");
+  console.log("|---|---:|---:|---:|---:|---:|---:|---:|:---:|---:|---:|");
+  for (const result of results) {
+    const verdictMismatchCount = result.claims.filter((claim) => claim.verdictMismatch).length;
+    console.log(
+      `| ${result.sourceFile.replace(/\|/g, "\\|")} | ${formatGroundednessCount(result, result.groundableCount)} | ${formatGroundednessCount(result, result.supportedCount)} | ${formatGroundednessCount(result, result.unsupportedCount)} | ${formatGroundednessCount(result, result.contradictedCount)} | ${formatRatio(result.groundedRatio)} | ${formatNullableScore(result.groundednessJudgeScore)} | ${formatNullableScore(result.groundednessScore)} | ${result.groundednessScoreMismatch ? "예" : "아니오"} | ${result.verdictDemotionCount} | ${verdictMismatchCount} |`,
+    );
+  }
+
+  const verdictMismatches = results.flatMap((result) =>
+    result.claims
+      .filter((claim) => claim.verdictMismatch)
+      .map((claim) => ({ sourceFile: result.sourceFile, claim })),
+  );
+  if (verdictMismatches.length > 0) {
+    console.log("\n[claim grounded verdict 불일치]");
+    for (const { sourceFile, claim } of verdictMismatches) {
+      console.log(
+        `- ${sourceFile}: "${claim.text}" judge=${claim.reportedVerdict ?? "측정 불가"}, 재계산=${claim.recalculatedVerdict ?? "측정 불가"}`,
       );
     }
   }
@@ -414,11 +632,42 @@ function isStoredResults(value: unknown): value is StoredResults {
   return record.dimension === "specificity/evidence" && Array.isArray(record.results);
 }
 
+function normalizeStoredResult(result: StoredResult): StoredResult {
+  const groundednessJudgeScore = result.groundednessJudgeScore ?? null;
+  const groundednessScore = result.groundednessScore ?? null;
+  return {
+    ...result,
+    claims: result.claims.map((claim) => {
+      const reportedVerdict = claim.reportedVerdict ?? null;
+      const recalculatedVerdict = claim.recalculatedVerdict ?? null;
+      return {
+        ...claim,
+        reportedVerdict,
+        recalculatedVerdict,
+        verdictMismatch: claim.verdictMismatch
+          ?? (reportedVerdict !== recalculatedVerdict),
+      };
+    }),
+    groundableCount: result.groundableCount ?? 0,
+    supportedCount: result.supportedCount ?? 0,
+    unsupportedCount: result.unsupportedCount ?? 0,
+    contradictedCount: result.contradictedCount ?? 0,
+    groundedRatio: result.groundedRatio ?? null,
+    groundednessJudgeScore,
+    groundednessScore,
+    groundednessScoreMismatch: result.groundednessScoreMismatch
+      ?? (groundednessJudgeScore !== groundednessScore),
+    verdictDemotionCount: result.verdictDemotionCount ?? 0,
+    groundednessRationale: result.groundednessRationale
+      ?? "컨텍스트 미제공으로 groundedness 측정 불가",
+  };
+}
+
 function loadComparisonResults(path: string): StoredResult[] {
   if (statSync(path).isDirectory()) return ingestFiles(path);
 
   const value = readJsonFile(path);
-  if (isStoredResults(value)) return value.results;
+  if (isStoredResults(value)) return value.results.map(normalizeStoredResult);
 
   const parsed = JudgeResultSchema.safeParse(value);
   if (parsed.success) {
@@ -491,6 +740,33 @@ function compareResults(aPath: string, bPath: string): void {
     );
     if (pair.a && pair.b) printClaimDifferences(pair.label, pair.a, pair.b);
   }
+
+  console.log("\n=== groundedness 비교 ===");
+  console.log("| 결과 | A 점수 | B 점수 | 점수 차(A-B) | A groundable | B groundable | groundable 수 차(A-B) |");
+  console.log("|---|---:|---:|---:|---:|---:|---:|");
+  for (const pair of pairs) {
+    const aScore = pair.a ? pair.a.groundednessScore ?? null : undefined;
+    const bScore = pair.b ? pair.b.groundednessScore ?? null : undefined;
+    const scoreDifference = aScore === undefined || bScore === undefined
+      ? "-"
+      : aScore === null || bScore === null
+        ? "측정 불가"
+        : aScore - bScore;
+    const aGroundableCount = pair.a
+      ? pair.a.groundednessJudgeScore === null ? null : pair.a.groundableCount
+      : undefined;
+    const bGroundableCount = pair.b
+      ? pair.b.groundednessJudgeScore === null ? null : pair.b.groundableCount
+      : undefined;
+    const groundableDifference = aGroundableCount === undefined || bGroundableCount === undefined
+      ? "-"
+      : aGroundableCount === null || bGroundableCount === null
+        ? "측정 불가"
+      : aGroundableCount - bGroundableCount;
+    console.log(
+      `| ${pair.label.replace(/\|/g, "\\|")} | ${aScore === undefined ? "-" : formatNullableScore(aScore)} | ${bScore === undefined ? "-" : formatNullableScore(bScore)} | ${scoreDifference} | ${aGroundableCount === undefined ? "-" : formatNullableScore(aGroundableCount)} | ${bGroundableCount === undefined ? "-" : formatNullableScore(bGroundableCount)} | ${groundableDifference} |`,
+    );
+  }
 }
 
 // ─── 인자 파싱 및 메인 ───────────────────────────────────────────────────────
@@ -515,6 +791,11 @@ function requireOption(args: CliArgs, name: string): string {
   return value;
 }
 
+function resolveOptionalOption(args: CliArgs, name: string): string | undefined {
+  const value = args.options.get(name);
+  return value === undefined ? undefined : resolve(value);
+}
+
 function assertAllowedOptions(args: CliArgs, allowed: string[]): void {
   const allowedSet = new Set(allowed);
   const unknown = [...args.options.keys()].filter((key) => !allowedSet.has(key));
@@ -533,7 +814,7 @@ function parseQuestionIndex(raw: string | undefined): number | undefined {
 function printUsage(): void {
   console.log(`사용법:
   eval-rubric parse --essay <path>
-  eval-rubric emit --essay <path> [--question <index>] [--posting <path>] [--out <dir>]
+  eval-rubric emit --essay <path> [--question <index>] [--posting <path>] [--context <path>] [--out <dir>]
   eval-rubric ingest --result <path.json|dir>
   eval-rubric compare --a <path> --b <path>
 
@@ -548,12 +829,13 @@ async function main(): Promise<void> {
     return;
   }
   if (args.command === "emit") {
-    assertAllowedOptions(args, ["essay", "question", "posting", "out"]);
+    assertAllowedOptions(args, ["essay", "question", "posting", "context", "out"]);
     emitPrompts(
       resolve(requireOption(args, "essay")),
       resolve(args.options.get("out") ?? DEFAULT_OUTPUT_DIR),
       parseQuestionIndex(args.options.get("question")),
-      args.options.get("posting") ? resolve(args.options.get("posting")!) : undefined,
+      resolveOptionalOption(args, "posting"),
+      resolveOptionalOption(args, "context"),
     );
     return;
   }
