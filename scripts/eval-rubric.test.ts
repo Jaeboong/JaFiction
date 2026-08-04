@@ -234,6 +234,23 @@ test("contextual judge results require claim-level groundedness fields", () => {
   assert.equal(JudgeResultSchema.safeParse(missingGrounded).success, false);
 });
 
+test("omitting the judge summary block leaves groundedness unmeasured despite claim verdicts", () => {
+  const result = makeResult(4, 4, 5);
+  result.claims.forEach((claim, index) => {
+    claim.groundable = true;
+    claim.grounded = index < 3
+      ? { verdict: "supported", quote: `자료 원문 ${index + 1}` }
+      : { verdict: "unsupported", quote: "" };
+  });
+
+  const recalculated = recalculateJudgeResult(result);
+
+  assert.equal(recalculated.groundednessJudgeScore, null);
+  assert.equal(recalculated.groundableCount, 0);
+  assert.equal(recalculated.groundednessScore, null);
+  assert.match(recalculated.groundednessRationale, /측정 불가/);
+});
+
 test("groundedness is unmeasured when context has no groundable claims", () => {
   const result = makeResult(1, 1, 2);
   result.claims[0].groundable = false;
